@@ -6,8 +6,10 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar({ onOpenModal }) {
+  const { logout, user } = useAuth();
   return (
     <View style={styles.navbar}>
       <ScrollView
@@ -35,6 +37,13 @@ export default function Navbar({ onOpenModal }) {
             onPress={onOpenModal}
           >
             <Text style={styles.modalButtonText}>Abrir Demo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navLink, styles.logoutButton]}
+            onPress={logout}
+          >
+            <Text style={styles.logoutButtonText}>Salir ({user?.usuario})</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -86,5 +95,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  logoutButton: {
+    backgroundColor: "#ff6b6b",
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
