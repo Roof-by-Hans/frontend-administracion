@@ -1,6 +1,6 @@
 import React from "react";
 import { AuthProvider } from "./src/context/AuthContext";
-import Login from "./src/components/Login";
+import Login from "./src/screens/Login";
 
 export default function App() {
   return (

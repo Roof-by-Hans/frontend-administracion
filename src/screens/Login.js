@@ -11,9 +11,7 @@ export default function Login() {
   const isSmallScreen = width < 400;
 
   const handleLogin = () => {
-    // Validación básica
     if (usuario.trim() && contrasena.trim()) {
-      // Aquí puedes agregar validación real con una API
       login({ usuario, recordarme });
     } else {
       console.log("Por favor complete todos los campos");
@@ -23,7 +21,6 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <View style={styles.loginCard}>
-        {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
             <Image source={require('../../assets/hans-logo.png')} style={styles.logo} />
@@ -52,7 +49,6 @@ export default function Login() {
           />
         </View>
 
-        {/* Opciones de recordar y recuperar contraseña */}
         <View style={[styles.optionsContainer, isSmallScreen && styles.optionsContainerStacked]}>
           <TouchableOpacity 
             style={[styles.checkboxContainer, isSmallScreen && styles.checkboxContainerStacked]}
@@ -69,7 +65,6 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
-        {/* Botón de login */}
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>INGRESAR</Text>
         </TouchableOpacity>
@@ -106,16 +101,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logoPlaceholder: {
-    // width: 100,
-    // height: 100,
-    // borderRadius: 50,
-    // backgroundColor: "#c9cbd0ff",
-    // justifyContent: "center",
-    // alignItems: "center",
-  },
-  logoText: {
-    fontSize: 40,
-    color: "#ffffff",
   },
   logo: {
     width: 120,
