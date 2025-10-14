@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     width: 260,
     backgroundColor: "#f1f1f1",
     paddingHorizontal: 24,
-    paddingVertical: 28,
+    paddingVertical: 22,
     borderRightWidth: 1,
     borderRightColor: "#e1e1e1",
     justifyContent: "space-between",
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e1e1e1",
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 18,
   },
   topSection: {
     width: "100%",
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   brandContainer: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   brandContainerCompact: {
     alignItems: "flex-start",

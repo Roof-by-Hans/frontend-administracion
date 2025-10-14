@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+  paddingHorizontal: 32,
+  paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#e1e1e1",
     backgroundColor: "#f5f5f5",
@@ -108,9 +108,9 @@ const styles = StyleSheet.create({
   containerCompact: {
     flexDirection: "column",
     alignItems: "stretch",
-    gap: 16,
+    gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   greetingTextCompact: {
     width: "100%",

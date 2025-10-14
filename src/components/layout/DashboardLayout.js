@@ -10,6 +10,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -17,6 +18,8 @@ import Topbar from "./Topbar";
 export default function DashboardLayout({ children, userName, onLogout }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
+  const isTablet = width >= 900 && width < 1200;
+  const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const animationValue = useRef(new Animated.Value(0)).current;
@@ -100,7 +103,8 @@ export default function DashboardLayout({ children, userName, onLogout }) {
   }, []);
 
   return (
-    <View style={[styles.root, isCompact && styles.rootCompact]}>
+    <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top }] }>
+      <View style={[styles.root, isCompact && styles.rootCompact]}>
       {!isCompact && (
         <View style={styles.sidebarWrapper}>
           <Sidebar onLogout={handleLogoutRequest} />
@@ -113,7 +117,11 @@ export default function DashboardLayout({ children, userName, onLogout }) {
           showMenuButton={isCompact}
           onMenuPress={handleToggleMenu}
         />
-        <View style={[styles.content, isCompact && styles.contentCompact]}>{children}</View>
+        <View
+          style={[styles.content, isTablet && styles.contentTablet, isCompact && styles.contentCompact]}
+        >
+          {children}
+        </View>
       </View>
       {isCompact && isMenuVisible && (
         <View style={styles.sidebarOverlay} pointerEvents="box-none">
@@ -140,7 +148,8 @@ export default function DashboardLayout({ children, userName, onLogout }) {
         onCancel={handleCancelLogout}
         onConfirm={handleConfirmLogout}
       />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -189,6 +198,10 @@ function LogoutPrompt({ visible, onCancel, onConfirm }) {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
   root: {
     flex: 1,
     flexDirection: "row",
@@ -208,12 +221,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 32,
+    paddingHorizontal: 32,
+    paddingVertical: 28,
     backgroundColor: "#f5f5f5",
+  },
+  contentTablet: {
+    paddingTop: 36,
   },
   contentCompact: {
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingTop: 44,
+    paddingBottom: 28,
   },
   sidebarOverlay: {
     position: "absolute",

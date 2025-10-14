@@ -54,6 +54,7 @@ export default function InvoicesScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
+    paddingTop: 16,
   },
   pageTitle: {
     fontSize: 40,
