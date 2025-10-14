@@ -50,8 +50,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
           <View style={styles.cardSection}>
             <CardPreview 
               clientName={getClientName()}
-              cardNumber="1234 5678 9012 3456"
-              expiryDate="12/24"
+
             />
           </View>
 
