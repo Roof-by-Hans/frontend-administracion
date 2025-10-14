@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, useWindowDimensions, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const mainMenuItems = [
@@ -50,9 +50,9 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
-      <View style={styles.topSection}>
-        <View style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}>
-          <View style={[styles.brandContainer, isCompact && styles.brandContainerCompact]}>
+      {/* Header fijo */}
+      <View style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}>
+        <View style={[styles.brandContainer, isCompact && styles.brandContainerCompact]}>
           <Image
             source={require("../../../assets/hans-logo.png")}
             style={styles.brandLogo}
@@ -60,18 +60,26 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
           />
           <Text style={styles.brandName}>Roof by Hans</Text>
         </View>
-          {showCloseButton && (
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeButton}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar menú"
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="close" size={22} color="#3f3f3f" />
-            </TouchableOpacity>
-          )}
-        </View>
+        {showCloseButton && (
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar menú"
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="close" size={22} color="#3f3f3f" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Contenido scrolleable */}
+      <ScrollView 
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={true}
+        bounces={false}
+      >
         <View style={[styles.menuWrapper, isCompact && styles.menuWrapperCompact]}>
           <MenuSection 
             title="Menú principal" 
@@ -88,8 +96,9 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
             currentScreen={currentScreen}
           />
         </View>
-      </View>
+      </ScrollView>
 
+      {/* Footer fijo */}
       <Pressable
         style={({ hovered }) => [styles.logout, hovered && styles.menuItemHovered]}
         android_ripple={{ color: "#e2e2e2" }}
@@ -110,36 +119,36 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
 const styles = StyleSheet.create({
   container: {
     width: 260,
+    height: "100%",
     backgroundColor: "#f1f1f1",
-    paddingHorizontal: 24,
-    paddingVertical: 22,
     borderRightWidth: 1,
     borderRightColor: "#e1e1e1",
-    justifyContent: "space-between",
+    flexDirection: "column",
   },
   containerCompact: {
     width: "100%",
     borderRightWidth: 0,
     borderBottomWidth: 1,
     borderBottomColor: "#e1e1e1",
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
-  topSection: {
-    width: "100%",
   },
   brandHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 22,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e1e1e1",
   },
   brandHeaderCompact: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
     alignItems: "flex-start",
   },
   brandContainer: {
     alignItems: "center",
-    marginBottom: 24,
   },
   brandContainerCompact: {
     alignItems: "flex-start",
@@ -148,17 +157,24 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 18,
     backgroundColor: "#e8e8e8",
-    marginBottom: 24,
   },
   brandLogo: {
     width: 48,
     height: 48,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   brandName: {
     fontSize: 18,
     fontWeight: "700",
     color: "#1f1f1f",
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    flexGrow: 1,
   },
   menuWrapper: {
     gap: 32,
@@ -211,8 +227,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 36,
     borderRadius: 10,
     gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e1e1e1",
+    paddingTop: 18,
+    paddingBottom: 18,
+    marginTop: 8,
   },
 });

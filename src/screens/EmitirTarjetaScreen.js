@@ -75,9 +75,9 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
               </View>
             </View>
 
-          {/* Tipo de Subscripción */}
+          {/* Tipo de Suscripción */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Tipo de Subscripción</Text>
+            <Text style={styles.label}>Tipo de Suscripción</Text>
             <View style={styles.radioGroup}>
               <TouchableOpacity
                 style={styles.radioOption}
@@ -98,7 +98,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
                 <View style={styles.radioCircle}>
                   {subscriptionType === "prepago" && <View style={styles.radioSelected} />}
                 </View>
-                <Text style={styles.radioLabel}>Pre pago</Text>
+                <Text style={styles.radioLabel}>Prepago</Text>
               </TouchableOpacity>
             </View>
           </View>
