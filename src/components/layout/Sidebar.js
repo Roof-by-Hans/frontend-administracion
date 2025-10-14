@@ -3,41 +3,48 @@ import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, useWindowDi
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const mainMenuItems = [
-  { icon: "table-furniture", label: "Gestionar Mesas" },
-  { icon: "account-group-outline", label: "Gestionar Clientes" },
-  { icon: "account-tie", label: "Gestionar Mozos" },
-  { icon: "basket-outline", label: "Gestionar Productos" },
-  { icon: "file-document-outline", label: "Facturas" },
-  { icon: "cash-register", label: "Caja" },
+  { icon: "table-furniture", label: "Gestionar Mesas", screen: "mesas" },
+  { icon: "account-group-outline", label: "Gestionar Clientes", screen: "clientes" },
+  { icon: "account-tie", label: "Gestionar Mozos", screen: "mozos" },
+  { icon: "basket-outline", label: "Gestionar Productos", screen: "productos" },
+  { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
+  { icon: "cash-register", label: "Caja", screen: "caja" },
 ];
 
 const secondaryMenuItems = [
-  { icon: "card-text-outline", label: "Emitir Tarjeta" },
-  { icon: "cog-outline", label: "Ajustes generales" },
+  { icon: "card-text-outline", label: "Emitir Tarjeta", screen: "emitir-tarjeta" },
+  { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 
-const MenuSection = ({ title, items, compact }) => (
+const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
   <View style={[styles.section, compact && styles.sectionCompact]}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {items.map((item) => (
       <Pressable
         key={item.label}
-        style={({ hovered }) => [styles.menuItem, hovered && styles.menuItemHovered]}
+        style={({ hovered }) => [
+          styles.menuItem,
+          hovered && styles.menuItemHovered,
+          currentScreen === item.screen && styles.menuItemActive,
+        ]}
         android_ripple={{ color: "#e2e2e2" }}
+        onPress={() => onNavigate(item.screen)}
       >
         <MaterialCommunityIcons
           name={item.icon}
           size={18}
-          color="#3f3f3f"
+          color={currentScreen === item.screen ? "#1f1f1f" : "#3f3f3f"}
           style={styles.menuIcon}
         />
-        <Text style={styles.menuLabel}>{item.label}</Text>
+        <Text style={[styles.menuLabel, currentScreen === item.screen && styles.menuLabelActive]}>
+          {item.label}
+        </Text>
       </Pressable>
     ))}
   </View>
 );
 
-export default function Sidebar({ showCloseButton = false, onClose = () => {}, onLogout = () => {} }) {
+export default function Sidebar({ showCloseButton = false, onClose = () => {}, onLogout = () => {}, onNavigate = () => {}, currentScreen = "" }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
 
@@ -66,8 +73,20 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
           )}
         </View>
         <View style={[styles.menuWrapper, isCompact && styles.menuWrapperCompact]}>
-          <MenuSection title="Menú principal" items={mainMenuItems} compact={isCompact} />
-          <MenuSection title="Otras configuraciones" items={secondaryMenuItems} compact={isCompact} />
+          <MenuSection 
+            title="Menú principal" 
+            items={mainMenuItems} 
+            compact={isCompact} 
+            onNavigate={onNavigate}
+            currentScreen={currentScreen}
+          />
+          <MenuSection 
+            title="Otras configuraciones" 
+            items={secondaryMenuItems} 
+            compact={isCompact}
+            onNavigate={onNavigate}
+            currentScreen={currentScreen}
+          />
         </View>
       </View>
 
@@ -174,12 +193,19 @@ const styles = StyleSheet.create({
   menuItemHovered: {
     backgroundColor: "#e7e7e7",
   },
+  menuItemActive: {
+    backgroundColor: "#d8d8d8",
+  },
   menuIcon: {
     marginRight: 0,
   },
   menuLabel: {
     fontSize: 14,
     color: "#4a4a4a",
+  },
+  menuLabelActive: {
+    fontWeight: "600",
+    color: "#1f1f1f",
   },
   logout: {
     flexDirection: "row",

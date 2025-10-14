@@ -15,7 +15,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
-export default function DashboardLayout({ children, userName, onLogout }) {
+export default function DashboardLayout({ children, userName, onLogout, onNavigate, currentScreen }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
   const isTablet = width >= 900 && width < 1200;
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children, userName, onLogout }) {
       <View style={[styles.root, isCompact && styles.rootCompact]}>
       {!isCompact && (
         <View style={styles.sidebarWrapper}>
-          <Sidebar onLogout={handleLogoutRequest} />
+          <Sidebar onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
         </View>
       )}
       <View style={styles.mainArea}>
@@ -139,7 +139,7 @@ export default function DashboardLayout({ children, userName, onLogout }) {
               },
             ]}
           >
-            <Sidebar showCloseButton onClose={handleCloseMenu} onLogout={handleLogoutRequest} />
+            <Sidebar showCloseButton onClose={handleCloseMenu} onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
           </Animated.View>
         </View>
       )}

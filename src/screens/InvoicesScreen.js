@@ -4,7 +4,7 @@ import { Picker } from "@react-native-picker/picker";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
 
-export default function InvoicesScreen() {
+export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [selectedClient, setSelectedClient] = useState("maximo");
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -12,7 +12,7 @@ export default function InvoicesScreen() {
   const isCompact = width < 768;
 
   return (
-    <DashboardLayout userName={displayName} onLogout={logout}>
+    <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
       <View style={styles.wrapper}>
         <Text
           style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}
