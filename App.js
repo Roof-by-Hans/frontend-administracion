@@ -5,6 +5,7 @@ import Login from "./src/screens/Login";
 import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
 import MesasScreen from "./src/screens/MesasScreen";
+import ClientesScreen from "./src/screens/ClientesScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -22,6 +23,8 @@ function AppContent() {
   switch (currentScreen) {
     case "mesas":
       return <MesasScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+    case "clientes":
+      return <ClientesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
     case "emitir-tarjeta":
       return <EmitirTarjetaScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
     case "facturas":
