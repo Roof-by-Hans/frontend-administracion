@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import Login from "./src/screens/Login";
 import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
+import MesasScreen from "./src/screens/MesasScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -18,12 +19,15 @@ function AppContent() {
   }
 
   // Renderizar la pantalla según el estado actual
-  if (currentScreen === "emitir-tarjeta") {
-    return <EmitirTarjetaScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+  switch (currentScreen) {
+    case "mesas":
+      return <MesasScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+    case "emitir-tarjeta":
+      return <EmitirTarjetaScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+    case "facturas":
+    default:
+      return <InvoicesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
   }
-
-  // Por defecto, mostrar facturas
-  return <InvoicesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
 }
 
 export default function App() {
