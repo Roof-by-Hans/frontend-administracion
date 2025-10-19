@@ -150,7 +150,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar por nombre, apellido, teléfono o subscripción..."
+            placeholder="Buscar por nombre, apellido, teléfono o suscripción..."
             placeholderTextColor="#999"
             value={busqueda}
             onChangeText={setBusqueda}
