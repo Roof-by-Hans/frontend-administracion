@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api';
 
 const AuthContext = createContext();
@@ -19,20 +20,29 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si hay una sesión guardada al cargar
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
+    const checkStoredSession = async () => {
       try {
-        setUser(JSON.parse(savedUser));
-        setIsAuthenticated(true);
+        const token = await AsyncStorage.getItem('token');
+        const savedUser = await AsyncStorage.getItem('user');
+        
+        if (token && savedUser) {
+          setUser(JSON.parse(savedUser));
+          setIsAuthenticated(true);
+        }
       } catch (err) {
         console.error('Error al cargar sesión guardada:', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        try {
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+        } catch (e) {
+          console.error('Error al limpiar storage:', e);
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+    
+    checkStoredSession();
   }, []);
 
   /**
@@ -53,14 +63,17 @@ export const AuthProvider = ({ children }) => {
       if (response.success && response.data) {
         const { token, usuario } = response.data;
         
-        // Guardar el token
-        if (recordarme) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(usuario));
-        } else {
-          // Solo guardar en sessionStorage si no se desea recordar
-          sessionStorage.setItem('token', token);
-          sessionStorage.setItem('user', JSON.stringify(usuario));
+        // Guardar el token en AsyncStorage
+        try {
+          await AsyncStorage.setItem('token', token);
+          await AsyncStorage.setItem('user', JSON.stringify(usuario));
+          
+          // Opcional: guardar un flag de "recordarme" si lo necesitas
+          if (recordarme) {
+            await AsyncStorage.setItem('recordarme', 'true');
+          }
+        } catch (storageError) {
+          console.error('Error al guardar en AsyncStorage:', storageError);
         }
         
         // Actualizar el estado
@@ -101,17 +114,20 @@ export const AuthProvider = ({ children }) => {
   /**
    * Cerrar sesión
    */
-  const logout = () => {
-    // Limpiar el almacenamiento
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    
-    // Limpiar el estado
-    setUser(null);
-    setIsAuthenticated(false);
-    setError(null);
+  const logout = async () => {
+    try {
+      // Limpiar el almacenamiento con AsyncStorage
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('recordarme');
+      
+      // Limpiar el estado
+      setUser(null);
+      setIsAuthenticated(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    }
   };
 
   /**

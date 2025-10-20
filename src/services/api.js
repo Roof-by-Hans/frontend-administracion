@@ -1,7 +1,10 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configura la URL base del backend desde las variables de entorno
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
+
+console.log('🔧 API Base URL configurada:', API_BASE_URL);
 
 // Crea una instancia de axios con configuración base
 const api = axios.create({
@@ -13,10 +16,14 @@ const api = axios.create({
 
 // Interceptor para agregar el token JWT a las peticiones
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error al obtener token:', error);
     }
     console.log('📤 Petición:', config.method?.toUpperCase(), config.baseURL + config.url);
     return config;
@@ -33,15 +40,19 @@ api.interceptors.response.use(
     console.log('✅ Respuesta exitosa:', response.status, response.config.url);
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.response) {
       // El servidor respondió con un código de error
       console.error('❌ Error de respuesta:', error.response.status, error.response.data);
       
       // Si es 401, el token expiró o es inválido
       if (error.response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        try {
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+        } catch (e) {
+          console.error('Error al limpiar storage:', e);
+        }
       }
     } else if (error.request) {
       // La petición se hizo pero no hubo respuesta
