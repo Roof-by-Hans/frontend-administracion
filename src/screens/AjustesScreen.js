@@ -11,7 +11,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Función para abrir modal de límites de subscripción
+  // Función para abrir modal de límites de Suscripción
   const handleAbrirLimites = () => {
     setModalLimitesVisible(true);
   };
@@ -37,7 +37,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
               onPress={handleAbrirLimites}
             >
               <MaterialCommunityIcons name="credit-card-outline" size={20} color="#333" />
-              <Text style={styles.optionText}>Editar límite subscripciones</Text>
+              <Text style={styles.optionText}>Editar límite de suscripciones</Text>
             </TouchableOpacity>
           </View>
 
@@ -62,7 +62,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Modal para editar límites de subscripción */}
+        {/* Modal para editar límites de Suscripción */}
         <LimitesSubscripcionModal
           visible={modalLimitesVisible}
           onClose={() => setModalLimitesVisible(false)}

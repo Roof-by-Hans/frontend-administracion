@@ -197,7 +197,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Subscripción */}
+            {/* Campo Suscripción */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Suscripción *</Text>
               <View style={styles.pickerContainer}>
