@@ -169,7 +169,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             <Text style={[styles.tableHeaderText, styles.columnNombre]}>Nombre</Text>
             <Text style={[styles.tableHeaderText, styles.columnApellido]}>Apellido</Text>
             <Text style={[styles.tableHeaderText, styles.columnTelefono]}>Teléfono</Text>
-            <Text style={[styles.tableHeaderText, styles.columnSubscripcion]}>Subscripción</Text>
+            <Text style={[styles.tableHeaderText, styles.columnSubscripcion]}>Suscripción</Text>
             <Text style={[styles.tableHeaderText, styles.columnAcciones]}>Acciones</Text>
           </View>
 
