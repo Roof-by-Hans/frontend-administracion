@@ -7,6 +7,7 @@ import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
 import MesasScreen from "./src/screens/MesasScreen";
 import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
+import MozosScreen from "./src/screens/MozosScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -23,16 +24,48 @@ function AppContent() {
   // Renderizar la pantalla según el estado actual
   switch (currentScreen) {
     case "mesas":
-      return <MesasScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+      return (
+        <MesasScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "clientes":
-      return <ClientesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+      return (
+        <ClientesScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "mozos":
+      return (
+        <MozosScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "emitir-tarjeta":
-      return <EmitirTarjetaScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+      return (
+        <EmitirTarjetaScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "ajustes":
-      return <AjustesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+      return (
+        <AjustesScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "facturas":
     default:
-      return <InvoicesScreen onNavigate={handleNavigate} currentScreen={currentScreen} />;
+      return (
+        <InvoicesScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
   }
 }
 
@@ -45,5 +78,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-
