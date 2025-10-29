@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Defs, Pattern, Rect, Line } from "react-native-svg";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -7,6 +7,7 @@ import Mesa from "../components/Mesa";
 import MesaModal from "../components/MesaModal";
 import GestionarMesasModal from "../components/GestionarMesasModal";
 import { useAuth } from "../context/AuthContext";
+import mesasService from "../services/mesasService";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {
@@ -24,31 +25,119 @@ const GridBackground = ({ width, height }) => {
   );
 };
 
-// Datos iniciales
-const MESAS_INICIALES = [
-  { numero: 1, estado: "libre", posicion: { x: 50, y: 50 }, unidaCon: [], pedido: null },
-  { numero: 2, estado: "ocupada", posicion: { x: 200, y: 50 }, unidaCon: [], pedido: { mozo: "Carlos Pérez", horaInicio: "19:30", comensales: 4, items: [{ nombre: "Pizza Margarita", cantidad: 2, precio: 12.50 }, { nombre: "Coca Cola", cantidad: 4, precio: 2.50 }] } },
-  { numero: 3, estado: "libre", posicion: { x: 350, y: 50 }, unidaCon: [], pedido: null },
-  { numero: 4, estado: "ocupada", posicion: { x: 50, y: 180 }, unidaCon: [], pedido: { mozo: "Ana Gómez", horaInicio: "20:15", comensales: 2, items: [{ nombre: "Hamburguesa Premium", cantidad: 2, precio: 15.00 }, { nombre: "Papas Fritas", cantidad: 1, precio: 5.00 }, { nombre: "Cerveza Artesanal", cantidad: 2, precio: 6.50 }] } },
-  { numero: 5, estado: "libre", posicion: { x: 200, y: 180 }, unidaCon: [], pedido: null },
-  { numero: 6, estado: "libre", posicion: { x: 350, y: 180 }, unidaCon: [], pedido: null },
-  { numero: 7, estado: "ocupada", posicion: { x: 50, y: 310 }, unidaCon: [8], pedido: { mozo: "Luis Rodríguez", horaInicio: "18:45", comensales: 6, items: [{ nombre: "Ensalada César", cantidad: 3, precio: 9.00 }, { nombre: "Salmón a la Parrilla", cantidad: 2, precio: 22.00 }, { nombre: "Vino Tinto", cantidad: 1, precio: 25.00 }] } },
-  { numero: 8, estado: "ocupada", posicion: { x: 200, y: 310 }, unidaCon: [7], pedido: null },
-];
-
 export default function MesasScreen({ onNavigate, currentScreen }) {
-  const [mesas, setMesas] = useState(MESAS_INICIALES);
+  const [mesas, setMesas] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null);
   const [modoActivo, setModoActivo] = useState(null);
   const [mesasSeleccionadas, setMesasSeleccionadas] = useState([]);
   const [gestionModalVisible, setGestionModalVisible] = useState(false);
   const [salonDimensions, setSalonDimensions] = useState({ width: 0, height: 0 });
+  const [loading, setLoading] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false);
   
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
   const { width } = useWindowDimensions();
   const isCompact = width < 768;
+
+  // Cargar mesas desde el backend
+  const cargarMesas = useCallback(async () => {
+    try {
+      setLoading(true);
+      const mesasData = await mesasService.getMesas();
+      console.log('✅ Mesas cargadas:', mesasData);
+      
+      // Transformar datos del backend al formato local
+      const mesasTransformadas = mesasData.map((mesa, index) => ({
+        numero: mesa.idMesa,
+        nombre: mesa.nombreMesa,
+        estado: "libre", // Por ahora todas libres, puedes agregar lógica para determinar estado
+        posicion: { 
+          x: 50 + (index % 5) * 130, 
+          y: 50 + Math.floor(index / 5) * 130 
+        },
+        unidaCon: [], // Se llenará con la lógica de grupos
+        pedido: null,
+        grupo: mesa.grupo || null
+      }));
+      
+      setMesas(mesasTransformadas);
+    } catch (error) {
+      console.error('❌ Error al cargar mesas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las mesas del servidor');
+      setMesas([]); // Mantener vacío en caso de error
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Conectar WebSocket y configurar listeners
+  useEffect(() => {
+    let mounted = true;
+
+    const setupWebSocket = async () => {
+      try {
+        // Conectar WebSocket
+        await mesasService.connect();
+        
+        if (!mounted) return;
+        
+        setWsConnected(mesasService.isConnected());
+
+        // Cargar mesas iniciales
+        await cargarMesas();
+
+        // Configurar listeners de WebSocket
+        mesasService.onMesaCreada((data) => {
+          console.log('🆕 Nueva mesa creada:', data);
+          cargarMesas(); // Recargar todas las mesas
+        });
+
+        mesasService.onMesaActualizada((data) => {
+          console.log('🔄 Mesa actualizada:', data);
+          setMesas(prevMesas => 
+            prevMesas.map(mesa => 
+              mesa.numero === data.idMesa 
+                ? { ...mesa, nombre: data.nombreMesa, grupo: data.grupo }
+                : mesa
+            )
+          );
+        });
+
+        mesasService.onMesaEstadoCambiado((data) => {
+          console.log('🔄 Estado de mesa cambió:', data);
+          // Aquí puedes actualizar el estado de la mesa si el backend lo envía
+          cargarMesas();
+        });
+
+        mesasService.onMesaEliminada((data) => {
+          console.log('🗑️ Mesa eliminada:', data);
+          setMesas(prevMesas => prevMesas.filter(mesa => mesa.numero !== data.idMesa));
+        });
+
+        mesasService.onMesasActualizar(() => {
+          console.log('🔄 Recargando todas las mesas...');
+          cargarMesas();
+        });
+
+      } catch (error) {
+        console.error('❌ Error al configurar WebSocket:', error);
+        if (mounted) {
+          setWsConnected(false);
+        }
+      }
+    };
+
+    setupWebSocket();
+
+    // Cleanup al desmontar
+    return () => {
+      mounted = false;
+      mesasService.removeAllListeners();
+      // No desconectamos aquí para mantener la conexión activa en otras pantallas
+    };
+  }, [cargarMesas]);
 
   const TAMANO_MESA = 80;
   const MARGEN_SEGURIDAD = 20; // Margen inferior y derecho
@@ -314,52 +403,65 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     );
   };
 
-  const handleAgregarMesa = (numero) => {
-    // Buscar una posición libre automáticamente
-    const TAMANO_MESA = 80;
-    const ESPACIO = 30;
-    const COLUMNAS = 5;
-    
-    let posicionEncontrada = null;
-    
-    // Intentar posiciones en una cuadrícula
-    for (let fila = 0; fila < 10; fila++) {
-      for (let col = 0; col < COLUMNAS; col++) {
-        const nuevaPos = {
-          x: 50 + col * (TAMANO_MESA + ESPACIO),
-          y: 50 + fila * (TAMANO_MESA + ESPACIO)
-        };
-        
-        // Verificar si esta posición está libre
-        const hayColision = mesas.some(mesa => 
-          verificarColision(nuevaPos, mesa.posicion, TAMANO_MESA)
-        );
-        
-        if (!hayColision) {
-          posicionEncontrada = nuevaPos;
-          break;
+  const handleAgregarMesa = async (nombreMesa) => {
+    try {
+      // Crear mesa en el backend
+      const mesaCreada = await mesasService.createMesa(nombreMesa);
+      console.log('✅ Mesa creada en backend:', mesaCreada);
+      
+      // Buscar una posición libre automáticamente
+      const TAMANO_MESA = 80;
+      const ESPACIO = 30;
+      const COLUMNAS = 5;
+      
+      let posicionEncontrada = null;
+      
+      // Intentar posiciones en una cuadrícula
+      for (let fila = 0; fila < 10; fila++) {
+        for (let col = 0; col < COLUMNAS; col++) {
+          const nuevaPos = {
+            x: 50 + col * (TAMANO_MESA + ESPACIO),
+            y: 50 + fila * (TAMANO_MESA + ESPACIO)
+          };
+          
+          // Verificar si esta posición está libre
+          const hayColision = mesas.some(mesa => 
+            verificarColision(nuevaPos, mesa.posicion, TAMANO_MESA)
+          );
+          
+          if (!hayColision) {
+            posicionEncontrada = nuevaPos;
+            break;
+          }
         }
+        if (posicionEncontrada) break;
       }
-      if (posicionEncontrada) break;
+      
+      // Si no se encontró posición, usar una por defecto
+      if (!posicionEncontrada) {
+        posicionEncontrada = { x: 50, y: 50 };
+      }
+      
+      const nuevaMesa = {
+        numero: mesaCreada.idMesa,
+        nombre: mesaCreada.nombreMesa,
+        estado: "libre",
+        posicion: posicionEncontrada,
+        unidaCon: [],
+        pedido: null,
+        grupo: null
+      };
+      
+      // Agregar localmente (el WebSocket también la agregará)
+      setMesas(prev => [...prev, nuevaMesa]);
+      Alert.alert('✅ Éxito', `Mesa "${nombreMesa}" creada correctamente`);
+    } catch (error) {
+      console.error('❌ Error al crear mesa:', error);
+      Alert.alert('Error', 'No se pudo crear la mesa en el servidor');
     }
-    
-    // Si no se encontró posición, usar una por defecto
-    if (!posicionEncontrada) {
-      posicionEncontrada = { x: 50, y: 50 };
-    }
-    
-    const nuevaMesa = {
-      numero,
-      estado: "libre",
-      posicion: posicionEncontrada,
-      unidaCon: [],
-      pedido: null
-    };
-    
-    setMesas(prev => [...prev, nuevaMesa]);
   };
 
-  const handleEliminarMesa = (numero) => {
+  const handleEliminarMesa = async (numero) => {
     // Verificar que la mesa esté libre y sin uniones
     const mesa = mesas.find(m => m.numero === numero);
     
@@ -375,15 +477,26 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       return;
     }
     
-    // Eliminar la mesa y limpiar referencias en otras mesas
-    setMesas(prev => 
-      prev
-        .filter(m => m.numero !== numero)
-        .map(m => ({
-          ...m,
-          unidaCon: m.unidaCon.filter(n => n !== numero)
-        }))
-    );
+    try {
+      // Eliminar del backend
+      await mesasService.deleteMesa(numero);
+      console.log('✅ Mesa eliminada del backend:', numero);
+      
+      // Eliminar localmente (el WebSocket también la eliminará)
+      setMesas(prev => 
+        prev
+          .filter(m => m.numero !== numero)
+          .map(m => ({
+            ...m,
+            unidaCon: m.unidaCon.filter(n => n !== numero)
+          }))
+      );
+      
+      Alert.alert('✅ Éxito', 'Mesa eliminada correctamente');
+    } catch (error) {
+      console.error('❌ Error al eliminar mesa:', error);
+      Alert.alert('Error', 'No se pudo eliminar la mesa del servidor');
+    }
   };
 
   const stats = {
@@ -392,6 +505,18 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     total: mesas.length
   };
 
+  // Mostrar indicador de carga mientras se cargan las mesas
+  if (loading) {
+    return (
+      <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
+        <View style={[styles.container, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#4a90e2" />
+          <Text style={styles.loadingText}>Cargando mesas...</Text>
+        </View>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
       <View style={styles.container}>
@@ -399,7 +524,15 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View>
-              <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
+                {/* Indicador de conexión WebSocket */}
+                <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
+                  <Text style={styles.wsIndicatorText}>
+                    {wsConnected ? '🟢 Conectado' : '🔴 Desconectado'}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.pageSubtitle}>
                 {modoActivo === 'mover' && "🔄 Modo: arrastra mesas"}
                 {modoActivo === 'unir' && "🔗 Modo: selecciona mesas para unir"}
@@ -536,6 +669,16 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingContainer: { 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 40 
+  },
+  loadingText: { 
+    marginTop: 16, 
+    fontSize: 16, 
+    color: '#666' 
+  },
   header: { marginBottom: 20 },
   headerLeft: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   configButton: { 
@@ -544,6 +687,24 @@ const styles = StyleSheet.create({
     borderRadius: 8, 
     marginTop: 4,
     opacity: 0.6,
+  },
+  wsIndicator: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  wsConnected: {
+    backgroundColor: '#d3f9d8',
+    borderColor: '#51cf66',
+  },
+  wsDisconnected: {
+    backgroundColor: '#ffe3e3',
+    borderColor: '#ff6b6b',
+  },
+  wsIndicatorText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   pageTitle: { fontSize: 32, fontWeight: "700", color: "#1f1f1f", marginBottom: 8 },
   pageTitleCompact: { fontSize: 28 },
