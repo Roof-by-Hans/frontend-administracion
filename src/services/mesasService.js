@@ -449,6 +449,72 @@ const mesasService = {
   },
 
   /**
+   * Ocupar una mesa (crear pedido)
+   * @param {number} mesaId - ID de la mesa
+   * @param {number} idCliente - ID del cliente (opcional)
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  async ocuparMesa(mesaId, idCliente = null) {
+    try {
+      console.log('📤 Ocupando mesa:', mesaId, idCliente ? `con cliente ${idCliente}` : 'sin cliente');
+      const payload = idCliente ? { idCliente } : {};
+      const response = await api.post(`/mesas/${mesaId}/ocupar`, payload);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al ocupar mesa:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Liberar una mesa (finalizar pedido/pago)
+   * @param {number} mesaId - ID de la mesa
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  async liberarMesa(mesaId) {
+    try {
+      console.log('📤 Liberando mesa:', mesaId);
+      const response = await api.post(`/mesas/${mesaId}/liberar`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al liberar mesa:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Cambiar el estado de una mesa manualmente
+   * @param {number} mesaId - ID de la mesa
+   * @param {string} estado - Estado: 'DISPONIBLE', 'OCUPADA', 'RESERVADA', 'FUERA_DE_SERVICIO'
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  async cambiarEstadoMesa(mesaId, estado) {
+    try {
+      console.log('📤 Cambiando estado de mesa:', mesaId, 'a', estado);
+      const response = await api.patch(`/mesas/${mesaId}/estado`, { estado });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al cambiar estado de mesa:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener estadísticas de mesas
+   * @returns {Promise<Object>} - { disponibles, ocupadas, reservadas, total, fueraDeServicio }
+   */
+  async getEstadisticas() {
+    try {
+      console.log('📊 Obteniendo estadísticas de mesas...');
+      const response = await api.get('/mesas/estadisticas/resumen');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al obtener estadísticas:', error.message);
+      throw error;
+    }
+  },
+
+  /**
    * Eliminar una mesa
    */
   async deleteMesa(id) {
@@ -479,13 +545,30 @@ const mesasService = {
   /**
    * Crear un grupo de mesas
    */
+  /**
+   * Crear un grupo de mesas
+   */
   async createGrupo(nombre, mesasIds) {
     try {
       console.log('📤 Creando grupo:', nombre, mesasIds);
-      const response = await api.post('/mesas-grupo/grupos', { nombre, mesasIds });
+      const response = await api.post('/mesas-grupo', { nombre, mesas: mesasIds });
       return response.data.data;
     } catch (error) {
       console.error('❌ Error al crear grupo:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener todos los grupos
+   */
+  async getGrupos() {
+    try {
+      console.log('📥 Obteniendo grupos...');
+      const response = await api.get('/mesas-grupo');
+      return response.data.data || [];
+    } catch (error) {
+      console.error('❌ Error al obtener grupos:', error.message);
       throw error;
     }
   },
@@ -496,7 +579,7 @@ const mesasService = {
   async deleteGrupo(id) {
     try {
       console.log('📤 Disolviendo grupo:', id);
-      const response = await api.delete(`/mesas-grupo/grupos/${id}`);
+      const response = await api.delete(`/mesas-grupo/${id}`);
       return response.data;
     } catch (error) {
       console.error('❌ Error al disolver grupo:', error.message);

@@ -162,25 +162,60 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('mesa:estado-cambiado', (payload) => {
-          console.log('🔄 Estado de mesa cambiado:', payload.data);
+          console.log('🔄 Estado de mesa cambiado:', payload);
           
           if (payload.data) {
-            setMesas(prev => 
-              prev.map(mesa => 
-                mesa.idMesa === payload.data.id 
-                  ? { ...mesa, estado: payload.data.estado }
-                  : mesa
-              )
-            );
+            // Mapear estados del backend al frontend
+            const estadoMap = {
+              'DISPONIBLE': 'libre',
+              'OCUPADA': 'ocupada',
+              'RESERVADA': 'reservada',
+              'FUERA_DE_SERVICIO': 'fuera_servicio'
+            };
             
-            if (options.onNotification) {
-              const estadoTexto = payload.data.estado?.ocupada ? 'ocupada' : 'disponible';
-              options.onNotification({
-                type: 'info',
-                message: payload.message || `Mesa ${estadoTexto}`,
-                timestamp: payload.timestamp
+            const estadoLocal = estadoMap[payload.data.estado] || payload.data.estado;
+            
+            setMesas(prev => {
+              const nuevasMesas = prev.map(mesa => {
+                if (mesa.idMesa === payload.data.id || mesa.numero === payload.data.id) {
+                  // Determinar el pedido según el nuevo estado
+                  let nuevoPedido;
+                  if (estadoLocal === 'libre') {
+                    // Si está libre, NO hay pedido
+                    nuevoPedido = null;
+                  } else if (estadoLocal === 'ocupada' && !mesa.pedido) {
+                    // Si se ocupa y no tenía pedido, crear uno nuevo
+                    nuevoPedido = {
+                      mozo: "Sistema",
+                      horaInicio: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                      comensales: 0,
+                      items: []
+                    };
+                  } else {
+                    // Mantener el pedido existente
+                    nuevoPedido = mesa.pedido;
+                  }
+                  
+                  return { 
+                    ...mesa, 
+                    estado: estadoLocal,
+                    pedido: nuevoPedido
+                  };
+                }
+                return mesa;
               });
-            }
+              
+              return nuevasMesas;
+            });
+            
+            // Notificación opcional (comentada para no saturar)
+            // if (options.onNotification) {
+            //   options.onNotification({
+            //     type: 'info',
+            //     message: payload.message || `Mesa cambió a ${estadoLocal}`,
+            //     timestamp: payload.timestamp
+            //   });
+            // }
           }
         });
 
@@ -190,6 +225,133 @@ export function useMesasSocket(options = {}) {
           // Llamar al callback para recargar desde la API REST
           if (options.onRefreshRequest) {
             options.onRefreshRequest();
+          }
+        });
+
+        // ==================== EVENTOS DE GRUPOS DE MESAS ====================
+
+        socket.on('grupo:creado', (payload) => {
+          console.log('🔗 Grupo de mesas creado:', payload);
+          
+          if (payload.data && payload.data.mesas) {
+            const grupoId = payload.data.id;
+            // Usar idMesa o id dependiendo de qué campo envía el backend
+            const mesasDelGrupo = payload.data.mesas.map(m => m.idMesa || m.id);
+            
+            console.log('📊 Grupo ID:', grupoId, 'Mesas del grupo:', mesasDelGrupo);
+            
+            // Actualizar las mesas para reflejar que están en un grupo
+            setMesas(prev => 
+              prev.map(mesa => {
+                if (mesasDelGrupo.includes(mesa.idMesa) || mesasDelGrupo.includes(mesa.numero)) {
+                  // Encontrar las otras mesas del grupo (excluir la actual)
+                  const otrasMesas = mesasDelGrupo.filter(id => 
+                    id !== mesa.idMesa && id !== mesa.numero
+                  );
+                  
+                  console.log(`✅ Mesa ${mesa.numero} ahora en grupo ${grupoId}, unida con:`, otrasMesas);
+                  
+                  return {
+                    ...mesa,
+                    grupo: grupoId,
+                    unidaCon: otrasMesas,
+                    nombreGrupo: payload.data.nombre
+                  };
+                }
+                return mesa;
+              })
+            );
+
+            if (options.onNotification) {
+              options.onNotification({
+                type: 'success',
+                message: payload.message || `Grupo "${payload.data.nombre}" creado`,
+                timestamp: payload.timestamp
+              });
+            }
+          }
+        });
+
+        socket.on('grupo:disuelto', (payload) => {
+          console.log('✂️ Grupo de mesas disuelto:', payload);
+          
+          if (payload.data && payload.data.mesasLiberadas) {
+            const mesasLiberadas = payload.data.mesasLiberadas;
+            
+            // Remover la información de grupo de las mesas
+            setMesas(prev =>
+              prev.map(mesa => {
+                if (mesasLiberadas.includes(mesa.idMesa) || mesasLiberadas.includes(mesa.numero)) {
+                  return {
+                    ...mesa,
+                    grupo: null,
+                    unidaCon: [],
+                    nombreGrupo: null
+                  };
+                }
+                return mesa;
+              })
+            );
+
+            if (options.onNotification) {
+              options.onNotification({
+                type: 'info',
+                message: payload.message || 'Grupo de mesas disuelto',
+                timestamp: payload.timestamp
+              });
+            }
+          }
+        });
+
+        socket.on('mesas:unidas', (payload) => {
+          console.log('🔗 Mesas unidas al grupo:', payload);
+          
+          if (payload.data && payload.data.mesasUnidas) {
+            const grupoId = payload.data.idGrupo;
+            const mesasUnidas = payload.data.mesasUnidas;
+            
+            // Actualizar las mesas que se unieron al grupo
+            setMesas(prev =>
+              prev.map(mesa => {
+                if (mesasUnidas.includes(mesa.idMesa) || mesasUnidas.includes(mesa.numero)) {
+                  // Encontrar las otras mesas del grupo
+                  const otrasMesas = mesasUnidas.filter(id => 
+                    id !== mesa.idMesa && id !== mesa.numero
+                  );
+                  
+                  return {
+                    ...mesa,
+                    grupo: grupoId,
+                    unidaCon: otrasMesas,
+                    nombreGrupo: payload.data.nombreGrupo
+                  };
+                }
+                return mesa;
+              })
+            );
+          }
+        });
+
+        socket.on('mesas:separadas', (payload) => {
+          console.log('✂️ Mesas separadas del grupo:', payload);
+          
+          if (payload.data && payload.data.mesasSeparadas) {
+            const mesasSeparadas = payload.data.mesasSeparadas;
+            
+            // Remover las mesas del grupo
+            setMesas(prev =>
+              prev.map(mesa => {
+                if (mesasSeparadas.includes(mesa.idMesa) || mesasSeparadas.includes(mesa.numero)) {
+                  return {
+                    ...mesa,
+                    grupo: null,
+                    unidaCon: [],
+                    nombreGrupo: null
+                  };
+                }
+                return mesa;
+              })
+            );
           }
         });
 
@@ -260,13 +422,13 @@ export function useMesasSocket(options = {}) {
     // ==================== CLEANUP ====================
 
     return () => {
-      console.log('🧹 Limpiando socket y listeners...');
+      console.log('🧹 Limpiando listeners (manteniendo socket activo para otras pantallas)...');
       
+      // NO desconectamos el socket aquí para mantener la conexión activa
+      // entre cambios de pantalla y recibir actualizaciones en tiempo real
+      
+      // Solo removemos listeners para evitar duplicados
       if (socket) {
-        // Salir de las salas antes de desconectar
-        socket.emit('leave:mesas');
-        
-        // Remover todos los listeners
         socket.off('connect');
         socket.off('disconnect');
         socket.off('reconnect');
@@ -282,14 +444,18 @@ export function useMesasSocket(options = {}) {
         socket.off('mesa:eliminada');
         socket.off('mesa:estado-cambiado');
         socket.off('mesas:actualizar');
+        socket.off('grupo:creado');
+        socket.off('grupo:disuelto');
+        socket.off('mesas:unidas');
+        socket.off('mesas:separadas');
         socket.off('notificacion');
         socket.off('mesas:connected-clients');
         socket.off('mesa:estado');
         socket.off('error');
         socket.off('connect_error');
         
-        // Desconectar
-        socket.disconnect();
+        // NO desconectamos el socket para mantener tiempo real
+        // socket.disconnect();
       }
       
       subscription?.remove();
