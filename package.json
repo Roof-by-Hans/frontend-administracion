@@ -9,7 +9,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.4",
+    "@mui/x-data-grid": "^8.15.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-picker/picker": "^2.7.7",
+    "axios": "^1.12.2",
     "expo": "~54.0.12",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",

@@ -1,20 +1,35 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions, ActivityIndicator, Alert } from "react-native";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [recordarme, setRecordarme] = useState(false);
-  const { login } = useAuth();
+  const { login, loading, error, clearError } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 400;
 
-  const handleLogin = () => {
-    if (usuario.trim() && contrasena.trim()) {
-      login({ usuario, recordarme });
-    } else {
-      console.log("Por favor complete todos los campos");
+  const handleLogin = async () => {
+    // Limpiar error previo
+    clearError();
+    
+    // Validar campos
+    if (!usuario.trim()) {
+      Alert.alert("Error", "Por favor ingrese su usuario");
+      return;
+    }
+    
+    if (!contrasena.trim()) {
+      Alert.alert("Error", "Por favor ingrese su contraseña");
+      return;
+    }
+    
+    // Intentar login
+    const success = await login(usuario, contrasena, recordarme);
+    
+    if (!success && error) {
+      Alert.alert("Error de autenticación", error);
     }
   };
 
@@ -26,6 +41,14 @@ export default function Login() {
             <Image source={require('../../assets/hans-logo.png')} style={styles.logo} />
           </View>
         </View>
+
+        {/* Mostrar error si existe */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -34,6 +57,7 @@ export default function Login() {
             value={usuario}
             onChangeText={setUsuario}
             autoCapitalize="none"
+            editable={!loading}
           />
         </View>
 
@@ -46,6 +70,7 @@ export default function Login() {
             onChangeText={setContrasena}
             secureTextEntry={true}
             autoCapitalize="none"
+            editable={!loading}
           />
         </View>
 
@@ -53,6 +78,7 @@ export default function Login() {
           <TouchableOpacity 
             style={[styles.checkboxContainer, isSmallScreen && styles.checkboxContainerStacked]}
             onPress={() => setRecordarme(!recordarme)}
+            disabled={loading}
           >
             <View style={[styles.checkbox, recordarme && styles.checkboxSelected]}>
               {recordarme && <Text style={styles.checkmark}>✓</Text>}
@@ -60,13 +86,24 @@ export default function Login() {
             <Text style={styles.checkboxLabel}>Recordarme</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.forgotPasswordContainer, isSmallScreen && styles.forgotPasswordContainerStacked]}>
+          <TouchableOpacity 
+            style={[styles.forgotPasswordContainer, isSmallScreen && styles.forgotPasswordContainerStacked]}
+            disabled={loading}
+          >
             <Text style={styles.forgotPassword}>Recuperar contraseña</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>INGRESAR</Text>
+        <TouchableOpacity 
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.loginButtonText}>INGRESAR</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -176,11 +213,28 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
   },
+  loginButtonDisabled: {
+    backgroundColor: "#999999",
+    opacity: 0.6,
+  },
   loginButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
     letterSpacing: 1,
+  },
+  errorContainer: {
+    backgroundColor: "#ffebee",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ef5350",
+  },
+  errorText: {
+    color: "#c62828",
+    fontSize: 14,
+    textAlign: "center",
   },
   
 });

@@ -3,68 +3,66 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-nativ
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import ClienteModal from "../components/ClienteModal";
+import MozoModal from "../components/MozoModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 
-// Datos iniciales de clientes (vacío - se llenarán manualmente)
-const CLIENTES_INICIALES = [];
+// Datos iniciales de mozos (vacío - se llenarán manualmente)
+const MOZOS_INICIALES = [];
 
-const STORAGE_KEY = "clientes_data";
+const STORAGE_KEY = "mozos_data";
 
-export default function ClientesScreen({ onNavigate, currentScreen }) {
-  const [clientes, setClientes] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [clienteAEliminar, setClienteAEliminar] = useState(null);
+export default function MozosScreen({ onNavigate, currentScreen }) {
+  const [mozos, setMozos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [mozoEditando, setMozoEditando] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [mozoAEliminar, setMozoAEliminar] = useState(null);
+
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar clientes desde localStorage al montar el componente
+  // Cargar mozos desde localStorage al montar el componente
   useEffect(() => {
-    const cargarClientes = () => {
+    const cargarMozos = () => {
       try {
-        const clientesGuardados = localStorage.getItem(STORAGE_KEY);
-        if (clientesGuardados) {
-          setClientes(JSON.parse(clientesGuardados));
+        const mozosGuardados = localStorage.getItem(STORAGE_KEY);
+        if (mozosGuardados) {
+          setMozos(JSON.parse(mozosGuardados));
         } else {
-          // Si no hay clientes guardados, usar los datos iniciales
-          setClientes(CLIENTES_INICIALES);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(CLIENTES_INICIALES));
+          setMozos(MOZOS_INICIALES);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(MOZOS_INICIALES));
         }
       } catch (error) {
-        console.error("Error al cargar clientes:", error);
-        setClientes(CLIENTES_INICIALES);
+        console.error("Error al cargar mozos:", error);
+        setMozos(MOZOS_INICIALES);
       }
     };
 
-    cargarClientes();
+    cargarMozos();
   }, []);
 
-  // Guardar clientes en localStorage cada vez que cambien
+  // Guardar mozos en localStorage cada vez que cambien
   useEffect(() => {
-    // Guardar siempre, incluso si está vacío
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mozos));
     } catch (error) {
-      console.error("Error al guardar clientes:", error);
+      console.error("Error al guardar mozos:", error);
     }
-  }, [clientes]);
+  }, [mozos]);
 
-  // Filtrar clientes según la búsqueda manual
-  const clientesFiltrados = clientes.filter((cliente) => {
+  // Filtrar mozos según la búsqueda manual
+  const mozosFiltrados = mozos.filter((mozo) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
 
+    const nombreCompleto = `${mozo.nombre} ${mozo.apellido}`.toLowerCase();
     return (
-      cliente.nombre.toLowerCase().includes(terminoBusqueda) ||
-      cliente.apellido.toLowerCase().includes(terminoBusqueda) ||
-      cliente.telefono.includes(terminoBusqueda) ||
-      cliente.suscripcion.toLowerCase().includes(terminoBusqueda)
+      nombreCompleto.includes(terminoBusqueda) ||
+      mozo.telefono.includes(terminoBusqueda) ||
+      mozo.turno.toLowerCase().includes(terminoBusqueda)
     );
   });
 
@@ -89,8 +87,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       minWidth: 150,
     },
     {
-      field: 'suscripcion',
-      headerName: 'Suscripción',
+      field: 'turno',
+      headerName: 'Turno',
       flex: 1,
       minWidth: 120,
     },
@@ -103,7 +101,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       renderCell: (params) => (
         <View style={styles.actionsContainer}>
           <IconButton
-            onClick={() => handleEditarCliente(params.row)}
+            onClick={() => handleEditarMozo(params.row)}
             color="primary"
             size="small"
             title="Editar"
@@ -111,7 +109,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
           </IconButton>
           <IconButton
-            onClick={() => handleEliminarCliente(params.row.id)}
+            onClick={() => handleEliminarMozo(params.row.id)}
             color="error"
             size="small"
             title="Eliminar"
@@ -123,69 +121,63 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     },
   ];
 
-  // Función para abrir modal de agregar cliente
-  const handleAgregarCliente = () => {
-    setClienteSeleccionado(null);
+  const handleAgregarMozo = () => {
+    setMozoEditando(null);
     setModalVisible(true);
   };
 
-  // Función para abrir modal de editar cliente
-  const handleEditarCliente = (cliente) => {
-    setClienteSeleccionado(cliente);
+  const handleEditarMozo = (mozo) => {
+    setMozoEditando(mozo);
     setModalVisible(true);
   };
 
   // Función para abrir modal de confirmación de eliminación
-  const handleEliminarCliente = (clienteId) => {
-    setClienteAEliminar(clienteId);
+  const handleEliminarMozo = (mozoId) => {
+    setMozoAEliminar(mozoId);
     setConfirmModalVisible(true);
   };
 
   // Función para confirmar la eliminación
   const confirmarEliminacion = () => {
-    if (clienteAEliminar) {
-      setClientes(clientes.filter(c => c.id !== clienteAEliminar));
+    if (mozoAEliminar) {
+      setMozos(mozos.filter(m => m.id !== mozoAEliminar));
       setConfirmModalVisible(false);
-      setClienteAEliminar(null);
+      setMozoAEliminar(null);
     }
   };
 
   // Función para cancelar la eliminación
   const cancelarEliminacion = () => {
     setConfirmModalVisible(false);
-    setClienteAEliminar(null);
+    setMozoAEliminar(null);
   };
 
-  // Función para guardar cliente (agregar o editar)
-  const handleGuardarCliente = (clienteData) => {
-    if (clienteSeleccionado) {
-      // Editar cliente existente
-      setClientes(clientes.map(c => 
-        c.id === clienteSeleccionado.id ? { ...clienteData, id: c.id } : c
-      ));
+  const handleGuardarMozo = (mozoData) => {
+    if (mozoEditando) {
+      // Editar mozo existente
+      setMozos(mozos.map((m) => (m.id === mozoData.id ? mozoData : m)));
     } else {
-      // Agregar nuevo cliente
-      const nuevoCliente = {
-        ...clienteData,
-        id: Math.max(...clientes.map(c => c.id), 0) + 1
+      // Agregar nuevo mozo
+      const nuevoMozo = {
+        ...mozoData,
+        id: Math.max(...mozos.map(m => m.id), 0) + 1
       };
-      setClientes([...clientes, nuevoCliente]);
+      setMozos([...mozos, nuevoMozo]);
     }
     setModalVisible(false);
-    setClienteSeleccionado(null);
+    setMozoEditando(null);
   };
 
   return (
-    <DashboardLayout
-      userName={userName}
+    <DashboardLayout 
+      onNavigate={onNavigate} 
       currentScreen={currentScreen}
-      onNavigate={onNavigate}
-      onLogout={logout}
+      userName={userName}
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Administrar Clientes</Text>
+          <Text style={styles.title}>Administrar Mozos</Text>
         </View>
 
         {/* Controles superiores: Buscador y Botón Agregar */}
@@ -201,7 +193,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar por nombre, apellido, teléfono o suscripción..."
+                placeholder="Buscar mozos por nombre, apellido, teléfono o turno..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
@@ -214,36 +206,36 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             </View>
 
             {/* Botón Agregar */}
-            <TouchableOpacity style={styles.agregarButton} onPress={handleAgregarCliente}>
+            <TouchableOpacity style={styles.addButton} onPress={handleAgregarMozo}>
               <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-              <Text style={styles.agregarButtonText}>Agregar</Text>
+              <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* DataGrid con filtrado y ordenamiento nativo */}
         <DataTable
-          rows={clientesFiltrados}
+          rows={mozosFiltrados}
           columns={columns}
           pageSize={10}
         />
 
-        {/* Modal para agregar/editar cliente */}
-        <ClienteModal
+        {/* Modal para agregar/editar mozo */}
+        <MozoModal
           visible={modalVisible}
-          cliente={clienteSeleccionado}
+          mozo={mozoEditando}
           onClose={() => {
             setModalVisible(false);
-            setClienteSeleccionado(null);
+            setMozoEditando(null);
           }}
-          onGuardar={handleGuardarCliente}
+          onSave={handleGuardarMozo}
         />
 
         {/* Modal de confirmación para eliminar */}
         <ConfirmModal
           visible={confirmModalVisible}
-          title="Confirmar eliminación"
-          message="¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer."
+          title="Eliminar Mozo"
+          message="¿Estás seguro de que deseas eliminar este mozo? Esta acción no se puede deshacer."
           onConfirm={confirmarEliminacion}
           onCancel={cancelarEliminacion}
         />
@@ -297,12 +289,12 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: 8,
   },
-  agregarButton: {
+  addButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#4CAF50",
-    paddingVertical: 10,
     paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
     elevation: 2,
     shadowColor: "#000",
@@ -310,7 +302,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  agregarButtonText: {
+  addButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
