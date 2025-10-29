@@ -22,6 +22,14 @@ export default function ProductoModal({
   const [categoria, setCategoria] = useState("");
   const [precio, setPrecio] = useState("");
   const [stock, setStock] = useState("");
+  
+  // Estados para los errores
+  const [errores, setErrores] = useState({
+    nombre: "",
+    categoria: "",
+    precio: "",
+    stock: "",
+  });
 
   useEffect(() => {
     if (producto) {
@@ -34,6 +42,8 @@ export default function ProductoModal({
       // Modo creación
       limpiarCampos();
     }
+    // Limpiar errores al abrir/cerrar modal
+    setErrores({ nombre: "", categoria: "", precio: "", stock: "" });
   }, [producto, visible]);
 
   const limpiarCampos = () => {
@@ -43,22 +53,69 @@ export default function ProductoModal({
     setStock("");
   };
 
+  // Validación en tiempo real del nombre
+  const handleNombreChange = (text) => {
+    setNombre(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
+      setErrores(prev => ({ ...prev, nombre: "El nombre solo debe contener letras" }));
+    } else {
+      setErrores(prev => ({ ...prev, nombre: "" }));
+    }
+  };
+
+  // Validación en tiempo real de la categoría
+  const handleCategoriaChange = (text) => {
+    setCategoria(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, categoria: "La categoría es obligatoria" }));
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
+      setErrores(prev => ({ ...prev, categoria: "La categoría solo debe contener letras" }));
+    } else {
+      setErrores(prev => ({ ...prev, categoria: "" }));
+    }
+  };
+
+  // Validación en tiempo real del precio
+  const handlePrecioChange = (text) => {
+    setPrecio(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, precio: "El precio es obligatorio" }));
+    } else if (isNaN(parseFloat(text))) {
+      setErrores(prev => ({ ...prev, precio: "El precio debe ser un número válido" }));
+    } else if (parseFloat(text) <= 0) {
+      setErrores(prev => ({ ...prev, precio: "El precio debe ser mayor a 0" }));
+    } else {
+      setErrores(prev => ({ ...prev, precio: "" }));
+    }
+  };
+
+  // Validación en tiempo real del stock
+  const handleStockChange = (text) => {
+    setStock(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, stock: "El stock es obligatorio" }));
+    } else if (isNaN(parseInt(text))) {
+      setErrores(prev => ({ ...prev, stock: "El stock debe ser un número válido" }));
+    } else if (parseInt(text) < 0) {
+      setErrores(prev => ({ ...prev, stock: "El stock no puede ser negativo" }));
+    } else {
+      setErrores(prev => ({ ...prev, stock: "" }));
+    }
+  };
+
   const handleGuardar = () => {
-    // Validaciones
-    if (!nombre.trim()) {
-      alert("El nombre del producto es obligatorio");
-      return;
-    }
-    if (!categoria.trim()) {
-      alert("La categoría es obligatoria");
-      return;
-    }
-    if (!precio.trim() || isNaN(parseFloat(precio))) {
-      alert("El precio debe ser un número válido");
-      return;
-    }
-    if (!stock.trim() || isNaN(parseInt(stock))) {
-      alert("El stock debe ser un número válido");
+    // Validar que no haya errores
+    const hayErrores = Object.values(errores).some(error => error !== "");
+    const camposVacios = !nombre.trim() || !categoria.trim() || !precio.trim() || !stock.trim();
+    
+    if (hayErrores || camposVacios) {
+      // Marcar todos los campos vacíos como error
+      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
+      if (!categoria.trim()) setErrores(prev => ({ ...prev, categoria: "La categoría es obligatoria" }));
+      if (!precio.trim()) setErrores(prev => ({ ...prev, precio: "El precio es obligatorio" }));
+      if (!stock.trim()) setErrores(prev => ({ ...prev, stock: "El stock es obligatorio" }));
       return;
     }
 
@@ -114,47 +171,59 @@ export default function ProductoModal({
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Nombre del Producto *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.nombre && styles.inputError]}
                   placeholder="Ej: Pizza Margarita"
                   value={nombre}
-                  onChangeText={setNombre}
+                  onChangeText={handleNombreChange}
                   placeholderTextColor="#999"
                 />
+                {errores.nombre ? (
+                  <Text style={styles.errorText}>{errores.nombre}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Categoría *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.categoria && styles.inputError]}
                   placeholder="Ej: Comidas"
                   value={categoria}
-                  onChangeText={setCategoria}
+                  onChangeText={handleCategoriaChange}
                   placeholderTextColor="#999"
                 />
+                {errores.categoria ? (
+                  <Text style={styles.errorText}>{errores.categoria}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Precio *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.precio && styles.inputError]}
                   placeholder="Ej: 12.50"
                   value={precio}
-                  onChangeText={setPrecio}
+                  onChangeText={handlePrecioChange}
                   keyboardType="decimal-pad"
                   placeholderTextColor="#999"
                 />
+                {errores.precio ? (
+                  <Text style={styles.errorText}>{errores.precio}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Stock *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.stock && styles.inputError]}
                   placeholder="Ej: 50"
                   value={stock}
-                  onChangeText={setStock}
+                  onChangeText={handleStockChange}
                   keyboardType="number-pad"
                   placeholderTextColor="#999"
                 />
+                {errores.stock ? (
+                  <Text style={styles.errorText}>{errores.stock}</Text>
+                ) : null}
               </View>
             </ScrollView>
 
@@ -244,6 +313,15 @@ const styles = StyleSheet.create({
     color: "#1f1f1f",
     outlineStyle: "none",
   },
+  inputError: {
+    borderColor: "#d32f2f",
+    backgroundColor: "#ffebee",
+  },
+  errorText: {
+    color: "#d32f2f",
+    fontSize: 12,
+    marginTop: 4,
+  },
   modalFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -269,7 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#4CAF50",
   },
   saveButtonText: {
     fontSize: 14,

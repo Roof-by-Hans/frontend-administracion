@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ClienteModal from "../components/ClienteModal";
 import ConfirmModal from "../components/ConfirmModal";
+import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 
-// Datos iniciales de clientes
-const CLIENTES_INICIALES = [
-  { id: 1, nombre: "Juan", apellido: "Pérez", telefono: "123456789", subscripcion: "Premium" },
-  { id: 2, nombre: "María", apellido: "González", telefono: "987654321", subscripcion: "Básica" },
-  { id: 3, nombre: "Carlos", apellido: "Rodríguez", telefono: "456789123", subscripcion: "Premium" },
-  { id: 4, nombre: "Ana", apellido: "Martínez", telefono: "789123456", subscripcion: "Básica" },
-  { id: 5, nombre: "Luis", apellido: "López", telefono: "321654987", subscripcion: "Premium" },
-  { id: 6, nombre: "Laura", apellido: "Sánchez", telefono: "654987321", subscripcion: "Básica" },
-  { id: 7, nombre: "Pedro", apellido: "Ramírez", telefono: "147258369", subscripcion: "Premium" },
-  { id: 8, nombre: "Sofía", apellido: "Torres", telefono: "369258147", subscripcion: "Básica" },
-];
+// Datos iniciales de clientes (vacío - se llenarán manualmente)
+const CLIENTES_INICIALES = [];
 
 const STORAGE_KEY = "clientes_data";
 
@@ -54,16 +47,15 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
   // Guardar clientes en localStorage cada vez que cambien
   useEffect(() => {
-    if (clientes.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
-      } catch (error) {
-        console.error("Error al guardar clientes:", error);
-      }
+    // Guardar siempre, incluso si está vacío
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
+    } catch (error) {
+      console.error("Error al guardar clientes:", error);
     }
   }, [clientes]);
 
-  // Filtrar clientes según la búsqueda
+  // Filtrar clientes según la búsqueda manual
   const clientesFiltrados = clientes.filter((cliente) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
@@ -72,9 +64,64 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       cliente.nombre.toLowerCase().includes(terminoBusqueda) ||
       cliente.apellido.toLowerCase().includes(terminoBusqueda) ||
       cliente.telefono.includes(terminoBusqueda) ||
-      cliente.subscripcion.toLowerCase().includes(terminoBusqueda)
+      cliente.suscripcion.toLowerCase().includes(terminoBusqueda)
     );
   });
+
+  // Definir columnas para el DataGrid
+  const columns = [
+    {
+      field: 'nombre',
+      headerName: 'Nombre',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'apellido',
+      headerName: 'Apellido',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'telefono',
+      headerName: 'Teléfono',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'suscripcion',
+      headerName: 'Suscripción',
+      flex: 1,
+      minWidth: 120,
+    },
+    {
+      field: 'acciones',
+      headerName: 'Acciones',
+      minWidth: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <View style={styles.actionsContainer}>
+          <IconButton
+            onClick={() => handleEditarCliente(params.row)}
+            color="primary"
+            size="small"
+            title="Editar"
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+          </IconButton>
+          <IconButton
+            onClick={() => handleEliminarCliente(params.row.id)}
+            color="error"
+            size="small"
+            title="Eliminar"
+          >
+            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
+          </IconButton>
+        </View>
+      ),
+    },
+  ];
 
   // Función para abrir modal de agregar cliente
   const handleAgregarCliente = () => {
@@ -139,75 +186,47 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Clientes</Text>
-          <TouchableOpacity style={styles.agregarButton} onPress={handleAgregarCliente}>
-            <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-            <Text style={styles.agregarButtonText}>Agregar Cliente</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Buscador */}
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nombre, apellido, teléfono o Suscripción..."
-            placeholderTextColor="#999"
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-          {busqueda.length > 0 && (
-            <TouchableOpacity onPress={() => setBusqueda("")} style={styles.clearButton}>
-              <MaterialCommunityIcons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Tabla de clientes */}
-        <ScrollView style={styles.tableContainer}>
-          {/* Header de la tabla */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, styles.columnNombre]}>Nombre</Text>
-            <Text style={[styles.tableHeaderText, styles.columnApellido]}>Apellido</Text>
-            <Text style={[styles.tableHeaderText, styles.columnTelefono]}>Teléfono</Text>
-            <Text style={[styles.tableHeaderText, styles.columnSubscripcion]}>Suscripción</Text>
-            <Text style={[styles.tableHeaderText, styles.columnAcciones]}>Acciones</Text>
-          </View>
-
-          {/* Filas de la tabla */}
-          {clientesFiltrados.length > 0 ? (
-            clientesFiltrados.map((cliente) => (
-              <View key={cliente.id} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.columnNombre]}>{cliente.nombre}</Text>
-                <Text style={[styles.tableCell, styles.columnApellido]}>{cliente.apellido}</Text>
-                <Text style={[styles.tableCell, styles.columnTelefono]}>{cliente.telefono}</Text>
-                <Text style={[styles.tableCell, styles.columnSubscripcion]}>{cliente.subscripcion}</Text>
-                <View style={[styles.tableCellAcciones, styles.columnAcciones]}>
-                  {/* Botón Editar */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.editButton]}
-                    onPress={() => handleEditarCliente(cliente)}
-                  >
-                    <MaterialCommunityIcons name="pencil" size={18} color="#fff" />
-                  </TouchableOpacity>
-                  {/* Botón Eliminar */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => handleEliminarCliente(cliente.id)}
-                  >
-                    <MaterialCommunityIcons name="delete" size={18} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))
-          ) : (
-            <View style={styles.noResultsContainer}>
-              <MaterialCommunityIcons name="account-search" size={48} color="#ccc" />
-              <Text style={styles.noResultsText}>
-                {busqueda ? "No se encontraron clientes que coincidan con la búsqueda" : "No hay clientes registrados"}
-              </Text>
+        {/* Controles superiores: Buscador y Botón Agregar */}
+        <View style={styles.controlsContainer}>
+          <View style={styles.controlsRow}>
+            {/* Buscador */}
+            <View style={styles.searchContainer}>
+              <MaterialCommunityIcons
+                name="magnify"
+                size={20}
+                color="#666"
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar por nombre, apellido, teléfono o suscripción..."
+                placeholderTextColor="#999"
+                value={busqueda}
+                onChangeText={setBusqueda}
+              />
+              {busqueda.length > 0 && (
+                <TouchableOpacity onPress={() => setBusqueda("")} style={styles.clearButton}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
-        </ScrollView>
+
+            {/* Botón Agregar */}
+            <TouchableOpacity style={styles.agregarButton} onPress={handleAgregarCliente}>
+              <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+              <Text style={styles.agregarButtonText}>Agregar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* DataGrid con filtrado y ordenamiento nativo */}
+        <DataTable
+          rows={clientesFiltrados}
+          columns={columns}
+          pageSize={10}
+        />
 
         {/* Modal para agregar/editar cliente */}
         <ClienteModal
@@ -240,9 +259,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 20,
   },
   title: {
@@ -250,119 +266,61 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
+  controlsContainer: {
+    marginBottom: 20,
+  },
+  controlsRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#333",
+    outlineStyle: "none",
+  },
+  clearButton: {
+    marginLeft: 8,
+  },
   agregarButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#4CAF50",
+    paddingVertical: 10,
     paddingHorizontal: 20,
-    paddingVertical: 12,
     borderRadius: 8,
-    gap: 8,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   agregarButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+    marginLeft: 8,
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginBottom: 20,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#333",
-    outlineStyle: "none",
-  },
-  clearButton: {
-    padding: 5,
-  },
-  tableContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#f8f8f8",
-    borderBottomWidth: 2,
-    borderBottomColor: "#e0e0e0",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-  },
-  tableHeaderText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    textAlign: "center",
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    alignItems: "center",
-  },
-  tableCell: {
-    fontSize: 14,
-    color: "#555",
-    textAlign: "center",
-  },
-  tableCellAcciones: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+  actionsContainer: {
+    flexDirection: 'row',
     gap: 8,
-  },
-  columnNombre: {
-    flex: 1.5,
-  },
-  columnApellido: {
-    flex: 1.5,
-  },
-  columnTelefono: {
-    flex: 1.5,
-  },
-  columnSubscripcion: {
-    flex: 1.5,
-  },
-  columnAcciones: {
-    flex: 1.5,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  editButton: {
-    backgroundColor: "#2196F3",
-  },
-  deleteButton: {
-    backgroundColor: "#f44336",
-  },
-  noResultsContainer: {
-    padding: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  noResultsText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
 });

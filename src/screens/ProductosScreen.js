@@ -1,66 +1,127 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Alert,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ProductoModal from "../components/ProductoModal";
+import ConfirmModal from "../components/ConfirmModal";
+import DataTable from "../components/DataTable";
+import { useAuth } from "../context/AuthContext";
 
-// Datos iniciales de productos
-const PRODUCTOS_INICIALES = [
-  {
-    id: 1,
-    nombre: "Pizza Margarita",
-    categoria: "Comidas",
-    precio: 12.5,
-    stock: 25,
-  },
-  {
-    id: 2,
-    nombre: "Hamburguesa Premium",
-    categoria: "Comidas",
-    precio: 15.0,
-    stock: 30,
-  },
-  {
-    id: 3,
-    nombre: "Coca Cola",
-    categoria: "Bebidas",
-    precio: 2.5,
-    stock: 100,
-  },
-  {
-    id: 4,
-    nombre: "Cerveza Artesanal",
-    categoria: "Bebidas",
-    precio: 6.5,
-    stock: 50,
-  },
-];
+// Datos iniciales de productos (vacío - se llenarán manualmente)
+const PRODUCTOS_INICIALES = [];
+
+const STORAGE_KEY = "productos_data";
 
 export default function ProductosScreen({ onNavigate, currentScreen }) {
-  const [productos, setProductos] = useState(PRODUCTOS_INICIALES);
+  const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
 
-  // Filtrar productos
+  const { user, logout } = useAuth();
+  const userName = user?.usuario || "Usuario";
+
+  // Cargar productos desde localStorage al montar el componente
+  useEffect(() => {
+    const cargarProductos = () => {
+      try {
+        const productosGuardados = localStorage.getItem(STORAGE_KEY);
+        if (productosGuardados) {
+          setProductos(JSON.parse(productosGuardados));
+        } else {
+          setProductos(PRODUCTOS_INICIALES);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTOS_INICIALES));
+        }
+      } catch (error) {
+        console.error("Error al cargar productos:", error);
+        setProductos(PRODUCTOS_INICIALES);
+      }
+    };
+
+    cargarProductos();
+  }, []);
+
+  // Guardar productos en localStorage cada vez que cambien
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
+    } catch (error) {
+      console.error("Error al guardar productos:", error);
+    }
+  }, [productos]);
+
+  // Filtrar productos según la búsqueda manual
   const productosFiltrados = productos.filter((producto) => {
-    const coincideBusqueda = producto.nombre
-      .toLowerCase()
-      .includes(busqueda.toLowerCase());
-    const coincideCategoria =
-      !categoriaFiltro ||
-      producto.categoria.toLowerCase().includes(categoriaFiltro.toLowerCase());
-    return coincideBusqueda && coincideCategoria;
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (!terminoBusqueda) return true;
+
+    return (
+      producto.nombre.toLowerCase().includes(terminoBusqueda) ||
+      producto.categoria.toLowerCase().includes(terminoBusqueda) ||
+      producto.precio.toString().includes(terminoBusqueda) ||
+      producto.stock.toString().includes(terminoBusqueda)
+    );
   });
+
+  // Definir columnas para el DataGrid
+  const columns = [
+    {
+      field: 'nombre',
+      headerName: 'Nombre',
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: 'categoria',
+      headerName: 'Categoría',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'precio',
+      headerName: 'Precio',
+      width: 120,
+      valueFormatter: (params) => {
+        const numero = Number(params);
+        return `$${numero.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      },
+    },
+    {
+      field: 'stock',
+      headerName: 'Stock',
+      width: 100,
+    },
+    {
+      field: 'acciones',
+      headerName: 'Acciones',
+      minWidth: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <View style={styles.actionsContainer}>
+          <IconButton
+            onClick={() => handleEditarProducto(params.row)}
+            color="primary"
+            size="small"
+            title="Editar"
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+          </IconButton>
+          <IconButton
+            onClick={() => handleEliminarProducto(params.row.id)}
+            color="error"
+            size="small"
+            title="Eliminar"
+          >
+            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
+          </IconButton>
+        </View>
+      ),
+    },
+  ];
 
   const handleAgregarProducto = () => {
     setProductoEditando(null);
@@ -72,58 +133,59 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     setModalVisible(true);
   };
 
-  const handleEliminarProducto = (id) => {
-    // Para web usamos window.confirm
-    if (typeof window !== "undefined" && window.confirm) {
-      const confirmar = window.confirm(
-        "¿Estás seguro de que deseas eliminar este producto?"
-      );
-      if (confirmar) {
-        setProductos(productos.filter((p) => p.id !== id));
-      }
-    } else {
-      // Para móvil usamos Alert.alert
-      Alert.alert(
-        "Eliminar Producto",
-        "¿Estás seguro de que deseas eliminar este producto?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Eliminar",
-            style: "destructive",
-            onPress: () => {
-              setProductos(productos.filter((p) => p.id !== id));
-            },
-          },
-        ]
-      );
+  // Función para abrir modal de confirmación de eliminación
+  const handleEliminarProducto = (productoId) => {
+    setProductoAEliminar(productoId);
+    setConfirmModalVisible(true);
+  };
+
+  // Función para confirmar la eliminación
+  const confirmarEliminacion = () => {
+    if (productoAEliminar) {
+      setProductos(productos.filter(p => p.id !== productoAEliminar));
+      setConfirmModalVisible(false);
+      setProductoAEliminar(null);
     }
+  };
+
+  // Función para cancelar la eliminación
+  const cancelarEliminacion = () => {
+    setConfirmModalVisible(false);
+    setProductoAEliminar(null);
   };
 
   const handleGuardarProducto = (productoData) => {
     if (productoEditando) {
       // Editar producto existente
-      setProductos(
-        productos.map((p) => (p.id === productoData.id ? productoData : p))
-      );
+      setProductos(productos.map((p) => (p.id === productoData.id ? productoData : p)));
     } else {
       // Agregar nuevo producto
-      setProductos([...productos, productoData]);
+      const nuevoProducto = {
+        ...productoData,
+        id: Math.max(...productos.map(p => p.id), 0) + 1
+      };
+      setProductos([...productos, nuevoProducto]);
     }
+    setModalVisible(false);
+    setProductoEditando(null);
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate} currentScreen={currentScreen}>
+    <DashboardLayout 
+      onNavigate={onNavigate} 
+      currentScreen={currentScreen}
+      userName={userName}
+    >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Productos</Text>
         </View>
 
-        {/* Controles superiores */}
+        {/* Controles superiores: Buscador y Botón Agregar */}
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscar productos */}
+            {/* Buscador */}
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -133,132 +195,51 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar productos..."
+                placeholder="Buscar productos por nombre, categoría, precio o stock..."
+                placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
-                placeholderTextColor="#999"
               />
+              {busqueda.length > 0 && (
+                <TouchableOpacity onPress={() => setBusqueda("")} style={styles.clearButton}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* Filtrar por categoría */}
-            <View style={styles.filterContainer}>
-              <MaterialCommunityIcons
-                name="filter-outline"
-                size={20}
-                color="#666"
-                style={styles.filterIcon}
-              />
-              <TextInput
-                style={styles.filterInput}
-                placeholder="Filtrar por categoría"
-                value={categoriaFiltro}
-                onChangeText={setCategoriaFiltro}
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            {/* Botón agregar */}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAgregarProducto}
-            >
+            {/* Botón Agregar */}
+            <TouchableOpacity style={styles.addButton} onPress={handleAgregarProducto}>
               <MaterialCommunityIcons name="plus" size={20} color="#fff" />
               <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Tabla de productos */}
-        <View style={styles.tableContainer}>
-          {/* Header de la tabla */}
-          <View style={styles.tableHeader}>
-            <View style={styles.tableHeaderCell}>
-              <Text style={styles.tableHeaderText}>Nombre</Text>
-            </View>
-            <View style={styles.tableHeaderCell}>
-              <Text style={styles.tableHeaderText}>Categoría</Text>
-            </View>
-            <View style={styles.tableHeaderCell}>
-              <Text style={styles.tableHeaderText}>Precio</Text>
-            </View>
-            <View style={styles.tableHeaderCell}>
-              <Text style={styles.tableHeaderText}>Stock</Text>
-            </View>
-            <View
-              style={[styles.tableHeaderCell, styles.tableHeaderCellAcciones]}
-            >
-              <Text style={styles.tableHeaderText}>Acciones</Text>
-            </View>
-          </View>
+        {/* DataGrid con filtrado y ordenamiento nativo */}
+        <DataTable
+          rows={productosFiltrados}
+          columns={columns}
+          pageSize={10}
+        />
 
-          {/* Filas de la tabla */}
-          <ScrollView style={styles.tableBody}>
-            {productosFiltrados.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons
-                  name="package-variant"
-                  size={48}
-                  color="#ccc"
-                />
-                <Text style={styles.emptyStateText}>
-                  No se encontraron productos
-                </Text>
-              </View>
-            ) : (
-              productosFiltrados.map((producto) => (
-                <View key={producto.id} style={styles.tableRow}>
-                  <View style={styles.tableCell}>
-                    <Text style={styles.tableCellText}>{producto.nombre}</Text>
-                  </View>
-                  <View style={styles.tableCell}>
-                    <Text style={styles.tableCellText}>
-                      {producto.categoria}
-                    </Text>
-                  </View>
-                  <View style={styles.tableCell}>
-                    <Text style={styles.tableCellText}>
-                      ${producto.precio.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.tableCell}>
-                    <Text style={styles.tableCellText}>{producto.stock}</Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.tableCellAcciones]}>
-                    <View style={styles.actionsContainer}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleEditarProducto(producto)}
-                      >
-                        <MaterialCommunityIcons
-                          name="pencil"
-                          size={18}
-                          color="#4A90E2"
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.deleteButton]}
-                        onPress={() => handleEliminarProducto(producto.id)}
-                      >
-                        <MaterialCommunityIcons
-                          name="delete"
-                          size={18}
-                          color="#fff"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
-
-        {/* Modal para agregar/editar */}
+        {/* Modal para agregar/editar producto */}
         <ProductoModal
           visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          onSave={handleGuardarProducto}
           producto={productoEditando}
+          onClose={() => {
+            setModalVisible(false);
+            setProductoEditando(null);
+          }}
+          onSave={handleGuardarProducto}
+        />
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          visible={confirmModalVisible}
+          title="Eliminar Producto"
+          message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
+          onConfirm={confirmarEliminacion}
+          onCancel={cancelarEliminacion}
         />
       </View>
     </DashboardLayout>
@@ -269,34 +250,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    padding: 24,
+    padding: 20,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#1f1f1f",
+    fontWeight: "bold",
+    color: "#333",
   },
   controlsContainer: {
     marginBottom: 20,
   },
   controlsRow: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 12,
-    flexWrap: "wrap",
+    alignItems: "center",
   },
   searchContainer: {
     flex: 1,
-    minWidth: 200,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
@@ -306,121 +285,36 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#1f1f1f",
+    color: "#333",
     outlineStyle: "none",
   },
-  filterContainer: {
-    flex: 1,
-    minWidth: 200,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  filterIcon: {
-    marginRight: 8,
-  },
-  filterInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#1f1f1f",
-    outlineStyle: "none",
+  clearButton: {
+    marginLeft: 8,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    gap: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
-  },
-  tableContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#f8f8f8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  tableHeaderCell: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  tableHeaderCellAcciones: {
-    flex: 0.8,
-    alignItems: "center",
-  },
-  tableHeaderText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1f1f1f",
-  },
-  tableBody: {
-    flex: 1,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "#fff",
-  },
-  tableCell: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  tableCellAcciones: {
-    flex: 0.8,
-    alignItems: "center",
-  },
-  tableCellText: {
-    fontSize: 14,
-    color: "#3f3f3f",
+    marginLeft: 8,
   },
   actionsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
-    alignItems: "center",
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteButton: {
-    backgroundColor: "#E53935",
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#999",
-    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
 });

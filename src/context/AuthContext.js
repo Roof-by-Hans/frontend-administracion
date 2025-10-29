@@ -22,6 +22,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkStoredSession = async () => {
       try {
+        // ============================================
+        // MODO DE DESARROLLO: Deshabilitado temporalmente
+        // Comenta estas líneas para siempre empezar en login
+        // ============================================
+        /*
         const token = await AsyncStorage.getItem('token');
         const savedUser = await AsyncStorage.getItem('user');
         
@@ -29,6 +34,7 @@ export const AuthProvider = ({ children }) => {
           setUser(JSON.parse(savedUser));
           setIsAuthenticated(true);
         }
+        */
       } catch (err) {
         console.error('Error al cargar sesión guardada:', err);
         try {
@@ -57,6 +63,43 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
+      // ============================================
+      // MODO DE DESARROLLO SIN BACKEND
+      // Acepta cualquier usuario y contraseña
+      // ============================================
+      const usuarioMock = {
+        id: 1,
+        usuario: nombreUsuario,
+        nombre: 'Usuario de Prueba',
+        rol: 'admin'
+      };
+      
+      const tokenMock = 'token-de-prueba-' + Date.now();
+      
+      // Guardar en AsyncStorage
+      try {
+        await AsyncStorage.setItem('token', tokenMock);
+        await AsyncStorage.setItem('user', JSON.stringify(usuarioMock));
+        
+        if (recordarme) {
+          await AsyncStorage.setItem('recordarme', 'true');
+        }
+      } catch (storageError) {
+        console.error('Error al guardar en AsyncStorage:', storageError);
+      }
+      
+      // Actualizar el estado
+      setUser(usuarioMock);
+      setIsAuthenticated(true);
+      setLoading(false);
+      
+      return true;
+      
+      // ============================================
+      // CÓDIGO ORIGINAL CON BACKEND (comentado para desarrollo)
+      // Descomenta esto cuando el backend esté disponible
+      // ============================================
+      /*
       // Llamar al servicio de autenticación
       const response = await authService.login(nombreUsuario, contrasena);
       
@@ -87,25 +130,10 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return false;
       }
+      */
     } catch (err) {
       console.error('Error en login:', err);
-      
-      let errorMessage = 'Error al conectar con el servidor';
-      
-      if (err.response) {
-        // El servidor respondió con un código de error
-        if (err.response.status === 401) {
-          errorMessage = 'Usuario o contraseña incorrectos';
-        } else if (err.response.status === 403) {
-          errorMessage = 'Usuario inactivo. Contacte al administrador.';
-        } else if (err.response.data && err.response.data.message) {
-          errorMessage = err.response.data.message;
-        }
-      } else if (err.request) {
-        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
-      }
-      
-      setError(errorMessage);
+      setError('Error inesperado en el login');
       setLoading(false);
       return false;
     }

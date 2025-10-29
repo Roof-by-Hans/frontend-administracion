@@ -11,12 +11,21 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 
 export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [turno, setTurno] = useState("");
+  const [turno, setTurno] = useState("Mañana");
+  
+  // Estados para los errores
+  const [errores, setErrores] = useState({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    turno: "",
+  });
 
   useEffect(() => {
     if (mozo) {
@@ -29,31 +38,65 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
       // Modo creación
       limpiarCampos();
     }
+    // Limpiar errores al abrir/cerrar modal
+    setErrores({ nombre: "", apellido: "", telefono: "", turno: "" });
   }, [mozo, visible]);
 
   const limpiarCampos = () => {
     setNombre("");
     setApellido("");
     setTelefono("");
-    setTurno("");
+    setTurno("Mañana");
+  };
+
+  // Validación en tiempo real del nombre
+  const handleNombreChange = (text) => {
+    setNombre(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
+      setErrores(prev => ({ ...prev, nombre: "El nombre solo debe contener letras" }));
+    } else {
+      setErrores(prev => ({ ...prev, nombre: "" }));
+    }
+  };
+
+  // Validación en tiempo real del apellido
+  const handleApellidoChange = (text) => {
+    setApellido(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
+      setErrores(prev => ({ ...prev, apellido: "El apellido solo debe contener letras" }));
+    } else {
+      setErrores(prev => ({ ...prev, apellido: "" }));
+    }
+  };
+
+  // Validación en tiempo real del teléfono
+  const handleTelefonoChange = (text) => {
+    setTelefono(text);
+    if (text.trim() === "") {
+      setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
+    } else if (!/^\d+$/.test(text)) {
+      setErrores(prev => ({ ...prev, telefono: "El teléfono solo debe contener números" }));
+    } else if (text.length < 7) {
+      setErrores(prev => ({ ...prev, telefono: "El teléfono debe tener al menos 7 dígitos" }));
+    } else {
+      setErrores(prev => ({ ...prev, telefono: "" }));
+    }
   };
 
   const handleGuardar = () => {
-    // Validaciones
-    if (!nombre.trim()) {
-      alert("El nombre del mozo es obligatorio");
-      return;
-    }
-    if (!apellido.trim()) {
-      alert("El apellido es obligatorio");
-      return;
-    }
-    if (!telefono.trim()) {
-      alert("El teléfono es obligatorio");
-      return;
-    }
-    if (!turno.trim()) {
-      alert("El turno es obligatorio");
+    // Validar que no haya errores (turno siempre tendrá valor por defecto)
+    const hayErrores = Object.values(errores).some(error => error !== "");
+    const camposVacios = !nombre.trim() || !apellido.trim() || !telefono.trim();
+    
+    if (hayErrores || camposVacios) {
+      // Marcar todos los campos vacíos como error
+      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
+      if (!apellido.trim()) setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
+      if (!telefono.trim()) setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
       return;
     }
 
@@ -109,46 +152,59 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Nombre *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.nombre && styles.inputError]}
                   placeholder="Ej: Carlos"
                   value={nombre}
-                  onChangeText={setNombre}
+                  onChangeText={handleNombreChange}
                   placeholderTextColor="#999"
                 />
+                {errores.nombre ? (
+                  <Text style={styles.errorText}>{errores.nombre}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Apellido *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.apellido && styles.inputError]}
                   placeholder="Ej: Pérez"
                   value={apellido}
-                  onChangeText={setApellido}
+                  onChangeText={handleApellidoChange}
                   placeholderTextColor="#999"
                 />
+                {errores.apellido ? (
+                  <Text style={styles.errorText}>{errores.apellido}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Teléfono *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errores.telefono && styles.inputError]}
                   placeholder="Ej: +598 99 123 456"
                   value={telefono}
-                  onChangeText={setTelefono}
+                  onChangeText={handleTelefonoChange}
                   keyboardType="phone-pad"
                   placeholderTextColor="#999"
                 />
+                {errores.telefono ? (
+                  <Text style={styles.errorText}>{errores.telefono}</Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Turno *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej: Mañana, Tarde, Noche"
-                  value={turno}
-                  onChangeText={setTurno}
-                  placeholderTextColor="#999"
-                />
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={turno}
+                    onValueChange={(itemValue) => setTurno(itemValue)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Mañana" value="Mañana" />
+                    <Picker.Item label="Tarde" value="Tarde" />
+                    <Picker.Item label="Noche" value="Noche" />
+                  </Picker>
+                </View>
               </View>
             </ScrollView>
 
@@ -238,6 +294,27 @@ const styles = StyleSheet.create({
     color: "#1f1f1f",
     outlineStyle: "none",
   },
+  inputError: {
+    borderColor: "#d32f2f",
+    backgroundColor: "#ffebee",
+  },
+  errorText: {
+    color: "#d32f2f",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  pickerContainer: {
+    backgroundColor: "#f8f8f8",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 45,
+    width: "100%",
+    backgroundColor: "transparent",
+  },
   modalFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -263,7 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#4CAF50",
   },
   saveButtonText: {
     fontSize: 14,
