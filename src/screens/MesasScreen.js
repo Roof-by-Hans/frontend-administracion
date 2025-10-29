@@ -8,6 +8,7 @@ import MesaModal from "../components/MesaModal";
 import GestionarMesasModal from "../components/GestionarMesasModal";
 import { useAuth } from "../context/AuthContext";
 import mesasService from "../services/mesasService";
+import { useMesasSocket } from "../hooks/useMesasSocket";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {
@@ -26,7 +27,6 @@ const GridBackground = ({ width, height }) => {
 };
 
 export default function MesasScreen({ onNavigate, currentScreen }) {
-  const [mesas, setMesas] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null);
   const [modoActivo, setModoActivo] = useState(null);
@@ -34,19 +34,40 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   const [gestionModalVisible, setGestionModalVisible] = useState(false);
   const [salonDimensions, setSalonDimensions] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
-  const [wsConnected, setWsConnected] = useState(false);
   
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
   const { width } = useWindowDimensions();
   const isCompact = width < 768;
 
-  // Cargar mesas desde el backend
+  // Hook personalizado de WebSocket para mesas
+  const { 
+    isConnected: wsConnected, 
+    mesas, 
+    setMesas,
+    joinMesa,
+    leaveMesa 
+  } = useMesasSocket({
+    onRefreshRequest: async () => {
+      console.log('🔄 Solicitud de recarga de mesas desde WebSocket...');
+      await cargarMesas();
+    },
+    onNotification: (notification) => {
+      // Mostrar notificación al usuario
+      const title = notification.type === 'error' ? 'Error' : 
+                    notification.type === 'warning' ? 'Atención' : 
+                    notification.type === 'success' ? 'Éxito' : 'Información';
+      
+      Alert.alert(title, notification.message);
+    }
+  });
+
+  // Cargar mesas desde el backend (API REST)
   const cargarMesas = useCallback(async () => {
     try {
       setLoading(true);
       const mesasData = await mesasService.getMesas();
-      console.log('✅ Mesas cargadas:', mesasData);
+      console.log('✅ Mesas cargadas desde API:', mesasData.length);
       
       // Transformar datos del backend al formato local
       const mesasTransformadas = mesasData.map((mesa, index) => ({
@@ -59,7 +80,9 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         },
         unidaCon: [], // Se llenará con la lógica de grupos
         pedido: null,
-        grupo: mesa.grupo || null
+        grupo: mesa.grupo || null,
+        idMesa: mesa.idMesa,
+        nombreMesa: mesa.nombreMesa
       }));
       
       setMesas(mesasTransformadas);
@@ -70,73 +93,11 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setMesas]);
 
-  // Conectar WebSocket y configurar listeners
+  // Cargar mesas iniciales al montar el componente
   useEffect(() => {
-    let mounted = true;
-
-    const setupWebSocket = async () => {
-      try {
-        // Conectar WebSocket
-        await mesasService.connect();
-        
-        if (!mounted) return;
-        
-        setWsConnected(mesasService.isConnected());
-
-        // Cargar mesas iniciales
-        await cargarMesas();
-
-        // Configurar listeners de WebSocket
-        mesasService.onMesaCreada((data) => {
-          console.log('🆕 Nueva mesa creada:', data);
-          cargarMesas(); // Recargar todas las mesas
-        });
-
-        mesasService.onMesaActualizada((data) => {
-          console.log('🔄 Mesa actualizada:', data);
-          setMesas(prevMesas => 
-            prevMesas.map(mesa => 
-              mesa.numero === data.idMesa 
-                ? { ...mesa, nombre: data.nombreMesa, grupo: data.grupo }
-                : mesa
-            )
-          );
-        });
-
-        mesasService.onMesaEstadoCambiado((data) => {
-          console.log('🔄 Estado de mesa cambió:', data);
-          // Aquí puedes actualizar el estado de la mesa si el backend lo envía
-          cargarMesas();
-        });
-
-        mesasService.onMesaEliminada((data) => {
-          console.log('🗑️ Mesa eliminada:', data);
-          setMesas(prevMesas => prevMesas.filter(mesa => mesa.numero !== data.idMesa));
-        });
-
-        mesasService.onMesasActualizar(() => {
-          console.log('🔄 Recargando todas las mesas...');
-          cargarMesas();
-        });
-
-      } catch (error) {
-        console.error('❌ Error al configurar WebSocket:', error);
-        if (mounted) {
-          setWsConnected(false);
-        }
-      }
-    };
-
-    setupWebSocket();
-
-    // Cleanup al desmontar
-    return () => {
-      mounted = false;
-      mesasService.removeAllListeners();
-      // No desconectamos aquí para mantener la conexión activa en otras pantallas
-    };
+    cargarMesas();
   }, [cargarMesas]);
 
   const TAMANO_MESA = 80;

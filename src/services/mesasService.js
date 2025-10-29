@@ -9,18 +9,21 @@ let socket = null;
 
 /**
  * Servicio de mesas con WebSocket y API REST
+ * Basado en la documentación del backend: docs/websocket-mesas.md
  */
 const mesasService = {
+  // ==================== GESTIÓN DE CONEXIÓN ====================
+
   /**
    * Inicializar conexión WebSocket
+   * @returns {Promise<Socket|null>} - Instancia del socket o null si hay error
    */
   async connect() {
     try {
       const token = await AsyncStorage.getItem('token');
       
       if (!token) {
-        console.error('❌ No hay token disponible para WebSocket');
-        return null;
+        console.warn('⚠️ No hay token disponible para WebSocket (conexión como invitado)');
       }
 
       if (socket?.connected) {
@@ -32,21 +35,20 @@ const mesasService = {
 
       socket = io(WS_BASE_URL, {
         auth: {
-          token: token
+          token: token || null // Permitir conexión sin token (invitado)
         },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
       });
 
       // Eventos de conexión
       socket.on('connect', () => {
         console.log('✅ WebSocket conectado:', socket.id);
-        // Unirse a la sala de mesas
+        // Unirse automáticamente a la sala de mesas
         socket.emit('join:mesas');
-        console.log('📡 Unido a sala de mesas');
       });
 
       socket.on('connect_error', (error) => {
@@ -63,6 +65,36 @@ const mesasService = {
         socket.emit('join:mesas');
       });
 
+      socket.on('reconnect_error', (error) => {
+        console.error('❌ Error de reconexión:', error.message);
+      });
+
+      socket.on('reconnect_failed', () => {
+        console.error('❌ Falló la reconexión después de todos los intentos');
+      });
+
+      // Confirmaciones de sala
+      socket.on('joined:mesas', (data) => {
+        console.log('✅ Unido a sala de mesas:', data);
+      });
+
+      socket.on('left:mesas', (data) => {
+        console.log('👋 Saliste de sala de mesas:', data);
+      });
+
+      socket.on('joined:mesa', (data) => {
+        console.log('✅ Unido a mesa específica:', data);
+      });
+
+      socket.on('left:mesa', (data) => {
+        console.log('👋 Saliste de mesa específica:', data);
+      });
+
+      // Manejo de errores
+      socket.on('error', (error) => {
+        console.error('⚠️ Error del servidor:', error);
+      });
+
       return socket;
     } catch (error) {
       console.error('❌ Error al conectar WebSocket:', error);
@@ -75,7 +107,15 @@ const mesasService = {
    */
   disconnect() {
     if (socket) {
-      console.log('🔌 Desconectando WebSocket');
+      console.log('🔌 Desconectando WebSocket...');
+      
+      // Salir de la sala antes de desconectar
+      socket.emit('leave:mesas');
+      
+      // Remover todos los listeners
+      this.removeAllListeners();
+      
+      // Desconectar
       socket.disconnect();
       socket = null;
     }
@@ -83,6 +123,7 @@ const mesasService = {
 
   /**
    * Verificar si está conectado
+   * @returns {boolean} - true si está conectado, false en caso contrario
    */
   isConnected() {
     return socket?.connected || false;
@@ -90,88 +131,245 @@ const mesasService = {
 
   /**
    * Obtener instancia del socket
+   * @returns {Socket|null} - Instancia del socket o null
    */
   getSocket() {
     return socket;
   },
 
   /**
+   * Forzar reconexión
+   */
+  reconnect() {
+    if (socket && !socket.connected) {
+      console.log('🔄 Reconectando socket...');
+      socket.connect();
+    }
+  },
+
+  // ==================== EMITIR EVENTOS (CLIENT -> SERVER) ====================
+
+  /**
+   * Unirse a la sala general de mesas
+   */
+  joinMesas() {
+    if (socket && socket.connected) {
+      console.log('📥 Uniéndose a sala de mesas...');
+      socket.emit('join:mesas');
+    } else {
+      console.warn('⚠️ Socket no conectado');
+    }
+  },
+
+  /**
+   * Salir de la sala general de mesas
+   */
+  leaveMesas() {
+    if (socket && socket.connected) {
+      console.log('📤 Saliendo de sala de mesas...');
+      socket.emit('leave:mesas');
+    }
+  },
+
+  /**
+   * Unirse a una sala de mesa específica
+   * @param {number} mesaId - ID de la mesa
+   */
+  joinMesa(mesaId) {
+    if (socket && socket.connected) {
+      console.log('📥 Uniéndose a mesa:', mesaId);
+      socket.emit('join:mesa', { mesaId });
+    } else {
+      console.warn('⚠️ Socket no conectado');
+    }
+  },
+
+  /**
+   * Salir de una sala de mesa específica
+   * @param {number} mesaId - ID de la mesa
+   */
+  leaveMesa(mesaId) {
+    if (socket && socket.connected) {
+      console.log('📤 Saliendo de mesa:', mesaId);
+      socket.emit('leave:mesa', { mesaId });
+    }
+  },
+
+  /**
+   * Solicitar lista de clientes conectados a la sala de mesas
+   */
+  getConnectedClients() {
+    if (socket && socket.connected) {
+      console.log('👥 Solicitando clientes conectados...');
+      socket.emit('mesas:get-connected-clients');
+    }
+  },
+
+  /**
+   * Solicitar estado actual de una mesa
+   * @param {number} mesaId - ID de la mesa
+   */
+  getEstadoMesa(mesaId) {
+    if (socket && socket.connected) {
+      console.log('📊 Solicitando estado de mesa:', mesaId);
+      socket.emit('mesa:get-estado', { mesaId });
+    }
+  },
+
+  // ==================== ESCUCHAR EVENTOS (SERVER -> CLIENT) ====================
+
+  /**
    * Escuchar evento de mesa creada
-   * @param {Function} callback - Función que recibe los datos de la mesa creada
+   * @param {Function} callback - Función que recibe el payload: { message, data, timestamp }
    */
   onMesaCreada(callback) {
     if (!socket) {
       console.warn('⚠️ Socket no inicializado');
       return;
     }
-    socket.on('mesa:creada', (data) => {
-      console.log('📡 Mesa creada:', data);
-      callback(data);
+    socket.on('mesa:creada', (payload) => {
+      console.log('🆕 Mesa creada:', payload);
+      callback(payload);
     });
   },
 
   /**
    * Escuchar evento de mesa actualizada
-   * @param {Function} callback - Función que recibe los datos de la mesa actualizada
+   * @param {Function} callback - Función que recibe el payload: { message, data, timestamp }
    */
   onMesaActualizada(callback) {
     if (!socket) {
       console.warn('⚠️ Socket no inicializado');
       return;
     }
-    socket.on('mesa:actualizada', (data) => {
-      console.log('📡 Mesa actualizada:', data);
-      callback(data);
-    });
-  },
-
-  /**
-   * Escuchar evento de estado de mesa cambiado
-   * @param {Function} callback - Función que recibe los datos del cambio de estado
-   */
-  onMesaEstadoCambiado(callback) {
-    if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
-      return;
-    }
-    socket.on('mesa:estado-cambiado', (data) => {
-      console.log('📡 Estado de mesa cambió:', data);
-      callback(data);
+    socket.on('mesa:actualizada', (payload) => {
+      console.log('🔄 Mesa actualizada:', payload);
+      callback(payload);
     });
   },
 
   /**
    * Escuchar evento de mesa eliminada
-   * @param {Function} callback - Función que recibe el ID de la mesa eliminada
+   * @param {Function} callback - Función que recibe el payload: { message, data: { id }, timestamp }
    */
   onMesaEliminada(callback) {
     if (!socket) {
       console.warn('⚠️ Socket no inicializado');
       return;
     }
-    socket.on('mesa:eliminada', (data) => {
-      console.log('📡 Mesa eliminada:', data);
-      callback(data);
+    socket.on('mesa:eliminada', (payload) => {
+      console.log('🗑️ Mesa eliminada:', payload);
+      callback(payload);
+    });
+  },
+
+  /**
+   * Escuchar evento de estado de mesa cambiado
+   * @param {Function} callback - Función que recibe el payload: { message, data: { id, estado }, timestamp }
+   */
+  onMesaEstadoCambiado(callback) {
+    if (!socket) {
+      console.warn('⚠️ Socket no inicializado');
+      return;
+    }
+    socket.on('mesa:estado-cambiado', (payload) => {
+      console.log('🔄 Estado de mesa cambió:', payload);
+      callback(payload);
     });
   },
 
   /**
    * Escuchar evento para recargar todas las mesas
-   * @param {Function} callback - Función que se ejecuta cuando se deben recargar las mesas
+   * @param {Function} callback - Función que se ejecuta cuando se debe refrescar
    */
   onMesasActualizar(callback) {
     if (!socket) {
       console.warn('⚠️ Socket no inicializado');
       return;
     }
-    socket.on('mesas:actualizar', () => {
-      console.log('📡 Recargar todas las mesas');
-      callback();
+    socket.on('mesas:actualizar', (payload) => {
+      console.log('🔄 Solicitud de actualización masiva:', payload);
+      callback(payload);
     });
   },
 
   /**
-   * Remover todos los listeners de eventos
+   * Escuchar notificaciones generales
+   * @param {Function} callback - Función que recibe el payload: { message, type, timestamp }
+   */
+  onNotificacion(callback) {
+    if (!socket) {
+      console.warn('⚠️ Socket no inicializado');
+      return;
+    }
+    socket.on('notificacion', (payload) => {
+      console.log('🔔 Notificación:', payload);
+      callback(payload);
+    });
+  },
+
+  /**
+   * Escuchar respuesta de clientes conectados
+   * @param {Function} callback - Función que recibe el payload: { count, clients }
+   */
+  onConnectedClients(callback) {
+    if (!socket) {
+      console.warn('⚠️ Socket no inicializado');
+      return;
+    }
+    socket.on('mesas:connected-clients', (data) => {
+      console.log('👥 Clientes conectados:', data);
+      callback(data);
+    });
+  },
+
+  /**
+   * Escuchar respuesta de estado de mesa
+   * @param {Function} callback - Función que recibe el payload: { mesaId, message, timestamp }
+   */
+  onMesaEstado(callback) {
+    if (!socket) {
+      console.warn('⚠️ Socket no inicializado');
+      return;
+    }
+    socket.on('mesa:estado', (data) => {
+      console.log('📊 Estado de mesa:', data);
+      callback(data);
+    });
+  },
+
+  /**
+   * Escuchar errores del servidor
+   * @param {Function} callback - Función que recibe el error: { message, code }
+   */
+  onError(callback) {
+    if (!socket) {
+      console.warn('⚠️ Socket no inicializado');
+      return;
+    }
+    socket.on('error', (error) => {
+      console.error('⚠️ Error del servidor:', error);
+      callback(error);
+    });
+  },
+
+  /**
+   * Remover un listener específico
+   * @param {string} event - Nombre del evento
+   * @param {Function} callback - Callback a remover (opcional)
+   */
+  off(event, callback) {
+    if (socket) {
+      if (callback) {
+        socket.off(event, callback);
+      } else {
+        socket.off(event);
+      }
+    }
+  },
+
+  /**
+   * Remover todos los listeners de eventos de mesas
    */
   removeAllListeners() {
     if (socket) {
@@ -180,7 +378,15 @@ const mesasService = {
       socket.off('mesa:estado-cambiado');
       socket.off('mesa:eliminada');
       socket.off('mesas:actualizar');
-      console.log('🔇 Listeners removidos');
+      socket.off('notificacion');
+      socket.off('mesas:connected-clients');
+      socket.off('mesa:estado');
+      socket.off('joined:mesas');
+      socket.off('left:mesas');
+      socket.off('joined:mesa');
+      socket.off('left:mesa');
+      socket.off('error');
+      console.log('🔇 Todos los listeners removidos');
     }
   },
 
