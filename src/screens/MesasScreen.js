@@ -53,45 +53,51 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       await cargarMesas();
     },
     onNotification: (notification) => {
-      // Mostrar notificación al usuario
-      const title = notification.type === 'error' ? 'Error' : 
-                    notification.type === 'warning' ? 'Atención' : 
-                    notification.type === 'success' ? 'Éxito' : 'Información';
+      // Mostrar notificación al usuario con formato mejorado
+      const title = notification.title || 
+                    (notification.type === 'error' ? '❌ Error' : 
+                     notification.type === 'warning' ? '⚠️ Atención' : 
+                     notification.type === 'success' ? '✅ Éxito' : 
+                     'ℹ️ Información');
       
       Alert.alert(title, notification.message);
     }
   });
 
   // Cargar mesas desde el backend (API REST)
+  // Esta función se usa solo en carga inicial o cuando el WebSocket lo solicita
   const cargarMesas = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔄 Cargando mesas desde API REST...');
+      
       const mesasData = await mesasService.getMesas();
       console.log('✅ Mesas cargadas desde API:', mesasData.length);
-      console.log('📋 Datos de mesas recibidos:', mesasData);
+      console.log('📋 Datos crudos de mesas:', mesasData);
       
       // Intentar cargar grupos existentes (sin bloquear si falla)
       let gruposData = [];
       try {
         gruposData = await mesasService.getGrupos();
         console.log('✅ Grupos cargados desde API:', gruposData.length);
-        console.log('📋 Datos de grupos recibidos:', gruposData);
+        console.log('📋 Datos crudos de grupos:', gruposData);
       } catch (grupoError) {
         console.warn('⚠️ No se pudieron cargar grupos (continuando sin grupos):', grupoError.message);
+        // Si el endpoint no existe (404), simplemente continuar sin grupos
+        // Los grupos se sincronizarán cuando se creen mediante WebSocket
       }
       
       // Crear un mapa de grupos para acceso rápido
       const gruposMap = {};
       if (gruposData && gruposData.length > 0) {
         gruposData.forEach(grupo => {
-          // Según WEBSOCKET_GRUPOS_BACKEND_READY.md, el backend usa "id" en lugar de "idMesa"
           const mesasIds = grupo.mesas?.map(m => m.id || m.idMesa) || [];
           
-          console.log(`📋 Procesando grupo "${grupo.nombre}" (ID: ${grupo.id}):`, mesasIds);
+          console.log(`📊 Procesando grupo "${grupo.nombre}" (ID: ${grupo.id}):`, mesasIds);
           
           mesasIds.forEach(idMesa => {
             gruposMap[idMesa] = {
-              idGrupo: grupo.id,  // El backend usa "id" en el grupo
+              idGrupo: grupo.id,
               nombreGrupo: grupo.nombre,
               mesasDelGrupo: mesasIds
             };
@@ -99,11 +105,11 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         });
       }
       
+      console.log('📊 Mapa de grupos:', gruposMap);
+      
       // Transformar datos del backend al formato local
       const mesasTransformadas = mesasData.map((mesa, index) => {
         // Mapear estados del backend a estados locales
-        // Backend: DISPONIBLE, OCUPADA, RESERVADA, FUERA_DE_SERVICIO
-        // Frontend: libre, ocupada, reservada, fuera_servicio
         let estadoLocal = "libre";
         if (mesa.estado) {
           const estadoMap = {
@@ -117,11 +123,19 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
         // Verificar si la mesa pertenece a un grupo
         const grupoInfo = gruposMap[mesa.idMesa];
+        
+        // Calcular unidaCon con números locales
         const unidaCon = grupoInfo 
-          ? grupoInfo.mesasDelGrupo.filter(id => id !== mesa.idMesa)
+          ? grupoInfo.mesasDelGrupo
+              .filter(id => id !== mesa.idMesa)
+              .map(id => {
+                // Encontrar el número local de esta mesa
+                const mesaEncontrada = mesasData.find(m => m.idMesa === id);
+                return mesaEncontrada ? mesaEncontrada.idMesa : id;
+              })
           : [];
 
-        return {
+        const mesaTransformada = {
           numero: mesa.idMesa,
           nombre: mesa.nombreMesa,
           estado: estadoLocal,
@@ -141,14 +155,22 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           idMesa: mesa.idMesa,
           nombreMesa: mesa.nombreMesa
         };
+        
+        if (grupoInfo) {
+          console.log(`� Mesa ${mesa.idMesa} en grupo "${grupoInfo.nombreGrupo}":`, {
+            unidaCon,
+            grupo: grupoInfo.idGrupo
+          });
+        }
+        
+        return mesaTransformada;
       });
       
       console.log('📊 Mesas transformadas:', mesasTransformadas.length);
-      console.log('📊 Mesas con grupos:', mesasTransformadas.filter(m => m.grupo).length, 'mesas en grupos');
-      console.log('📊 Primera mesa de ejemplo:', mesasTransformadas[0]);
-      
+      console.log('📊 Mesas en grupos:', mesasTransformadas.filter(m => m.grupo).length);
       setMesas(mesasTransformadas);
-      console.log('✅ Estado de mesas actualizado con', mesasTransformadas.length, 'mesas');
+      
+      console.log('✅ Carga de mesas completada');
     } catch (error) {
       console.error('❌ Error al cargar mesas:', error);
       console.error('❌ Stack:', error.stack);
@@ -157,7 +179,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     } finally {
       setLoading(false);
     }
-  }, [setMesas]);
+  }, [setMesas, wsConnected]);
 
   // Cargar mesas iniciales al montar el componente
   useEffect(() => {
@@ -195,7 +217,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     );
   };
 
-  const handlePosicionChange = (numero, nuevaPosicion) => {
+  const handlePosicionChange = useCallback((numero, nuevaPosicion) => {
     // Aplicar límites de zona segura
     const limiteX = salonDimensions.width > 0 
       ? salonDimensions.width - TAMANO_MESA - MARGEN_SEGURIDAD 
@@ -218,24 +240,54 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     if (!hayColision) {
       setMesas(prev => prev.map(m => m.numero === numero ? { ...m, posicion: posicionLimitada } : m));
     }
-  };
+  }, [salonDimensions, mesas]);
 
-  const handleMesaPress = (numero) => {
+  const handleMesaPress = useCallback((numero) => {
+    console.log('═══════════════════════════════════════');
+    console.log('🖱️ handleMesaPress INICIO');
+    console.log('   Mesa presionada:', numero);
+    console.log('   Modo activo actual:', modoActivo);
+    console.log('   Tipo de modoActivo:', typeof modoActivo);
+    console.log('   modoActivo === "unir":', modoActivo === 'unir');
+    console.log('   modoActivo === "separar":', modoActivo === 'separar');
+    console.log('═══════════════════════════════════════');
+    
     if (modoActivo === 'unir' || modoActivo === 'separar') {
-      setMesasSeleccionadas(prev => prev.includes(numero) ? prev.filter(n => n !== numero) : [...prev, numero]);
+      console.log('✅ Modo de selección activo, alternando selección');
+      setMesasSeleccionadas(prev => {
+        const yaSeleccionada = prev.includes(numero);
+        const nuevaSeleccion = yaSeleccionada 
+          ? prev.filter(n => n !== numero) 
+          : [...prev, numero];
+        console.log('📋 Mesas seleccionadas:', nuevaSeleccion);
+        return nuevaSeleccion;
+      });
       return;
     }
+    
     if (!modoActivo) {
+      console.log('📝 Abriendo modal de pedido para mesa', numero);
       const mesa = mesas.find(m => m.numero === numero);
       setMesaSeleccionada(mesa);
       setModalVisible(true);
+    } else {
+      console.log('⚠️ Modo activo pero no reconocido:', modoActivo);
     }
-  };
+  }, [modoActivo, mesas]);
 
   const activarModo = (modo) => {
-    setModoActivo(prev => prev === modo ? null : modo);
+    const nuevoModo = modoActivo === modo ? null : modo;
+    console.log('🔧 Activar modo:', modo, '-> Nuevo modo:', nuevoModo);
+    console.log('📋 Mesas seleccionadas al cambiar modo:', mesasSeleccionadas);
+    
+    setModoActivo(nuevoModo);
     setMesasSeleccionadas([]);
   };
+
+  // Log cuando cambia modoActivo para debugging
+  useEffect(() => {
+    console.log('🔄 Estado modoActivo actualizado a:', modoActivo);
+  }, [modoActivo]);
 
   const unirMesas = async (numeros) => {
     if (numeros.length < 2) {
@@ -243,103 +295,119 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       return;
     }
 
-    // Pedir nombre del grupo
-    Alert.prompt(
-      'Unir Mesas',
-      'Ingresa un nombre para el grupo de mesas:',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Crear Grupo',
-          onPress: async (nombre) => {
-            if (!nombre || nombre.trim() === '') {
-              Alert.alert('Error', 'Debes ingresar un nombre para el grupo');
-              return;
-            }
+    console.log('🔗 unirMesas llamado con:', numeros);
 
-            try {
-              // Obtener los IDs reales de las mesas
-              const mesasIds = numeros.map(num => {
-                const mesa = mesas.find(m => m.numero === num);
-                return mesa?.idMesa || num;
-              });
+    // Generar nombre por defecto
+    const nombreDefault = `Grupo ${new Date().getTime() % 1000}`;
+    
+    // Mostrar un prompt simple - en web funciona, en móvil usamos nombre default
+    const nombre = typeof prompt !== 'undefined' 
+      ? prompt('Ingresa un nombre para el grupo de mesas:', nombreDefault)
+      : nombreDefault;
 
-              // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
-              const ordenadas = [...numeros].sort((a, b) => a - b);
-              setMesas(prev => {
-                const base = prev.find(m => m.numero === ordenadas[0]);
-                let basePos = base?.posicion || { x: 50, y: 50 };
-                const ancho = TAMANO_MESA, espacio = 10;
-                
-                // Calcular posiciones para visualización
-                const nuevasPosiciones = ordenadas.map((numero, index) => ({
-                  numero,
-                  posicion: { 
-                    x: basePos.x + index * (ancho + espacio), 
-                    y: basePos.y 
-                  }
-                }));
+    if (!nombre || nombre.trim() === '') {
+      Alert.alert('Error', 'Debes ingresar un nombre para el grupo');
+      return;
+    }
 
-                // Actualizar mesas con el grupo
-                return prev.map(m => {
-                  const mesaPos = nuevasPosiciones.find(np => np.numero === m.numero);
-                  if (!mesaPos) return m;
-                  
-                  const nuevasUniones = ordenadas.filter(n => n !== m.numero);
-                  return {
-                    ...m,
-                    posicion: mesaPos.posicion,
-                    unidaCon: nuevasUniones,
-                    nombreGrupo: nombre
-                  };
-                });
-              });
+    console.log('📝 Nombre del grupo:', nombre);
 
-              // 2. SINCRONIZAR CON BACKEND
-              await mesasService.createGrupo(nombre, mesasIds);
-              
-              // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
-              // y confirmará/actualizará el estado
+    try {
+      // Obtener los IDs reales de las mesas
+      const mesasIds = numeros.map(num => {
+        const mesa = mesas.find(m => m.numero === num);
+        console.log(`   Mesa ${num} -> ID: ${mesa?.idMesa}`);
+        return mesa?.idMesa || num;
+      });
 
-              Alert.alert('✅ Éxito', `Grupo "${nombre}" creado correctamente`);
-              setModoActivo(null);
-              setMesasSeleccionadas([]);
-              
-            } catch (error) {
-              console.error('❌ Error al crear grupo:', error);
-              
-              // 3. REVERTIR CAMBIOS SI FALLA
-              setMesas(prev =>
-                prev.map(mesa => {
-                  if (numeros.includes(mesa.numero)) {
-                    return {
-                      ...mesa,
-                      unidaCon: [],
-                      nombreGrupo: null
-                    };
-                  }
-                  return mesa;
-                })
-              );
-              
-              Alert.alert('Error', 'No se pudo crear el grupo. Intenta de nuevo.');
-            }
+      console.log('📊 IDs de mesas para el backend:', mesasIds);
+
+      // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
+      const ordenadas = [...numeros].sort((a, b) => a - b);
+      setMesas(prev => {
+        const base = prev.find(m => m.numero === ordenadas[0]);
+        let basePos = base?.posicion || { x: 50, y: 50 };
+        const ancho = TAMANO_MESA, espacio = 10;
+        
+        // Calcular posiciones para visualización
+        const nuevasPosiciones = ordenadas.map((numero, index) => ({
+          numero,
+          posicion: { 
+            x: basePos.x + index * (ancho + espacio), 
+            y: basePos.y 
           }
-        }
-      ],
-      'plain-text'
-    );
+        }));
+
+        // Actualizar mesas con el grupo
+        return prev.map(m => {
+          const mesaPos = nuevasPosiciones.find(np => np.numero === m.numero);
+          if (!mesaPos) return m;
+          
+          const nuevasUniones = ordenadas.filter(n => n !== m.numero);
+          return {
+            ...m,
+            posicion: mesaPos.posicion,
+            unidaCon: nuevasUniones,
+            nombreGrupo: nombre
+          };
+        });
+      });
+
+      console.log('📡 Enviando petición al backend...');
+      
+      // 2. SINCRONIZAR CON BACKEND
+      const resultado = await mesasService.createGrupo(nombre, mesasIds);
+      
+      console.log('✅ Respuesta del backend:', resultado);
+      
+      // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
+      // y confirmará/actualizará el estado
+
+      Alert.alert('✅ Éxito', `Grupo "${nombre}" creado correctamente`);
+      setModoActivo(null);
+      setMesasSeleccionadas([]);
+      
+    } catch (error) {
+      console.error('❌ Error al crear grupo:', error);
+      console.error('❌ Stack:', error.stack);
+      
+      // 3. REVERTIR CAMBIOS SI FALLA
+      setMesas(prev =>
+        prev.map(mesa => {
+          if (numeros.includes(mesa.numero)) {
+            return {
+              ...mesa,
+              unidaCon: [],
+              nombreGrupo: null
+            };
+          }
+          return mesa;
+        })
+      );
+      
+      Alert.alert('Error', `No se pudo crear el grupo: ${error.message}`);
+    }
   };
 
   const confirmarUnir = () => {
-    if (mesasSeleccionadas.length < 2)
+    console.log('🔗 Confirmar unir - Mesas seleccionadas:', mesasSeleccionadas);
+    
+    if (mesasSeleccionadas.length < 2) {
+      console.warn('⚠️ Menos de 2 mesas seleccionadas');
       return Alert.alert("Error", "Selecciona al menos 2 mesas");
+    }
+    
+    console.log('✅ Procediendo a unir mesas:', mesasSeleccionadas);
     unirMesas(mesasSeleccionadas);
     setModoActivo(null);
     setMesasSeleccionadas([]);
   };
 
   const confirmarSeparar = async () => {
+    console.log('🔵 confirmarSeparar llamado');
+    console.log('  Mesas seleccionadas:', mesasSeleccionadas);
+    console.log('  Total mesas:', mesas.length);
+    
     if (!mesasSeleccionadas.length)
       return Alert.alert("Error", "Selecciona al menos 1 mesa");
 
@@ -349,6 +417,9 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         mesasSeleccionadas.includes(m.numero) && m.grupo
       );
 
+      console.log('  Mesas con grupo encontradas:', mesasConGrupo.length);
+      console.log('  Detalles:', mesasConGrupo.map(m => ({ numero: m.numero, idMesa: m.idMesa, grupo: m.grupo })));
+
       if (mesasConGrupo.length === 0) {
         return Alert.alert("Error", "Las mesas seleccionadas no pertenecen a ningún grupo");
       }
@@ -356,49 +427,99 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       // Obtener el ID del grupo (asumiendo que todas están en el mismo grupo)
       const grupoId = mesasConGrupo[0].grupo;
       const nombreGrupo = mesasConGrupo[0].nombreGrupo || `Grupo ${grupoId}`;
+      
+      console.log('  Grupo ID:', grupoId);
+      console.log('  Nombre grupo:', nombreGrupo);
+      
+      // Obtener todas las mesas del grupo (usando idMesa)
+      const todasLasMesasDelGrupo = mesas
+        .filter(m => m.grupo === grupoId)
+        .map(m => m.idMesa);
+      
+      console.log('  Todas las mesas del grupo (idMesas):', todasLasMesasDelGrupo);
+      
+      // Obtener los IDs de las mesas seleccionadas (usando idMesa)
+      const mesasIdsARemover = mesasConGrupo.map(m => m.idMesa);
+      
+      console.log('  IDs a remover:', mesasIdsARemover);
+      
+      const mesasRestantes = todasLasMesasDelGrupo.length - mesasIdsARemover.length;
+      
+      console.log('  Mesas restantes después de remover:', mesasRestantes);
+      
+      // Determinar el mensaje según cuántas mesas quedarán
+      let mensaje;
+      if (mesasRestantes < 2) {
+        mensaje = `Esto disolverá el grupo completo "${nombreGrupo}". ¿Continuar?`;
+      } else {
+        mensaje = `¿Separar ${mesasIdsARemover.length} mesa(s) del grupo "${nombreGrupo}"? Quedarán ${mesasRestantes} mesa(s) en el grupo.`;
+      }
 
-      Alert.alert(
-        'Separar Mesas',
-        `¿Disolver el grupo "${nombreGrupo}"?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Separar',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                // 1. ACTUALIZACIÓN OPTIMISTA
-                setMesas(prev => prev.map(m => ({
-                  ...m,
-                  unidaCon: m.unidaCon.filter(n => !mesasSeleccionadas.includes(n)),
-                  grupo: mesasSeleccionadas.includes(m.numero) ? null : m.grupo,
-                  nombreGrupo: mesasSeleccionadas.includes(m.numero) ? null : m.nombreGrupo
-                })));
+      // Usar window.confirm en web
+      const confirmar = window.confirm(`Separar Mesas\n\n${mensaje}`);
+      
+      if (!confirmar) {
+        console.log('❌ Usuario canceló la separación');
+        return;
+      }
 
-                // 2. SINCRONIZAR CON BACKEND
-                await mesasService.deleteGrupo(grupoId);
-
-                // El evento 'grupo:disuelto' se recibirá automáticamente por WebSocket
-
-                Alert.alert("✅ Éxito", `Grupo "${nombreGrupo}" disuelto correctamente`);
-                setModoActivo(null);
-                setMesasSeleccionadas([]);
-
-              } catch (error) {
-                console.error('❌ Error al disolver grupo:', error);
-                
-                // 3. REVERTIR CAMBIOS SI FALLA
-                // Recargar las mesas desde el servidor
-                await cargarMesas();
-                
-                Alert.alert('Error', 'No se pudo disolver el grupo. Intenta de nuevo.');
-              }
-            }
+      try {
+        console.log('🟢 Usuario confirmó separación');
+        
+        // 1. ACTUALIZACIÓN OPTIMISTA
+        setMesas(prev => prev.map(m => {
+          if (mesasSeleccionadas.includes(m.numero)) {
+            // Remover esta mesa del grupo
+            return {
+              ...m,
+              unidaCon: [],
+              grupo: null,
+              nombreGrupo: null
+            };
+          } else if (m.grupo === grupoId) {
+            // Actualizar unidaCon de las otras mesas del grupo
+            return {
+              ...m,
+              unidaCon: m.unidaCon.filter(n => !mesasSeleccionadas.includes(n))
+            };
           }
-        ]
-      );
+          return m;
+        }));
+
+        console.log('📤 Llamando a mesasService.removerMesasDeGrupo...');
+        
+        // 2. SINCRONIZAR CON BACKEND
+        await mesasService.removerMesasDeGrupo(
+          grupoId,
+          mesasIdsARemover,
+          todasLasMesasDelGrupo,
+          nombreGrupo
+        );
+
+        console.log('✅ Backend respondió exitosamente');
+
+        // El evento WebSocket se recibirá automáticamente
+
+        const mensajeExito = mesasRestantes < 2 
+          ? `Grupo "${nombreGrupo}" disuelto correctamente`
+          : `Mesa(s) separada(s) del grupo "${nombreGrupo}"`;
+          
+        Alert.alert("✅ Éxito", mensajeExito);
+        setModoActivo(null);
+        setMesasSeleccionadas([]);
+
+      } catch (error) {
+        console.error('❌ Error al separar mesas:', error);
+        console.error('❌ Stack:', error.stack);
+        
+        // 3. REVERTIR CAMBIOS SI FALLA
+        await cargarMesas();
+        
+        Alert.alert('Error', 'No se pudo separar las mesas. Intenta de nuevo.');
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error en confirmarSeparar:', error);
+      console.error('❌ Stack:', error.stack);
       Alert.alert('Error', 'Ocurrió un error al procesar la solicitud');
     }
   };
@@ -593,22 +714,31 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   };
 
   const handleEliminarMesa = async (numero) => {
+    console.log('🗑️ handleEliminarMesa llamado con numero:', numero);
+    
     // Verificar que la mesa esté libre y sin uniones
     const mesa = mesas.find(m => m.numero === numero);
     
-    if (!mesa) return;
+    if (!mesa) {
+      console.log('❌ Mesa no encontrada:', numero);
+      return;
+    }
+    
+    console.log('📋 Mesa encontrada:', { numero: mesa.numero, estado: mesa.estado, unidaCon: mesa.unidaCon });
     
     if (mesa.estado === "ocupada") {
-      Alert.alert("❌ Error", "No puedes eliminar una mesa ocupada");
+      window.alert("❌ Error: No puedes eliminar una mesa ocupada");
       return;
     }
     
     if (mesa.unidaCon.length > 0) {
-      Alert.alert("❌ Error", "No puedes eliminar una mesa que está unida. Sepárala primero.");
+      window.alert("❌ Error: No puedes eliminar una mesa que está unida. Sepárala primero.");
       return;
     }
     
     try {
+      console.log('🔥 Intentando eliminar mesa del backend:', numero);
+      
       // Eliminar del backend
       await mesasService.deleteMesa(numero);
       console.log('✅ Mesa eliminada del backend:', numero);
@@ -623,10 +753,10 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           }))
       );
       
-      Alert.alert('✅ Éxito', 'Mesa eliminada correctamente');
+      window.alert('✅ Éxito: Mesa eliminada correctamente');
     } catch (error) {
       console.error('❌ Error al eliminar mesa:', error);
-      Alert.alert('Error', 'No se pudo eliminar la mesa del servidor');
+      window.alert('❌ Error: No se pudo eliminar la mesa del servidor');
     }
   };
 
@@ -638,6 +768,49 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       total: mesas.length
     };
   }, [mesas]);
+
+  // Calcular información de grupos de manera optimizada
+  const gruposInfo = useMemo(() => {
+    const grupos = {};
+    const mesasEnGrupos = new Set();
+    
+    mesas.forEach(mesa => {
+      if (mesa.grupo) {
+        mesasEnGrupos.add(mesa.numero);
+        
+        if (!grupos[mesa.grupo]) {
+          grupos[mesa.grupo] = {
+            id: mesa.grupo,
+            nombre: mesa.nombreGrupo,
+            mesas: [],
+            cantidadMesas: 0
+          };
+        }
+        
+        grupos[mesa.grupo].mesas.push(mesa.numero);
+        grupos[mesa.grupo].cantidadMesas++;
+      }
+    });
+    
+    return {
+      grupos: Object.values(grupos),
+      cantidadGrupos: Object.keys(grupos).length,
+      mesasEnGrupos: mesasEnGrupos.size,
+      mesasIndividuales: mesas.length - mesasEnGrupos.size
+    };
+  }, [mesas]);
+
+  // Log de información de grupos (útil para debugging)
+  useEffect(() => {
+    if (gruposInfo.cantidadGrupos > 0) {
+      console.log('📊 Información de grupos:', {
+        cantidadGrupos: gruposInfo.cantidadGrupos,
+        mesasEnGrupos: gruposInfo.mesasEnGrupos,
+        mesasIndividuales: gruposInfo.mesasIndividuales,
+        grupos: gruposInfo.grupos
+      });
+    }
+  }, [gruposInfo]);
 
   // Mostrar indicador de carga mientras se cargan las mesas
   if (loading) {

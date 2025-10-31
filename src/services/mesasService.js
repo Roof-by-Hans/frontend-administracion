@@ -528,47 +528,45 @@ const mesasService = {
     }
   },
 
+
   /**
-   * Obtener todos los grupos
+   * Obtener todos los grupos de mesas
    */
   async getGrupos() {
     try {
-      console.log('📥 Obteniendo grupos...');
-      const response = await api.get('/mesas-grupo/grupos');
-      return response.data.data || [];
+      console.log('📥 Obteniendo grupos de mesas...');
+      // Intentar ambos endpoints por si uno funciona
+      try {
+        const response = await api.get('/mesas-grupo');
+        console.log('✅ Grupos obtenidos desde /mesas-grupo');
+        return response.data.data || response.data || [];
+      } catch (error1) {
+        console.log('⚠️ Endpoint /mesas-grupo falló, intentando /mesas-grupo/grupos');
+        const response = await api.get('/mesas-grupo/grupos');
+        console.log('✅ Grupos obtenidos desde /mesas-grupo/grupos');
+        return response.data.data || response.data || [];
+      }
     } catch (error) {
       console.error('❌ Error al obtener grupos:', error.message);
       throw error;
     }
   },
 
-  /**
-   * Crear un grupo de mesas
-   */
   /**
    * Crear un grupo de mesas
    */
   async createGrupo(nombre, mesasIds) {
     try {
-      console.log('📤 Creando grupo:', nombre, mesasIds);
-      const response = await api.post('/mesas-grupo', { nombre, mesas: mesasIds });
-      return response.data.data;
+      console.log('� Creando grupo:', nombre, 'con mesas:', mesasIds);
+      const response = await api.post('/mesas-grupo/grupos', { 
+        nombre, 
+        mesas: mesasIds 
+      });
+      console.log('✅ Grupo creado:', response.data);
+      return response.data.data || response.data;
     } catch (error) {
       console.error('❌ Error al crear grupo:', error.message);
-      throw error;
-    }
-  },
-
-  /**
-   * Obtener todos los grupos
-   */
-  async getGrupos() {
-    try {
-      console.log('📥 Obteniendo grupos...');
-      const response = await api.get('/mesas-grupo');
-      return response.data.data || [];
-    } catch (error) {
-      console.error('❌ Error al obtener grupos:', error.message);
+      console.error('❌ Detalles:', error.response?.data);
       throw error;
     }
   },
@@ -579,10 +577,65 @@ const mesasService = {
   async deleteGrupo(id) {
     try {
       console.log('📤 Disolviendo grupo:', id);
-      const response = await api.delete(`/mesas-grupo/${id}`);
+      const response = await api.delete(`/mesas-grupo/grupos/${id}`);
+      console.log('✅ Grupo disuelto');
       return response.data;
     } catch (error) {
       console.error('❌ Error al disolver grupo:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualizar mesas de un grupo (agregar o remover)
+   * Usa el nuevo endpoint PATCH optimizado
+   */
+  async actualizarMesasGrupo(grupoId, { agregar = [], remover = [] }) {
+    try {
+      console.log('📤 Actualizando grupo:', grupoId);
+      console.log('  ➕ Agregar:', agregar);
+      console.log('  ➖ Remover:', remover);
+      
+      const response = await api.patch(`/mesas-grupo/grupos/${grupoId}/mesas`, {
+        agregar,
+        remover
+      });
+      
+      console.log('✅ Grupo actualizado:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Error al actualizar grupo:', error.message);
+      console.error('❌ Detalles:', error.response?.data);
+      throw error;
+    }
+  },
+
+  /**
+   * Remover mesas específicas de un grupo
+   * Si solo queda 1 mesa después de remover, disuelve el grupo
+   * Si quedan 2+ mesas, usa el endpoint PATCH para actualizar
+   */
+  async removerMesasDeGrupo(grupoId, mesasIdsARemover, todasLasMesasDelGrupo, nombreGrupo) {
+    try {
+      console.log('📤 Removiendo mesas del grupo:', grupoId, 'Mesas a remover:', mesasIdsARemover);
+      
+      // Filtrar las mesas que quedarán en el grupo
+      const mesasRestantes = todasLasMesasDelGrupo.filter(id => !mesasIdsARemover.includes(id));
+      
+      console.log('📊 Mesas restantes:', mesasRestantes.length);
+      
+      // Si quedan menos de 2 mesas, disolver el grupo completo
+      if (mesasRestantes.length < 2) {
+        console.log('⚠️ Solo queda 1 o ninguna mesa, disolviendo grupo completo');
+        return await this.deleteGrupo(grupoId);
+      }
+      
+      // Si quedan 2 o más mesas, usar PATCH para remover sin recrear
+      console.log('🔄 Usando PATCH para remover mesas del grupo');
+      return await this.actualizarMesasGrupo(grupoId, { remover: mesasIdsARemover });
+      
+    } catch (error) {
+      console.error('❌ Error al remover mesas del grupo:', error.message);
       throw error;
     }
   },

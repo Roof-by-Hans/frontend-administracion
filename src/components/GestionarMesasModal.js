@@ -34,20 +34,10 @@ export default function GestionarMesasModal({
   };
 
   const handleEliminarMesa = (numero, nombre) => {
-    Alert.alert(
-      "⚠️ Eliminar mesa",
-      `¿Estás seguro de eliminar la mesa "${nombre || numero}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: () => {
-            onEliminarMesa(numero);
-          },
-        },
-      ]
-    );
+    // Usar window.confirm para compatibilidad web
+    if (window.confirm(`⚠️ ¿Estás seguro de eliminar la mesa "${nombre || numero}"?`)) {
+      onEliminarMesa(numero);
+    }
   };
 
   if (!visible) return null;

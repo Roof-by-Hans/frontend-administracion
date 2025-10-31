@@ -104,7 +104,115 @@ export function useMesasSocket(options = {}) {
           console.log('👋 Saliste de mesa específica:', data);
         });
 
-        // ==================== EVENTOS DE MESAS ====================
+        // ==================== EVENTO PRINCIPAL: LISTA COMPLETA ====================
+        
+        /**
+         * Evento principal que se emite:
+         * 1. Automáticamente al hacer join:mesas
+         * 2. Automáticamente al crear/disolver grupos
+         * 3. Cada vez que hay cambios importantes en mesas
+         * 
+         * Esto reemplaza la necesidad de hacer polling o requests adicionales
+         */
+        socket.on('mesas:lista-completa', (payload) => {
+          console.log('═══════════════════════════════════════');
+          console.log('📋 EVENTO: mesas:lista-completa RECIBIDO');
+          console.log('📊 Total de mesas:', payload.data?.length || 0);
+          console.log('📊 Timestamp:', payload.timestamp);
+          console.log('📦 Payload completo:', JSON.stringify(payload, null, 2));
+          console.log('═══════════════════════════════════════');
+          
+          if (payload.data && Array.isArray(payload.data)) {
+            // Log de mesas con grupos del backend
+            const mesasConGrupo = payload.data.filter(m => m.grupo);
+            console.log('🔗 Mesas con grupo en payload:', mesasConGrupo.length);
+            mesasConGrupo.forEach(m => {
+              console.log(`   - Mesa ${m.idMesa} (${m.nombreMesa}):`, {
+                grupo: m.grupo,
+                idMesa: m.idMesa
+              });
+            });
+            
+            // Transformar la estructura del backend al formato del frontend
+            const mesasTransformadas = payload.data.map((mesa, index) => {
+              // Mapear estados del backend a estados locales
+              const estadoMap = {
+                'DISPONIBLE': 'libre',
+                'OCUPADA': 'ocupada',
+                'RESERVADA': 'reservada',
+                'FUERA_DE_SERVICIO': 'fuera_servicio'
+              };
+              const estadoLocal = estadoMap[mesa.estado] || 'libre';
+
+              // Extraer información del grupo si existe
+              const grupoInfo = mesa.grupo ? {
+                id: mesa.grupo.id,
+                nombre: mesa.grupo.nombre
+              } : null;
+
+              // Si hay grupo, unidaCon contendrá los IDs de otras mesas del grupo
+              // (esto lo calcularemos después con todas las mesas)
+              
+              return {
+                numero: mesa.idMesa,
+                nombre: mesa.nombreMesa,
+                estado: estadoLocal,
+                posicion: { 
+                  x: 50 + (index % 5) * 130, 
+                  y: 50 + Math.floor(index / 5) * 130 
+                },
+                unidaCon: [], // Se completará después
+                pedido: estadoLocal === "ocupada" ? {
+                  mozo: "Sistema",
+                  horaInicio: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                  comensales: mesa.idClienteActual ? 1 : 0,
+                  items: []
+                } : null,
+                grupo: grupoInfo?.id || null,
+                nombreGrupo: grupoInfo?.nombre || null,
+                idMesa: mesa.idMesa,
+                nombreMesa: mesa.nombreMesa,
+                idClienteActual: mesa.idClienteActual || null
+              };
+            });
+
+            // Segundo paso: calcular unidaCon para cada mesa en grupo
+            mesasTransformadas.forEach(mesa => {
+              if (mesa.grupo) {
+                // Encontrar todas las mesas con el mismo grupo (usar numero local, no idMesa)
+                const mesasDelMismoGrupo = mesasTransformadas
+                  .filter(m => m.grupo === mesa.grupo && m.numero !== mesa.numero)
+                  .map(m => m.numero);
+                
+                mesa.unidaCon = mesasDelMismoGrupo;
+                
+                console.log(`🔗 Mesa ${mesa.numero} en grupo ${mesa.grupo}, unida con:`, mesasDelMismoGrupo);
+              }
+            });
+
+            console.log('✅ Mesas transformadas:', mesasTransformadas.length);
+            console.log('📊 Mesas en grupos:', mesasTransformadas.filter(m => m.grupo).length);
+            console.log('📋 Detalle de grupos:', mesasTransformadas
+              .filter(m => m.grupo)
+              .map(m => ({
+                numero: m.numero,
+                nombre: m.nombre,
+                grupo: m.grupo,
+                nombreGrupo: m.nombreGrupo,
+                unidaCon: m.unidaCon
+              }))
+            );
+            
+            setMesas(mesasTransformadas);
+
+            // Notificar al callback si existe
+            if (options.onRefreshRequest) {
+              console.log('🔔 Notificando actualización de lista completa');
+            }
+          }
+        });
+
+        // ==================== EVENTOS DE MESAS INDIVIDUALES ====================
 
         socket.on('mesa:creada', (payload) => {
           console.log('🆕 Mesa creada:', payload.data);
@@ -176,8 +284,26 @@ export function useMesasSocket(options = {}) {
             const estadoLocal = estadoMap[payload.data.estado] || payload.data.estado;
             
             setMesas(prev => {
+              // Primero encontrar la mesa que cambió
+              const mesaCambiada = prev.find(m => 
+                m.idMesa === payload.data.id || m.numero === payload.data.id
+              );
+
+              if (!mesaCambiada) {
+                console.warn('⚠️ Mesa no encontrada:', payload.data.id);
+                return prev;
+              }
+
+              // Si la mesa está en un grupo, obtener todas las mesas del grupo
+              const mesasDelGrupo = mesaCambiada.grupo 
+                ? prev.filter(m => m.grupo === mesaCambiada.grupo).map(m => m.numero)
+                : [mesaCambiada.numero];
+
+              console.log('📊 Actualizando estado a', estadoLocal, 'para mesas:', mesasDelGrupo);
+
               const nuevasMesas = prev.map(mesa => {
-                if (mesa.idMesa === payload.data.id || mesa.numero === payload.data.id) {
+                // Actualizar la mesa que cambió Y todas las mesas de su grupo
+                if (mesasDelGrupo.includes(mesa.numero)) {
                   // Determinar el pedido según el nuevo estado
                   let nuevoPedido;
                   if (estadoLocal === 'libre') {
@@ -232,40 +358,70 @@ export function useMesasSocket(options = {}) {
 
         socket.on('grupo:creado', (payload) => {
           console.log('🔗 Grupo de mesas creado:', payload);
+          console.log('📦 Payload completo:', JSON.stringify(payload, null, 2));
           
           if (payload.data && payload.data.mesas) {
             const grupoId = payload.data.id;
             // Usar idMesa o id dependiendo de qué campo envía el backend
-            const mesasDelGrupo = payload.data.mesas.map(m => m.idMesa || m.id);
+            const mesasDelGrupoBackend = payload.data.mesas.map(m => m.idMesa || m.id);
             
-            console.log('📊 Grupo ID:', grupoId, 'Mesas del grupo:', mesasDelGrupo);
+            console.log('📊 Grupo ID:', grupoId);
+            console.log('📊 Mesas del grupo (IDs backend):', mesasDelGrupoBackend);
             
             // Actualizar las mesas para reflejar que están en un grupo
-            setMesas(prev => 
-              prev.map(mesa => {
-                if (mesasDelGrupo.includes(mesa.idMesa) || mesasDelGrupo.includes(mesa.numero)) {
-                  // Encontrar las otras mesas del grupo (excluir la actual)
-                  const otrasMesas = mesasDelGrupo.filter(id => 
-                    id !== mesa.idMesa && id !== mesa.numero
-                  );
+            setMesas(prev => {
+              console.log('📋 Estado actual de mesas antes de actualizar:', prev.map(m => ({
+                numero: m.numero,
+                idMesa: m.idMesa,
+                nombre: m.nombre,
+                grupo: m.grupo
+              })));
+
+              const nuevasMesas = prev.map(mesa => {
+                // Verificar si esta mesa está en el grupo usando ambos IDs
+                const estaEnGrupo = mesasDelGrupoBackend.includes(mesa.idMesa) || 
+                                   mesasDelGrupoBackend.includes(mesa.numero);
+                
+                if (estaEnGrupo) {
+                  // Encontrar las otras mesas del grupo en el estado local
+                  const otrasMesasLocal = prev
+                    .filter(m => {
+                      const estaOtraEnGrupo = mesasDelGrupoBackend.includes(m.idMesa) || 
+                                             mesasDelGrupoBackend.includes(m.numero);
+                      return estaOtraEnGrupo && m.numero !== mesa.numero;
+                    })
+                    .map(m => m.numero);
                   
-                  console.log(`✅ Mesa ${mesa.numero} ahora en grupo ${grupoId}, unida con:`, otrasMesas);
+                  console.log(`✅ Mesa ${mesa.numero} (ID: ${mesa.idMesa}) ahora en grupo ${grupoId}`);
+                  console.log(`   Unida con mesas (números locales):`, otrasMesasLocal);
                   
                   return {
                     ...mesa,
                     grupo: grupoId,
-                    unidaCon: otrasMesas,
+                    unidaCon: otrasMesasLocal,
                     nombreGrupo: payload.data.nombre
                   };
                 }
                 return mesa;
-              })
-            );
+              });
 
+              console.log('📋 Estado de mesas después de actualizar:', nuevasMesas.map(m => ({
+                numero: m.numero,
+                idMesa: m.idMesa,
+                nombre: m.nombre,
+                grupo: m.grupo,
+                unidaCon: m.unidaCon
+              })));
+
+              return nuevasMesas;
+            });
+
+            // Notificación visual más detallada
             if (options.onNotification) {
               options.onNotification({
                 type: 'success',
-                message: payload.message || `Grupo "${payload.data.nombre}" creado`,
+                title: '✅ Grupo Creado',
+                message: `"${payload.data.nombre}" con ${payload.data.mesas.length} mesa(s)`,
                 timestamp: payload.timestamp
               });
             }
@@ -293,10 +449,12 @@ export function useMesasSocket(options = {}) {
               })
             );
 
+            // Notificación visual
             if (options.onNotification) {
               options.onNotification({
                 type: 'info',
-                message: payload.message || 'Grupo de mesas disuelto',
+                title: 'ℹ️ Grupo Disuelto',
+                message: `${mesasLiberadas.length} mesa(s) liberada(s)`,
                 timestamp: payload.timestamp
               });
             }
@@ -329,6 +487,16 @@ export function useMesasSocket(options = {}) {
                 return mesa;
               })
             );
+
+            // Notificación visual
+            if (options.onNotification) {
+              options.onNotification({
+                type: 'success',
+                title: '🔗 Mesas Unidas',
+                message: `${mesasUnidas.length} mesa(s) unidas al grupo`,
+                timestamp: payload.timestamp
+              });
+            }
           }
         });
 
@@ -352,6 +520,16 @@ export function useMesasSocket(options = {}) {
                 return mesa;
               })
             );
+
+            // Notificación visual
+            if (options.onNotification) {
+              options.onNotification({
+                type: 'info',
+                title: '✂️ Mesas Separadas',
+                message: `${mesasSeparadas.length} mesa(s) separada(s) del grupo`,
+                timestamp: payload.timestamp
+              });
+            }
           }
         });
 
