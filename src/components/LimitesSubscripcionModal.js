@@ -14,17 +14,9 @@ const STORAGE_KEY = "limites_subscripcion";
 
 // Límites por defecto
 const LIMITES_INICIALES = {
-  basica: 100000,
-  premium: 250000,
-  vip: 500000,
-};
-
-const formatearNumero = (numero) => {
-  return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-const quitarFormatoNumero = (texto) => {
-  return texto.replace(/\./g, '');
+  basica: 50,
+  premium: 100,
+  vip: 200,
 };
 
 export default function LimitesSubscripcionModal({ visible, onClose }) {
@@ -56,27 +48,22 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
 
   // Validación en tiempo real
   const handleLimiteChange = (tipo, texto) => {
-    // Remover '$' y espacios, solo dejar números y puntos
-    const textoLimpio = texto.replace(/[$\s]/g, "");
-    // Remover puntos para obtener el número real
-    const numeroSinFormato = quitarFormatoNumero(textoLimpio);
-    
-    setLimites(prev => ({ ...prev, [tipo]: numeroSinFormato }));
+    setLimites(prev => ({ ...prev, [tipo]: texto }));
 
-    if (numeroSinFormato.trim() === "") {
+    if (texto.trim() === "") {
       setErrores(prev => ({ ...prev, [tipo]: "El límite es obligatorio" }));
-    } else if (!/^\d+$/.test(numeroSinFormato)) {
+    } else if (!/^\d+$/.test(texto)) {
       setErrores(prev => ({ ...prev, [tipo]: "Solo se permiten números" }));
-    } else if (parseInt(numeroSinFormato) < 1) {
+    } else if (parseInt(texto) < 1) {
       setErrores(prev => ({ ...prev, [tipo]: "El límite debe ser mayor a 0" }));
-    } else if (parseInt(numeroSinFormato) > 999999999) {
-      setErrores(prev => ({ ...prev, [tipo]: "El límite es demasiado alto" }));
+    } else if (parseInt(texto) > 9999) {
+      setErrores(prev => ({ ...prev, [tipo]: "El límite no puede exceder 9999" }));
     } else {
       setErrores(prev => ({ ...prev, [tipo]: "" }));
     }
   };
 
-  // Validar y mostrar modal de confirmación. 
+  // Validar y mostrar modal de confirmación
   const handleGuardar = () => {
     const nuevosErrores = {
       basica: "",
@@ -93,8 +80,8 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
         nuevosErrores[tipo] = "Solo se permiten números";
       } else if (parseInt(valor) < 1) {
         nuevosErrores[tipo] = "El límite debe ser mayor a 0";
-      } else if (parseInt(valor) > 999999999) {
-        nuevosErrores[tipo] = "El límite es demasiado alto";
+      } else if (parseInt(valor) > 9999) {
+        nuevosErrores[tipo] = "El límite no puede exceder 9999";
       }
     });
 
@@ -146,7 +133,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
           <View style={styles.modalHeader}>
             <View style={styles.headerTitleContainer}>
               <MaterialCommunityIcons name="credit-card-settings-outline" size={28} color="#333" />
-              <Text style={styles.modalTitle}>Editar límites de suscripción</Text>
+              <Text style={styles.modalTitle}>Editar Límites de Subscripción</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialCommunityIcons name="close" size={24} color="#666" />
@@ -156,20 +143,20 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
           {/* Body */}
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <Text style={styles.description}>
-              Define el límite de consumo para cada tipo de suscripción.
+              Define el límite de clientes permitidos para cada tipo de subscripción.
             </Text>
 
-            {/* Suscripción Básica */}
+            {/* Subscripción Básica */}
             <View style={styles.formGroup}>
               <View style={styles.labelContainer}>
                 <MaterialCommunityIcons name="account-outline" size={20} color="#666" />
-                <Text style={styles.label}>Suscripción Básica *</Text>
+                <Text style={styles.label}>Subscripción Básica *</Text>
               </View>
               <TextInput
                 style={[styles.input, errores.basica && styles.inputError]}
-                value={`$ ${formatearNumero(limites.basica)}`}
+                value={limites.basica.toString()}
                 onChangeText={(text) => handleLimiteChange("basica", text)}
-                placeholder="Ej: $ 100.000"
+                placeholder="Ej: 50"
                 placeholderTextColor="#999"
                 keyboardType="number-pad"
               />
@@ -178,17 +165,17 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
               ) : null}
             </View>
 
-            {/* Suscripción Premium */}
+            {/* Subscripción Premium */}
             <View style={styles.formGroup}>
               <View style={styles.labelContainer}>
                 <MaterialCommunityIcons name="star-outline" size={20} color="#666" />
-                <Text style={styles.label}>Suscripción Premium *</Text>
+                <Text style={styles.label}>Subscripción Premium *</Text>
               </View>
               <TextInput
                 style={[styles.input, errores.premium && styles.inputError]}
-                value={`$ ${formatearNumero(limites.premium)}`}
+                value={limites.premium.toString()}
                 onChangeText={(text) => handleLimiteChange("premium", text)}
-                placeholder="Ej: $ 250.000"
+                placeholder="Ej: 100"
                 placeholderTextColor="#999"
                 keyboardType="number-pad"
               />
@@ -197,17 +184,17 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
               ) : null}
             </View>
 
-            {/* Suscripción VIP */}
+            {/* Subscripción VIP */}
             <View style={styles.formGroup}>
               <View style={styles.labelContainer}>
                 <MaterialCommunityIcons name="crown-outline" size={20} color="#666" />
-                <Text style={styles.label}>Suscripción VIP *</Text>
+                <Text style={styles.label}>Subscripción VIP *</Text>
               </View>
               <TextInput
                 style={[styles.input, errores.vip && styles.inputError]}
-                value={`$ ${formatearNumero(limites.vip)}`}
+                value={limites.vip.toString()}
                 onChangeText={(text) => handleLimiteChange("vip", text)}
-                placeholder="Ej: $ 500.000"
+                placeholder="Ej: 200"
                 placeholderTextColor="#999"
                 keyboardType="number-pad"
               />
@@ -220,7 +207,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
             <View style={styles.infoContainer}>
               <MaterialCommunityIcons name="information-outline" size={20} color="#2196F3" />
               <Text style={styles.infoText}>
-                Los límites determinan el monto máximo de consumo permitido para cada tipo de suscripción.
+                Los límites determinan la cantidad máxima de clientes que pueden tener cada tipo de subscripción.
               </Text>
             </View>
           </ScrollView>
@@ -257,22 +244,22 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
 
               {/* Mensaje */}
               <Text style={styles.confirmMessage}>
-                Los nuevos límites de Suscripción se aplicarán inmediatamente.
+                Los nuevos límites de subscripción se aplicarán inmediatamente.
               </Text>
 
               {/* Resumen de cambios */}
               <View style={styles.resumenContainer}>
                 <View style={styles.resumenItem}>
                   <Text style={styles.resumenLabel}>Básica:</Text>
-                  <Text style={styles.resumenValue}>$ {formatearNumero(limites.basica)}</Text>
+                  <Text style={styles.resumenValue}>{limites.basica} clientes</Text>
                 </View>
                 <View style={styles.resumenItem}>
                   <Text style={styles.resumenLabel}>Premium:</Text>
-                  <Text style={styles.resumenValue}>$ {formatearNumero(limites.premium)}</Text>
+                  <Text style={styles.resumenValue}>{limites.premium} clientes</Text>
                 </View>
                 <View style={styles.resumenItem}>
                   <Text style={styles.resumenLabel}>VIP:</Text>
-                  <Text style={styles.resumenValue}>$ {formatearNumero(limites.vip)}</Text>
+                  <Text style={styles.resumenValue}>{limites.vip} clientes</Text>
                 </View>
               </View>
 
