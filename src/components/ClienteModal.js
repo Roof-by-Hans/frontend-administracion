@@ -15,7 +15,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [subscripcion, setSubscripcion] = useState("Básica");
+  const [suscripcion, setSuscripcion] = useState("Básica");
   
   // Estados para los errores
   const [errores, setErrores] = useState({
@@ -30,13 +30,13 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       setNombre(cliente.nombre);
       setApellido(cliente.apellido);
       setTelefono(cliente.telefono);
-      setSubscripcion(cliente.subscripcion);
+      setSuscripcion(cliente.suscripcion);
     } else {
       // Resetear campos al agregar nuevo
       setNombre("");
       setApellido("");
       setTelefono("");
-      setSubscripcion("Básica");
+      setSuscripcion("Básica");
     }
     // Limpiar errores al abrir/cerrar modal
     setErrores({ nombre: "", apellido: "", telefono: "" });
@@ -120,7 +120,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       telefono: telefono.trim(),
-      subscripcion: subscripcion,
+      suscripcion: suscripcion,
     };
 
     onGuardar(clienteData);
@@ -202,8 +202,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               <Text style={styles.label}>Suscripción *</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={subscripcion}
-                  onValueChange={(itemValue) => setSubscripcion(itemValue)}
+                  selectedValue={suscripcion}
+                  onValueChange={(itemValue) => setSuscripcion(itemValue)}
                   style={styles.picker}
                 >
                   <Picker.Item label="Básica" value="Básica" />

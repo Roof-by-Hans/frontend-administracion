@@ -3,68 +3,66 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-nativ
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import ClienteModal from "../components/ClienteModal";
+import ProductoModal from "../components/ProductoModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 
-// Datos iniciales de clientes (vacío - se llenarán manualmente)
-const CLIENTES_INICIALES = [];
+// Datos iniciales de productos (vacío - se llenarán manualmente)
+const PRODUCTOS_INICIALES = [];
 
-const STORAGE_KEY = "clientes_data";
+const STORAGE_KEY = "productos_data";
 
-export default function ClientesScreen({ onNavigate, currentScreen }) {
-  const [clientes, setClientes] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [clienteAEliminar, setClienteAEliminar] = useState(null);
+export default function ProductosScreen({ onNavigate, currentScreen }) {
+  const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [productoEditando, setProductoEditando] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar clientes desde localStorage al montar el componente
+  // Cargar productos desde localStorage al montar el componente
   useEffect(() => {
-    const cargarClientes = () => {
+    const cargarProductos = () => {
       try {
-        const clientesGuardados = localStorage.getItem(STORAGE_KEY);
-        if (clientesGuardados) {
-          setClientes(JSON.parse(clientesGuardados));
+        const productosGuardados = localStorage.getItem(STORAGE_KEY);
+        if (productosGuardados) {
+          setProductos(JSON.parse(productosGuardados));
         } else {
-          // Si no hay clientes guardados, usar los datos iniciales
-          setClientes(CLIENTES_INICIALES);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(CLIENTES_INICIALES));
+          setProductos(PRODUCTOS_INICIALES);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTOS_INICIALES));
         }
       } catch (error) {
-        console.error("Error al cargar clientes:", error);
-        setClientes(CLIENTES_INICIALES);
+        console.error("Error al cargar productos:", error);
+        setProductos(PRODUCTOS_INICIALES);
       }
     };
 
-    cargarClientes();
+    cargarProductos();
   }, []);
 
-  // Guardar clientes en localStorage cada vez que cambien
+  // Guardar productos en localStorage cada vez que cambien
   useEffect(() => {
-    // Guardar siempre, incluso si está vacío
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
     } catch (error) {
-      console.error("Error al guardar clientes:", error);
+      console.error("Error al guardar productos:", error);
     }
-  }, [clientes]);
+  }, [productos]);
 
-  // Filtrar clientes según la búsqueda manual
-  const clientesFiltrados = clientes.filter((cliente) => {
+  // Filtrar productos según la búsqueda manual
+  const productosFiltrados = productos.filter((producto) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
 
     return (
-      cliente.nombre.toLowerCase().includes(terminoBusqueda) ||
-      cliente.apellido.toLowerCase().includes(terminoBusqueda) ||
-      cliente.telefono.includes(terminoBusqueda) ||
-      cliente.suscripcion.toLowerCase().includes(terminoBusqueda)
+      producto.nombre.toLowerCase().includes(terminoBusqueda) ||
+      producto.categoria.toLowerCase().includes(terminoBusqueda) ||
+      producto.precio.toString().includes(terminoBusqueda) ||
+      producto.stock.toString().includes(terminoBusqueda)
     );
   });
 
@@ -74,25 +72,27 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       field: 'nombre',
       headerName: 'Nombre',
       flex: 1,
-      minWidth: 150,
+      minWidth: 200,
     },
     {
-      field: 'apellido',
-      headerName: 'Apellido',
+      field: 'categoria',
+      headerName: 'Categoría',
       flex: 1,
       minWidth: 150,
     },
     {
-      field: 'telefono',
-      headerName: 'Teléfono',
-      flex: 1,
-      minWidth: 150,
+      field: 'precio',
+      headerName: 'Precio',
+      width: 120,
+      valueFormatter: (params) => {
+        const numero = Number(params);
+        return `$${numero.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      },
     },
     {
-      field: 'suscripcion',
-      headerName: 'Suscripción',
-      flex: 1,
-      minWidth: 120,
+      field: 'stock',
+      headerName: 'Stock',
+      width: 100,
     },
     {
       field: 'acciones',
@@ -103,7 +103,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       renderCell: (params) => (
         <View style={styles.actionsContainer}>
           <IconButton
-            onClick={() => handleEditarCliente(params.row)}
+            onClick={() => handleEditarProducto(params.row)}
             color="primary"
             size="small"
             title="Editar"
@@ -111,7 +111,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
           </IconButton>
           <IconButton
-            onClick={() => handleEliminarCliente(params.row.id)}
+            onClick={() => handleEliminarProducto(params.row.id)}
             color="error"
             size="small"
             title="Eliminar"
@@ -123,69 +123,63 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     },
   ];
 
-  // Función para abrir modal de agregar cliente
-  const handleAgregarCliente = () => {
-    setClienteSeleccionado(null);
+  const handleAgregarProducto = () => {
+    setProductoEditando(null);
     setModalVisible(true);
   };
 
-  // Función para abrir modal de editar cliente
-  const handleEditarCliente = (cliente) => {
-    setClienteSeleccionado(cliente);
+  const handleEditarProducto = (producto) => {
+    setProductoEditando(producto);
     setModalVisible(true);
   };
 
   // Función para abrir modal de confirmación de eliminación
-  const handleEliminarCliente = (clienteId) => {
-    setClienteAEliminar(clienteId);
+  const handleEliminarProducto = (productoId) => {
+    setProductoAEliminar(productoId);
     setConfirmModalVisible(true);
   };
 
   // Función para confirmar la eliminación
   const confirmarEliminacion = () => {
-    if (clienteAEliminar) {
-      setClientes(clientes.filter(c => c.id !== clienteAEliminar));
+    if (productoAEliminar) {
+      setProductos(productos.filter(p => p.id !== productoAEliminar));
       setConfirmModalVisible(false);
-      setClienteAEliminar(null);
+      setProductoAEliminar(null);
     }
   };
 
   // Función para cancelar la eliminación
   const cancelarEliminacion = () => {
     setConfirmModalVisible(false);
-    setClienteAEliminar(null);
+    setProductoAEliminar(null);
   };
 
-  // Función para guardar cliente (agregar o editar)
-  const handleGuardarCliente = (clienteData) => {
-    if (clienteSeleccionado) {
-      // Editar cliente existente
-      setClientes(clientes.map(c => 
-        c.id === clienteSeleccionado.id ? { ...clienteData, id: c.id } : c
-      ));
+  const handleGuardarProducto = (productoData) => {
+    if (productoEditando) {
+      // Editar producto existente
+      setProductos(productos.map((p) => (p.id === productoData.id ? productoData : p)));
     } else {
-      // Agregar nuevo cliente
-      const nuevoCliente = {
-        ...clienteData,
-        id: Math.max(...clientes.map(c => c.id), 0) + 1
+      // Agregar nuevo producto
+      const nuevoProducto = {
+        ...productoData,
+        id: Math.max(...productos.map(p => p.id), 0) + 1
       };
-      setClientes([...clientes, nuevoCliente]);
+      setProductos([...productos, nuevoProducto]);
     }
     setModalVisible(false);
-    setClienteSeleccionado(null);
+    setProductoEditando(null);
   };
 
   return (
-    <DashboardLayout
-      userName={userName}
+    <DashboardLayout 
+      onNavigate={onNavigate} 
       currentScreen={currentScreen}
-      onNavigate={onNavigate}
-      onLogout={logout}
+      userName={userName}
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Administrar Clientes</Text>
+          <Text style={styles.title}>Administrar Productos</Text>
         </View>
 
         {/* Controles superiores: Buscador y Botón Agregar */}
@@ -201,7 +195,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar por nombre, apellido, teléfono o suscripción..."
+                placeholder="Buscar productos por nombre, categoría, precio o stock..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
@@ -214,36 +208,36 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             </View>
 
             {/* Botón Agregar */}
-            <TouchableOpacity style={styles.agregarButton} onPress={handleAgregarCliente}>
+            <TouchableOpacity style={styles.addButton} onPress={handleAgregarProducto}>
               <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-              <Text style={styles.agregarButtonText}>Agregar</Text>
+              <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* DataGrid con filtrado y ordenamiento nativo */}
         <DataTable
-          rows={clientesFiltrados}
+          rows={productosFiltrados}
           columns={columns}
           pageSize={10}
         />
 
-        {/* Modal para agregar/editar cliente */}
-        <ClienteModal
+        {/* Modal para agregar/editar producto */}
+        <ProductoModal
           visible={modalVisible}
-          cliente={clienteSeleccionado}
+          producto={productoEditando}
           onClose={() => {
             setModalVisible(false);
-            setClienteSeleccionado(null);
+            setProductoEditando(null);
           }}
-          onGuardar={handleGuardarCliente}
+          onSave={handleGuardarProducto}
         />
 
         {/* Modal de confirmación para eliminar */}
         <ConfirmModal
           visible={confirmModalVisible}
-          title="Confirmar eliminación"
-          message="¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer."
+          title="Eliminar Producto"
+          message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
           onConfirm={confirmarEliminacion}
           onCancel={cancelarEliminacion}
         />
@@ -297,12 +291,12 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: 8,
   },
-  agregarButton: {
+  addButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#4CAF50",
-    paddingVertical: 10,
     paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
     elevation: 2,
     shadowColor: "#000",
@@ -310,7 +304,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  agregarButtonText: {
+  addButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
