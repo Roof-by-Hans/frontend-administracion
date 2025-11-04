@@ -399,6 +399,7 @@ const mesasService = {
     try {
       console.log('📥 Obteniendo todas las mesas...');
       const response = await api.get('/mesas');
+      console.log('📥 Respuesta del backend (primera mesa):', response.data.data?.[0]);
       return response.data.data || [];
     } catch (error) {
       console.error('❌ Error al obtener mesas:', error.message);
@@ -524,6 +525,24 @@ const mesasService = {
       return response.data;
     } catch (error) {
       console.error('❌ Error al eliminar mesa:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualizar posición de una mesa
+   */
+  async actualizarPosicionMesa(idMesa, posX, posY) {
+    try {
+      console.log(`📍 Actualizando posición mesa ${idMesa}:`, { posX, posY });
+      const response = await api.patch(`/mesas/${idMesa}/posicion`, {
+        posX,
+        posY
+      });
+      console.log('✅ Posición actualizada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al actualizar posición:', error);
       throw error;
     }
   },

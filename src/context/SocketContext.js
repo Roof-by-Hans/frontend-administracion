@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, Alert } from 'react-native';
+import { AppState } from 'react-native';
+import Alert from "@blazejkustra/react-native-alert";
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

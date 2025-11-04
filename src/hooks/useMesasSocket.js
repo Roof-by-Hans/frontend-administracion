@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Alert } from 'react-native';
+import { AppState } from 'react-native';
+import Alert from "@blazejkustra/react-native-alert";
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -158,8 +159,8 @@ export function useMesasSocket(options = {}) {
                 nombre: mesa.nombreMesa,
                 estado: estadoLocal,
                 posicion: { 
-                  x: 50 + (index % 5) * 130, 
-                  y: 50 + Math.floor(index / 5) * 130 
+                  x: mesa.posX !== null && mesa.posX !== undefined ? mesa.posX : 50 + (index % 5) * 130, 
+                  y: mesa.posY !== null && mesa.posY !== undefined ? mesa.posY : 50 + Math.floor(index / 5) * 130 
                 },
                 unidaCon: [], // Se completará después
                 pedido: estadoLocal === "ocupada" ? {
@@ -203,7 +204,37 @@ export function useMesasSocket(options = {}) {
               }))
             );
             
-            setMesas(mesasTransformadas);
+            // FUSIONAR con el estado existente para mantener posiciones actualizadas
+            setMesas(prev => {
+              console.log('🔄 Fusionando mesas:lista-completa con estado actual');
+              console.log('   Mesas actuales:', prev.length);
+              console.log('   Mesas del backend:', mesasTransformadas.length);
+              
+              // Crear un mapa de mesas existentes por ID
+              const mesasExistentesMap = new Map();
+              prev.forEach(mesa => {
+                mesasExistentesMap.set(mesa.idMesa || mesa.numero, mesa);
+              });
+              
+              // Fusionar: usar posición existente si la mesa ya está en el estado
+              const mesasFusionadas = mesasTransformadas.map(mesaBackend => {
+                const mesaExistente = mesasExistentesMap.get(mesaBackend.idMesa);
+                if (mesaExistente) {
+                  // Mesa ya existe - mantener su posición actual
+                  console.log(`   🔄 Mesa ${mesaBackend.numero} - MANTENIENDO posición:`, mesaExistente.posicion);
+                  return {
+                    ...mesaBackend,
+                    posicion: mesaExistente.posicion // Mantener posición actual
+                  };
+                }
+                // Mesa nueva - usar posición del backend
+                console.log(`   ➕ Mesa ${mesaBackend.numero} - NUEVA con posición:`, mesaBackend.posicion);
+                return mesaBackend;
+              });
+              
+              console.log('   Resultado fusionado:', mesasFusionadas.length, 'mesas');
+              return mesasFusionadas;
+            });
 
             // Notificar al callback si existe
             if (options.onRefreshRequest) {
@@ -215,10 +246,50 @@ export function useMesasSocket(options = {}) {
         // ==================== EVENTOS DE MESAS INDIVIDUALES ====================
 
         socket.on('mesa:creada', (payload) => {
-          console.log('🆕 Mesa creada:', payload.data);
+          console.log('🆕 Mesa creada desde WebSocket:', payload.data);
           
           if (payload.data) {
-            setMesas(prev => [...prev, payload.data]);
+            // Transformar datos del backend al formato frontend
+            const mesa = payload.data;
+            const estadoMap = {
+              'DISPONIBLE': 'libre',
+              'OCUPADA': 'ocupada',
+              'RESERVADA': 'reservada',
+              'FUERA_DE_SERVICIO': 'fuera_servicio'
+            };
+            
+            const mesaTransformada = {
+              numero: mesa.idMesa,
+              nombre: mesa.nombreMesa,
+              estado: estadoMap[mesa.estado] || 'libre',
+              posicion: { 
+                x: mesa.posX !== null && mesa.posX !== undefined ? mesa.posX : 50, 
+                y: mesa.posY !== null && mesa.posY !== undefined ? mesa.posY : 50 
+              },
+              unidaCon: [],
+              pedido: null,
+              grupo: null,
+              nombreGrupo: null,
+              idMesa: mesa.idMesa,
+              nombreMesa: mesa.nombreMesa
+            };
+            
+            console.log('📍 Mesa transformada con posición:', mesaTransformada.posicion);
+            
+            // Verificar si ya existe (evitar duplicados de actualización optimista)
+            setMesas(prev => {
+              const existe = prev.some(m => m.idMesa === mesa.idMesa || m.numero === mesa.idMesa);
+              if (existe) {
+                console.log('⚠️ Mesa ya existe en el estado, actualizando...');
+                return prev.map(m => 
+                  m.idMesa === mesa.idMesa || m.numero === mesa.idMesa 
+                    ? { ...m, ...mesaTransformada } 
+                    : m
+                );
+              }
+              console.log('➕ Agregando nueva mesa al estado');
+              return [...prev, mesaTransformada];
+            });
             
             // Notificar al usuario
             if (options.onNotification) {
@@ -267,6 +338,29 @@ export function useMesasSocket(options = {}) {
               });
             }
           }
+        });
+
+        // Escuchar actualización de posición en tiempo real
+        socket.on('mesa:posicion-actualizada', (payload) => {
+          console.log('🔥 WEBSOCKET RECIBIDO: mesa:posicion-actualizada');
+          console.log('📍 Payload completo:', JSON.stringify(payload));
+          
+          // El backend envía: { message, data: { idMesa, posX, posY, mesa }, timestamp }
+          const data = payload.data || payload;
+          console.log('📍 idMesa:', data.idMesa, 'posX:', data.posX, 'posY:', data.posY);
+          
+          setMesas((prevMesas) => {
+            console.log('📍 Mesas actuales antes de actualizar:', prevMesas.length);
+            const mesasActualizadas = prevMesas.map((mesa) => {
+              if (mesa.idMesa === data.idMesa) {
+                console.log(`✅ Actualizando mesa ${mesa.idMesa} de pos (${mesa.posicion?.x}, ${mesa.posicion?.y}) a (${data.posX}, ${data.posY})`);
+                return { ...mesa, posicion: { x: data.posX, y: data.posY } };
+              }
+              return mesa;
+            });
+            console.log('📍 Mesas después de actualizar:', mesasActualizadas.length);
+            return mesasActualizadas;
+          });
         });
 
         socket.on('mesa:estado-cambiado', (payload) => {
@@ -394,12 +488,14 @@ export function useMesasSocket(options = {}) {
                   
                   console.log(`✅ Mesa ${mesa.numero} (ID: ${mesa.idMesa}) ahora en grupo ${grupoId}`);
                   console.log(`   Unida con mesas (números locales):`, otrasMesasLocal);
+                  console.log(`   🔒 MANTENIENDO posición actual:`, mesa.posicion);
                   
                   return {
                     ...mesa,
                     grupo: grupoId,
                     unidaCon: otrasMesasLocal,
                     nombreGrupo: payload.data.nombre
+                    // ⚠️ NO tocar mesa.posicion - se mantiene la actual
                   };
                 }
                 return mesa;
@@ -620,6 +716,7 @@ export function useMesasSocket(options = {}) {
         socket.off('mesa:creada');
         socket.off('mesa:actualizada');
         socket.off('mesa:eliminada');
+        socket.off('mesa:posicion-actualizada');
         socket.off('mesa:estado-cambiado');
         socket.off('mesas:actualizar');
         socket.off('grupo:creado');
