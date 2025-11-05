@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -7,11 +7,7 @@ import ProductoModal from "../components/ProductoModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
-
-// Datos iniciales de productos (vacío - se llenarán manualmente)
-const PRODUCTOS_INICIALES = [];
-
-const STORAGE_KEY = "productos_data";
+import * as productosService from "../services/productosService";
 
 export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [productos, setProductos] = useState([]);
@@ -20,38 +16,45 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [productoEditando, setProductoEditando] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar productos desde localStorage al montar el componente
+  // Cargar productos desde el backend al montar el componente
   useEffect(() => {
-    const cargarProductos = () => {
-      try {
-        const productosGuardados = localStorage.getItem(STORAGE_KEY);
-        if (productosGuardados) {
-          setProductos(JSON.parse(productosGuardados));
-        } else {
-          setProductos(PRODUCTOS_INICIALES);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTOS_INICIALES));
-        }
-      } catch (error) {
-        console.error("Error al cargar productos:", error);
-        setProductos(PRODUCTOS_INICIALES);
-      }
-    };
-
     cargarProductos();
   }, []);
 
-  // Guardar productos en localStorage cada vez que cambien
-  useEffect(() => {
+  const cargarProductos = async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
+      setCargando(true);
+      setError(null);
+      const response = await productosService.getProductos();
+      
+      if (response.success && response.data) {
+        // Mapear los datos del backend al formato esperado por el frontend
+        const productosFormateados = response.data.map(producto => ({
+          id: producto.id,
+          nombre: producto.nombre,
+          categoria: producto.categoria?.nombre || 'Sin categoría',
+          categoriaId: producto.idCategoria,
+          precio: producto.precioUnitario,
+          descripcion: producto.descripcion || '',
+          fotoPrincipal: producto.fotoPrincipal,
+          fotoPrincipalUrl: producto.fotoPrincipalUrl,
+        }));
+        setProductos(productosFormateados);
+      }
     } catch (error) {
-      console.error("Error al guardar productos:", error);
+      console.error("Error al cargar productos:", error);
+      setError("Error al cargar los productos. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar los productos del servidor.");
+    } finally {
+      setCargando(false);
     }
-  }, [productos]);
+  };
 
   // Filtrar productos según la búsqueda manual
   const productosFiltrados = productos.filter((producto) => {
@@ -61,8 +64,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     return (
       producto.nombre.toLowerCase().includes(terminoBusqueda) ||
       producto.categoria.toLowerCase().includes(terminoBusqueda) ||
-      producto.precio.toString().includes(terminoBusqueda) ||
-      producto.stock.toString().includes(terminoBusqueda)
+      producto.precio.toString().includes(terminoBusqueda)
     );
   });
 
@@ -88,11 +90,6 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         const numero = Number(params);
         return `$${numero.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
       },
-    },
-    {
-      field: 'stock',
-      headerName: 'Stock',
-      width: 100,
     },
     {
       field: 'acciones',
@@ -140,11 +137,23 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   };
 
   // Función para confirmar la eliminación
-  const confirmarEliminacion = () => {
+  const confirmarEliminacion = async () => {
     if (productoAEliminar) {
-      setProductos(productos.filter(p => p.id !== productoAEliminar));
-      setConfirmModalVisible(false);
-      setProductoAEliminar(null);
+      try {
+        setCargando(true);
+        await productosService.eliminarProducto(productoAEliminar);
+        
+        // Actualizar la lista local
+        setProductos(productos.filter(p => p.id !== productoAEliminar));
+        setConfirmModalVisible(false);
+        setProductoAEliminar(null);
+        Alert.alert("Éxito", "Producto eliminado correctamente.");
+      } catch (error) {
+        console.error("Error al eliminar producto:", error);
+        Alert.alert("Error", "No se pudo eliminar el producto. Por favor, intenta nuevamente.");
+      } finally {
+        setCargando(false);
+      }
     }
   };
 
@@ -154,20 +163,60 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     setProductoAEliminar(null);
   };
 
-  const handleGuardarProducto = (productoData) => {
-    if (productoEditando) {
-      // Editar producto existente
-      setProductos(productos.map((p) => (p.id === productoData.id ? productoData : p)));
-    } else {
-      // Agregar nuevo producto
-      const nuevoProducto = {
-        ...productoData,
-        id: Math.max(...productos.map(p => p.id), 0) + 1
-      };
-      setProductos([...productos, nuevoProducto]);
+  const handleGuardarProducto = async (productoData) => {
+    try {
+      setCargando(true);
+      
+      if (productoEditando) {
+        // Editar producto existente
+        const datosActualizacion = {
+          nombre: productoData.nombre,
+          precio_unitario: productoData.precio,
+          id_categoria: productoData.categoriaId,
+          descripcion: productoData.descripcion,
+        };
+        
+        const response = await productosService.actualizarProducto(
+          productoData.id,
+          datosActualizacion,
+          productoData.imagen // Si hay una nueva imagen
+        );
+        
+        if (response.success) {
+          // Recargar productos para obtener los datos actualizados
+          await cargarProductos();
+          Alert.alert("Éxito", "Producto actualizado correctamente.");
+        }
+      } else {
+        // Agregar nuevo producto
+        const datosNuevoProducto = {
+          nombre: productoData.nombre,
+          precio_unitario: productoData.precio,
+          id_categoria: productoData.categoriaId,
+          descripcion: productoData.descripcion,
+        };
+        
+        const response = await productosService.crearProducto(
+          datosNuevoProducto,
+          productoData.imagen // Si hay imagen
+        );
+        
+        if (response.success) {
+          // Recargar productos para obtener el nuevo producto
+          await cargarProductos();
+          Alert.alert("Éxito", "Producto creado correctamente.");
+        }
+      }
+      
+      setModalVisible(false);
+      setProductoEditando(null);
+    } catch (error) {
+      console.error("Error al guardar producto:", error);
+      const mensaje = error.response?.data?.message || "Error al guardar el producto. Por favor, intenta nuevamente.";
+      Alert.alert("Error", mensaje);
+    } finally {
+      setCargando(false);
     }
-    setModalVisible(false);
-    setProductoEditando(null);
   };
 
   return (
@@ -182,6 +231,17 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           <Text style={styles.title}>Administrar Productos</Text>
         </View>
 
+        {/* Mostrar error si existe */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={cargarProductos} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Controles superiores: Buscador y Botón Agregar */}
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
@@ -195,7 +255,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar productos por nombre, categoría, precio o stock..."
+                placeholder="Buscar productos por nombre, categoría o precio..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
@@ -208,19 +268,33 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             </View>
 
             {/* Botón Agregar */}
-            <TouchableOpacity style={styles.addButton} onPress={handleAgregarProducto}>
+            <TouchableOpacity 
+              style={[styles.addButton, cargando && styles.addButtonDisabled]} 
+              onPress={handleAgregarProducto}
+              disabled={cargando}
+            >
               <MaterialCommunityIcons name="plus" size={20} color="#fff" />
               <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Indicador de carga */}
+        {cargando && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingText}>Cargando productos...</Text>
+          </View>
+        )}
+
         {/* DataGrid con filtrado y ordenamiento nativo */}
-        <DataTable
-          rows={productosFiltrados}
-          columns={columns}
-          pageSize={10}
-        />
+        {!cargando && (
+          <DataTable
+            rows={productosFiltrados}
+            columns={columns}
+            pageSize={10}
+          />
+        )}
 
         {/* Modal para agregar/editar producto */}
         <ProductoModal
@@ -316,5 +390,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#d32f2f',
+  },
+  errorText: {
+    flex: 1,
+    color: '#d32f2f',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  retryButton: {
+    backgroundColor: '#d32f2f',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  addButtonDisabled: {
+    backgroundColor: '#a5d6a7',
+    opacity: 0.6,
   },
 });

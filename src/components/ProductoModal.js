@@ -9,8 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
+import * as categoriasService from '../services/categoriasService';
 
 export default function ProductoModal({
   visible,
@@ -18,39 +23,73 @@ export default function ProductoModal({
   onSave,
   producto = null,
 }) {
+  const [categorias, setCategorias] = useState([]);
+  const [categoriasPlanas, setCategoriasPlanas] = useState([]);
+  const [cargandoCategorias, setCargandoCategorias] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
   const [precio, setPrecio] = useState("");
-  const [stock, setStock] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [imagen, setImagen] = useState(null);
+  const [imagenUrl, setImagenUrl] = useState("");
   
   // Estados para los errores
   const [errores, setErrores] = useState({
     nombre: "",
-    categoria: "",
+    categoriaId: "",
     precio: "",
-    stock: "",
   });
+
+  // Cargar categorías al montar el componente
+  useEffect(() => {
+    if (visible) {
+      cargarCategorias();
+    }
+  }, [visible]);
+
+  const cargarCategorias = async () => {
+    try {
+      setCargandoCategorias(true);
+      const response = await categoriasService.getCategorias();
+      
+      if (response.success && response.data) {
+        setCategorias(response.data);
+        // Convertir la estructura jerárquica a lista plana para el selector
+        const planas = categoriasService.aplanarCategorias(response.data);
+        setCategoriasPlanas(planas);
+      }
+    } catch (error) {
+      console.error("Error al cargar categorías:", error);
+      Alert.alert("Error", "No se pudieron cargar las categorías. Intenta nuevamente.");
+    } finally {
+      setCargandoCategorias(false);
+    }
+  };
 
   useEffect(() => {
     if (producto) {
       // Modo edición
       setNombre(producto.nombre);
-      setCategoria(producto.categoria);
+      setCategoriaId(producto.categoriaId?.toString() || "");
       setPrecio(producto.precio.toString());
-      setStock(producto.stock.toString());
+      setDescripcion(producto.descripcion || "");
+      setImagenUrl(producto.fotoPrincipalUrl || "");
+      setImagen(null);
     } else {
       // Modo creación
       limpiarCampos();
     }
     // Limpiar errores al abrir/cerrar modal
-    setErrores({ nombre: "", categoria: "", precio: "", stock: "" });
+    setErrores({ nombre: "", categoriaId: "", precio: "" });
   }, [producto, visible]);
 
   const limpiarCampos = () => {
     setNombre("");
-    setCategoria("");
+    setCategoriaId("");
     setPrecio("");
-    setStock("");
+    setDescripcion("");
+    setImagen(null);
+    setImagenUrl("");
   };
 
   // Validación en tiempo real del nombre
@@ -58,22 +97,18 @@ export default function ProductoModal({
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
-    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
-      setErrores(prev => ({ ...prev, nombre: "El nombre solo debe contener letras" }));
     } else {
       setErrores(prev => ({ ...prev, nombre: "" }));
     }
   };
 
   // Validación en tiempo real de la categoría
-  const handleCategoriaChange = (text) => {
-    setCategoria(text);
-    if (text.trim() === "") {
-      setErrores(prev => ({ ...prev, categoria: "La categoría es obligatoria" }));
-    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) {
-      setErrores(prev => ({ ...prev, categoria: "La categoría solo debe contener letras" }));
+  const handleCategoriaChange = (value) => {
+    setCategoriaId(value);
+    if (!value || value === "") {
+      setErrores(prev => ({ ...prev, categoriaId: "La categoría es obligatoria" }));
     } else {
-      setErrores(prev => ({ ...prev, categoria: "" }));
+      setErrores(prev => ({ ...prev, categoriaId: "" }));
     }
   };
 
@@ -91,40 +126,136 @@ export default function ProductoModal({
     }
   };
 
-  // Validación en tiempo real del stock
-  const handleStockChange = (text) => {
-    setStock(text);
-    if (text.trim() === "") {
-      setErrores(prev => ({ ...prev, stock: "El stock es obligatorio" }));
-    } else if (isNaN(parseInt(text))) {
-      setErrores(prev => ({ ...prev, stock: "El stock debe ser un número válido" }));
-    } else if (parseInt(text) < 0) {
-      setErrores(prev => ({ ...prev, stock: "El stock no puede ser negativo" }));
+  // Manejar selección de imagen (simulado para web)
+  const handleSeleccionarImagen = async () => {
+    try {
+      // Solicitar permisos para acceder a la galería (requerido en iOS)
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          "Permisos requeridos",
+          "Necesitas conceder permisos para acceder a la galería de imágenes."
+        );
+        return;
+      }
+
+      // Abrir el selector de imágenes
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        // Preparar objeto de imagen para enviar al backend
+        const imagenSeleccionada = {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || `producto_${Date.now()}.jpg`,
+        };
+        
+        setImagen(imagenSeleccionada);
+        setImagenUrl(asset.uri); // Para previsualización
+      }
+    } catch (error) {
+      console.error("Error al seleccionar imagen:", error);
+      Alert.alert("Error", "No se pudo seleccionar la imagen. Intenta nuevamente.");
+    }
+  };
+
+  // Opción para tomar foto con la cámara
+  const handleTomarFoto = async () => {
+    try {
+      // Solicitar permisos para acceder a la cámara
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          "Permisos requeridos",
+          "Necesitas conceder permisos para usar la cámara."
+        );
+        return;
+      }
+
+      // Abrir la cámara
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        const imagenSeleccionada = {
+          uri: asset.uri,
+          type: 'image/jpeg',
+          name: `foto_${Date.now()}.jpg`,
+        };
+        
+        setImagen(imagenSeleccionada);
+        setImagenUrl(asset.uri);
+      }
+    } catch (error) {
+      console.error("Error al tomar foto:", error);
+      Alert.alert("Error", "No se pudo tomar la foto. Intenta nuevamente.");
+    }
+  };
+
+  // Mostrar opciones para seleccionar imagen
+  const mostrarOpcionesImagen = () => {
+    if (Platform.OS === 'web') {
+      // En web, solo permitir seleccionar desde galería
+      handleSeleccionarImagen();
     } else {
-      setErrores(prev => ({ ...prev, stock: "" }));
+      // En móvil, mostrar opciones
+      Alert.alert(
+        "Seleccionar imagen",
+        "¿De dónde quieres obtener la imagen?",
+        [
+          {
+            text: "Galería",
+            onPress: handleSeleccionarImagen,
+          },
+          {
+            text: "Cámara",
+            onPress: handleTomarFoto,
+          },
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+        ],
+        { cancelable: true }
+      );
     }
   };
 
   const handleGuardar = () => {
     // Validar que no haya errores
     const hayErrores = Object.values(errores).some(error => error !== "");
-    const camposVacios = !nombre.trim() || !categoria.trim() || !precio.trim() || !stock.trim();
+    const camposVacios = !nombre.trim() || !categoriaId || !precio.trim();
     
     if (hayErrores || camposVacios) {
       // Marcar todos los campos vacíos como error
       if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
-      if (!categoria.trim()) setErrores(prev => ({ ...prev, categoria: "La categoría es obligatoria" }));
+      if (!categoriaId) setErrores(prev => ({ ...prev, categoriaId: "La categoría es obligatoria" }));
       if (!precio.trim()) setErrores(prev => ({ ...prev, precio: "El precio es obligatorio" }));
-      if (!stock.trim()) setErrores(prev => ({ ...prev, stock: "El stock es obligatorio" }));
       return;
     }
 
     const productoData = {
       id: producto ? producto.id : Date.now(),
       nombre: nombre.trim(),
-      categoria: categoria.trim(),
+      categoriaId: parseInt(categoriaId),
       precio: parseFloat(precio),
-      stock: parseInt(stock),
+      descripcion: descripcion.trim(),
+      imagen: imagen, // Objeto de imagen si se seleccionó una nueva
     };
 
     onSave(productoData);
@@ -172,7 +303,7 @@ export default function ProductoModal({
                 <Text style={styles.label}>Nombre del Producto *</Text>
                 <TextInput
                   style={[styles.input, errores.nombre && styles.inputError]}
-                  placeholder="Ej: Pizza Margarita"
+                  placeholder="Ej: Whisky Lagavulin 16"
                   value={nombre}
                   onChangeText={handleNombreChange}
                   placeholderTextColor="#999"
@@ -184,15 +315,37 @@ export default function ProductoModal({
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Categoría *</Text>
-                <TextInput
-                  style={[styles.input, errores.categoria && styles.inputError]}
-                  placeholder="Ej: Comidas"
-                  value={categoria}
-                  onChangeText={handleCategoriaChange}
-                  placeholderTextColor="#999"
-                />
-                {errores.categoria ? (
-                  <Text style={styles.errorText}>{errores.categoria}</Text>
+                {cargandoCategorias ? (
+                  <View style={styles.loadingCategoriasContainer}>
+                    <ActivityIndicator size="small" color="#4CAF50" />
+                    <Text style={styles.loadingCategoriasText}>Cargando categorías...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <View style={[styles.selectContainer, errores.categoriaId && styles.inputError]}>
+                      <select
+                        value={categoriaId}
+                        onChange={(e) => handleCategoriaChange(e.target.value)}
+                        style={styles.select}
+                        disabled={categoriasPlanas.length === 0}
+                      >
+                        <option value="">Seleccionar categoría...</option>
+                        {categoriasPlanas.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.nombreConIndentacion}
+                          </option>
+                        ))}
+                      </select>
+                    </View>
+                    {categoriasPlanas.length === 0 && !cargandoCategorias && (
+                      <Text style={styles.warningText}>
+                        No hay categorías disponibles. Crea categorías primero.
+                      </Text>
+                    )}
+                  </>
+                )}
+                {errores.categoriaId ? (
+                  <Text style={styles.errorText}>{errores.categoriaId}</Text>
                 ) : null}
               </View>
 
@@ -200,7 +353,7 @@ export default function ProductoModal({
                 <Text style={styles.label}>Precio *</Text>
                 <TextInput
                   style={[styles.input, errores.precio && styles.inputError]}
-                  placeholder="Ej: 12.50"
+                  placeholder="Ej: 189.99"
                   value={precio}
                   onChangeText={handlePrecioChange}
                   keyboardType="decimal-pad"
@@ -212,18 +365,63 @@ export default function ProductoModal({
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Stock *</Text>
+                <Text style={styles.label}>Descripción</Text>
                 <TextInput
-                  style={[styles.input, errores.stock && styles.inputError]}
-                  placeholder="Ej: 50"
-                  value={stock}
-                  onChangeText={handleStockChange}
-                  keyboardType="number-pad"
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Descripción del producto (opcional)"
+                  value={descripcion}
+                  onChangeText={setDescripcion}
                   placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={4}
                 />
-                {errores.stock ? (
-                  <Text style={styles.errorText}>{errores.stock}</Text>
-                ) : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Imagen del Producto</Text>
+                {imagenUrl && (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: imagenUrl }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={() => {
+                        setImagen(null);
+                        setImagenUrl("");
+                      }}
+                    >
+                      <MaterialCommunityIcons name="close-circle" size={24} color="#d32f2f" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <View style={styles.imageButtonsContainer}>
+                  <TouchableOpacity
+                    style={styles.imageButton}
+                    onPress={mostrarOpcionesImagen}
+                  >
+                    <MaterialCommunityIcons name="image" size={20} color="#4CAF50" />
+                    <Text style={styles.imageButtonText}>
+                      {imagenUrl ? "Cambiar imagen" : "Seleccionar imagen"}
+                    </Text>
+                  </TouchableOpacity>
+                  {!Platform.OS === 'web' && (
+                    <TouchableOpacity
+                      style={[styles.imageButton, styles.cameraButton]}
+                      onPress={handleTomarFoto}
+                    >
+                      <MaterialCommunityIcons name="camera" size={20} color="#2196F3" />
+                      <Text style={[styles.imageButtonText, styles.cameraButtonText]}>
+                        Tomar foto
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <Text style={styles.helperText}>
+                  Formatos: JPG, PNG. Tamaño máximo: 5MB
+                </Text>
               </View>
             </ScrollView>
 
@@ -353,5 +551,103 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#fff",
+  },
+  selectContainer: {
+    backgroundColor: "#f8f8f8",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+  },
+  select: {
+    width: "100%",
+    padding: 10,
+    fontSize: 14,
+    color: "#1f1f1f",
+    backgroundColor: "transparent",
+    border: "none",
+    outlineStyle: "none",
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: "top",
+    paddingTop: 10,
+  },
+  imagePreviewContainer: {
+    alignItems: "center",
+    marginBottom: 12,
+    position: "relative",
+  },
+  imagePreview: {
+    width: 150,
+    height: 150,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  imageButtonsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  imageButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+    borderRadius: 8,
+    borderStyle: "dashed",
+    gap: 8,
+    backgroundColor: "#f1f8f4",
+  },
+  imageButtonText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "500",
+  },
+  cameraButton: {
+    borderColor: "#2196F3",
+    backgroundColor: "#e3f2fd",
+  },
+  cameraButtonText: {
+    color: "#2196F3",
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  loadingCategoriasContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 8,
+    gap: 8,
+  },
+  loadingCategoriasText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  warningText: {
+    fontSize: 12,
+    color: "#ff9800",
+    marginTop: 4,
+    fontStyle: "italic",
   },
 });
