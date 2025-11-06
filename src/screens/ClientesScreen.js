@@ -42,7 +42,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       const response = await clienteService.getClientes();
 
       // El backend devuelve { success, data, message }
-      const clientesData = response.data.data || [];
+      // El servicio ya devuelve response.data, así que accedemos directamente a .data
+      const clientesData = response.data || [];
 
       // Asegurarse de que cada cliente tenga un ID válido
       const clientesConId = clientesData.map((cliente) => ({
@@ -279,7 +280,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         );
 
         // El backend devuelve { success, data, message }
-        const clienteActualizado = response.data.data;
+        // El servicio ya devuelve response.data, así que accedemos directamente a .data
+        const clienteActualizado = response.data;
 
         // Actualizar la lista local
         setClientes(
@@ -292,7 +294,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         const response = await clienteService.crearCliente(formData);
 
         // El backend devuelve { success, data, message }
-        const clienteCreado = response.data.data;
+        // El servicio ya devuelve response.data, así que accedemos directamente a .data
+        const clienteCreado = response.data;
 
         // Agregar a la lista local
         setClientes([...clientes, clienteCreado]);
