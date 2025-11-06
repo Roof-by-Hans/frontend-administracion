@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { SocketProvider } from "./src/context/SocketContext";
 import Login from "./src/screens/Login";
 import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
@@ -81,7 +82,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AppContent />
+        <SocketProvider>
+          <AppContent />
+        </SocketProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
