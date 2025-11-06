@@ -1,71 +1,96 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import ProductoModal from "../components/ProductoModal";
+import CategoriaModal from "../components/CategoriaModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
-import * as productosService from "../services/productosService";
+import * as categoriasService from "../services/categoriasService";
 
-export default function ProductosScreen({ onNavigate, currentScreen }) {
-  const [productos, setProductos] = useState([]);
+export default function CategoriasScreen({ onNavigate, currentScreen }) {
+  const [categorias, setCategorias] = useState([]);
+  const [categoriasPlanas, setCategoriasPlanas] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [productoEditando, setProductoEditando] = useState(null);
+  const [categoriaEditando, setCategoriaEditando] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar productos desde el backend al montar el componente
+  // Cargar categorías desde el backend al montar el componente
   useEffect(() => {
-    cargarProductos();
+    cargarCategorias();
   }, []);
 
-  const cargarProductos = async () => {
+  // Función auxiliar para crear un mapa de todas las categorías con su idCatPadre
+  const crearMapaCategorias = (arbol, mapa = {}) => {
+    arbol.forEach(cat => {
+      mapa[cat.id] = {
+        id: cat.id,
+        nombre: cat.nombre,
+        idCatPadre: cat.idCatPadre || null,
+      };
+      if (cat.children && cat.children.length > 0) {
+        crearMapaCategorias(cat.children, mapa);
+      }
+    });
+    return mapa;
+  };
+
+  const cargarCategorias = async () => {
     try {
       setCargando(true);
       setError(null);
-      const response = await productosService.getProductos();
+      const response = await categoriasService.getCategorias();
       
       if (response.success && response.data) {
-        // Mapear los datos del backend al formato esperado por el frontend
-        const productosFormateados = response.data.map(producto => ({
-          id: producto.id,
-          nombre: producto.nombre,
-          categoria: producto.categoria?.nombre || 'Sin categoría',
-          categoriaId: producto.idCategoria,
-          precio: producto.precioUnitario,
-          descripcion: producto.descripcion || '',
-          fotoPrincipal: producto.fotoPrincipal,
-          fotoPrincipalUrl: producto.fotoPrincipalUrl,
-        }));
-        setProductos(productosFormateados);
+        setCategorias(response.data);
+        // Convertir a formato plano para la tabla
+        const planas = categoriasService.aplanarCategorias(response.data);
+        setCategoriasPlanas(planas);
       }
     } catch (error) {
-      console.error("Error al cargar productos:", error);
-      setError("Error al cargar los productos. Por favor, intenta nuevamente.");
-      Alert.alert("Error", "No se pudieron cargar los productos del servidor.");
+      console.error("Error al cargar categorías:", error);
+      setError("Error al cargar las categorías. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar las categorías del servidor.");
     } finally {
       setCargando(false);
     }
   };
 
-  // Filtrar productos según la búsqueda manual
-  const productosFiltrados = productos.filter((producto) => {
+  // Filtrar categorías según la búsqueda manual
+  const categoriasFiltradas = categoriasPlanas.filter((categoria) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
 
-    return (
-      producto.nombre.toLowerCase().includes(terminoBusqueda) ||
-      producto.categoria.toLowerCase().includes(terminoBusqueda) ||
-      producto.precio.toString().includes(terminoBusqueda)
-    );
+    return categoria.nombre.toLowerCase().includes(terminoBusqueda);
+  });
+
+  // Crear mapa de categorías para búsqueda rápida
+  const mapaCategorias = crearMapaCategorias(categorias);
+
+  // Preparar datos para la tabla con ID único
+  const categoriasParaTabla = categoriasFiltradas.map(cat => {
+    const categoriaCompleta = mapaCategorias[cat.id];
+    const idPadre = categoriaCompleta?.idCatPadre;
+    
+    let nombrePadre = 'Raíz';
+    if (idPadre) {
+      const padre = mapaCategorias[idPadre];
+      nombrePadre = padre ? padre.nombre : 'N/A';
+    }
+    
+    return {
+      ...cat,
+      idCatPadre: idPadre,
+      nombrePadre: nombrePadre,
+    };
   });
 
   // Definir columnas para el DataGrid
@@ -76,51 +101,21 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       width: 80,
     },
     {
-      field: 'fotoPrincipalUrl',
-      headerName: 'Imagen',
-      width: 100,
-      sortable: false,
-      filterable: false,
+      field: 'nombre',
+      headerName: 'Nombre',
+      flex: 1,
+      minWidth: 250,
       renderCell: (params) => (
-        <View style={styles.imageCell}>
-          {params.row.fotoPrincipalUrl ? (
-            <Image
-              source={{ uri: params.row.fotoPrincipalUrl }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.noImageContainer}>
-              <MaterialCommunityIcons name="image-off" size={24} color="#999" />
-            </View>
-          )}
+        <View style={styles.categoryNameCell}>
+          <Text style={styles.categoryNameText}>
+            {params.row.nombreConIndentacion}
+          </Text>
         </View>
       ),
     },
     {
-      field: 'nombre',
-      headerName: 'Nombre',
-      flex: 1,
-      minWidth: 200,
-    },
-    {
-      field: 'categoria',
-      headerName: 'Categoría',
-      flex: 1,
-      minWidth: 150,
-    },
-    {
-      field: 'precio',
-      headerName: 'Precio',
-      width: 120,
-      valueFormatter: (params) => {
-        const numero = Number(params);
-        return `$${numero.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      },
-    },
-    {
-      field: 'descripcion',
-      headerName: 'Descripción',
+      field: 'nombrePadre',
+      headerName: 'Categoría Padre',
       flex: 1,
       minWidth: 200,
     },
@@ -133,7 +128,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       renderCell: (params) => (
         <View style={styles.actionsContainer}>
           <IconButton
-            onClick={() => handleEditarProducto(params.row)}
+            onClick={() => handleEditarCategoria(params.row)}
             color="primary"
             size="small"
             title="Editar"
@@ -141,7 +136,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
           </IconButton>
           <IconButton
-            onClick={() => handleEliminarProducto(params.row.id)}
+            onClick={() => handleEliminarCategoria(params.row.id)}
             color="error"
             size="small"
             title="Eliminar"
@@ -153,37 +148,52 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     },
   ];
 
-  const handleAgregarProducto = () => {
-    setProductoEditando(null);
+  const handleAgregarCategoria = () => {
+    setCategoriaEditando(null);
     setModalVisible(true);
   };
 
-  const handleEditarProducto = (producto) => {
-    setProductoEditando(producto);
+  const handleEditarCategoria = (categoria) => {
+    // Buscar la categoría completa con idCatPadre en la estructura original
+    const categoriaCompleta = encontrarCategoriaEnArbol(categorias, categoria.id);
+    setCategoriaEditando(categoriaCompleta || categoria);
     setModalVisible(true);
+  };
+
+  // Función auxiliar para buscar categoría en árbol jerárquico
+  const encontrarCategoriaEnArbol = (arbol, id) => {
+    for (const cat of arbol) {
+      if (cat.id === id) return cat;
+      if (cat.children && cat.children.length > 0) {
+        const encontrada = encontrarCategoriaEnArbol(cat.children, id);
+        if (encontrada) return encontrada;
+      }
+    }
+    return null;
   };
 
   // Función para abrir modal de confirmación de eliminación
-  const handleEliminarProducto = (productoId) => {
-    setProductoAEliminar(productoId);
+  const handleEliminarCategoria = (categoriaId) => {
+    setCategoriaAEliminar(categoriaId);
     setConfirmModalVisible(true);
   };
 
   // Función para confirmar la eliminación
   const confirmarEliminacion = async () => {
-    if (productoAEliminar) {
+    if (categoriaAEliminar) {
       try {
         setCargando(true);
-        await productosService.eliminarProducto(productoAEliminar);
+        await categoriasService.eliminarCategoria(categoriaAEliminar);
         
-        // Actualizar la lista local
-        setProductos(productos.filter(p => p.id !== productoAEliminar));
+        // Recargar categorías
+        await cargarCategorias();
         setConfirmModalVisible(false);
-        setProductoAEliminar(null);
-        Alert.alert("Éxito", "Producto eliminado correctamente.");
+        setCategoriaAEliminar(null);
+        Alert.alert("Éxito", "Categoría eliminada correctamente.");
       } catch (error) {
-        console.error("Error al eliminar producto:", error);
-        Alert.alert("Error", "No se pudo eliminar el producto. Por favor, intenta nuevamente.");
+        console.error("Error al eliminar categoría:", error);
+        const mensaje = error.response?.data?.message || "No se pudo eliminar la categoría. Puede que tenga productos o subcategorías asociadas.";
+        Alert.alert("Error", mensaje);
       } finally {
         setCargando(false);
       }
@@ -193,59 +203,49 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   // Función para cancelar la eliminación
   const cancelarEliminacion = () => {
     setConfirmModalVisible(false);
-    setProductoAEliminar(null);
+    setCategoriaAEliminar(null);
   };
 
-  const handleGuardarProducto = async (productoData) => {
+  const handleGuardarCategoria = async (categoriaData) => {
     try {
       setCargando(true);
       
-      if (productoEditando) {
-        // Editar producto existente
+      if (categoriaEditando) {
+        // Editar categoría existente
         const datosActualizacion = {
-          nombre: productoData.nombre,
-          precio_unitario: productoData.precio,
-          id_categoria: productoData.categoriaId,
-          descripcion: productoData.descripcion,
+          nombre: categoriaData.nombre,
+          idCatPadre: categoriaData.idCatPadre,
         };
         
-        const response = await productosService.actualizarProducto(
-          productoData.id,
-          datosActualizacion,
-          productoData.imagen // Si hay una nueva imagen
+        const response = await categoriasService.actualizarCategoria(
+          categoriaData.id,
+          datosActualizacion
         );
         
         if (response.success) {
-          // Recargar productos para obtener los datos actualizados
-          await cargarProductos();
-          Alert.alert("Éxito", "Producto actualizado correctamente.");
+          await cargarCategorias();
+          Alert.alert("Éxito", "Categoría actualizada correctamente.");
         }
       } else {
-        // Agregar nuevo producto
-        const datosNuevoProducto = {
-          nombre: productoData.nombre,
-          precio_unitario: productoData.precio,
-          id_categoria: productoData.categoriaId,
-          descripcion: productoData.descripcion,
+        // Agregar nueva categoría
+        const datosNuevaCategoria = {
+          nombre: categoriaData.nombre,
+          idCatPadre: categoriaData.idCatPadre,
         };
         
-        const response = await productosService.crearProducto(
-          datosNuevoProducto,
-          productoData.imagen // Si hay imagen
-        );
+        const response = await categoriasService.crearCategoria(datosNuevaCategoria);
         
         if (response.success) {
-          // Recargar productos para obtener el nuevo producto
-          await cargarProductos();
-          Alert.alert("Éxito", "Producto creado correctamente.");
+          await cargarCategorias();
+          Alert.alert("Éxito", "Categoría creada correctamente.");
         }
       }
       
       setModalVisible(false);
-      setProductoEditando(null);
+      setCategoriaEditando(null);
     } catch (error) {
-      console.error("Error al guardar producto:", error);
-      const mensaje = error.response?.data?.message || "Error al guardar el producto. Por favor, intenta nuevamente.";
+      console.error("Error al guardar categoría:", error);
+      const mensaje = error.response?.data?.message || "Error al guardar la categoría. Por favor, intenta nuevamente.";
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
@@ -261,7 +261,10 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Administrar Productos</Text>
+          <Text style={styles.title}>Administrar Categorías</Text>
+          <Text style={styles.subtitle}>
+            Organiza tus productos en categorías y subcategorías jerárquicas
+          </Text>
         </View>
 
         {/* Mostrar error si existe */}
@@ -269,7 +272,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={cargarProductos} style={styles.retryButton}>
+            <TouchableOpacity onPress={cargarCategorias} style={styles.retryButton}>
               <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
@@ -288,7 +291,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar productos por nombre, categoría o precio..."
+                placeholder="Buscar categorías por nombre..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
@@ -303,7 +306,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             {/* Botón Agregar */}
             <TouchableOpacity 
               style={[styles.addButton, cargando && styles.addButtonDisabled]} 
-              onPress={handleAgregarProducto}
+              onPress={handleAgregarCategoria}
               disabled={cargando}
             >
               <MaterialCommunityIcons name="plus" size={20} color="#fff" />
@@ -316,35 +319,36 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         {cargando && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Cargando productos...</Text>
+            <Text style={styles.loadingText}>Cargando categorías...</Text>
           </View>
         )}
 
         {/* DataGrid con filtrado y ordenamiento nativo */}
         {!cargando && (
           <DataTable
-            rows={productosFiltrados}
+            rows={categoriasParaTabla}
             columns={columns}
             pageSize={10}
+            rowHeight={52}
           />
         )}
 
-        {/* Modal para agregar/editar producto */}
-        <ProductoModal
+        {/* Modal para agregar/editar categoría */}
+        <CategoriaModal
           visible={modalVisible}
-          producto={productoEditando}
+          categoria={categoriaEditando}
           onClose={() => {
             setModalVisible(false);
-            setProductoEditando(null);
+            setCategoriaEditando(null);
           }}
-          onSave={handleGuardarProducto}
+          onSave={handleGuardarCategoria}
         />
 
         {/* Modal de confirmación para eliminar */}
         <ConfirmModal
           visible={confirmModalVisible}
-          title="Eliminar Producto"
-          message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
+          title="Eliminar Categoría"
+          message="¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer. Si la categoría tiene productos o subcategorías asociadas, no podrá ser eliminada."
           onConfirm={confirmarEliminacion}
           onCancel={cancelarEliminacion}
         />
@@ -366,6 +370,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#333",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
   },
   controlsContainer: {
     marginBottom: 20,
@@ -417,37 +426,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 8,
   },
+  categoryNameCell: {
+    height: '100%',
+    justifyContent: 'center',
+  },
+  categoryNameText: {
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'monospace',
+  },
   actionsContainer: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-  },
-  imageCell: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 4,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  noImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 6,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
   loadingContainer: {
     flex: 1,

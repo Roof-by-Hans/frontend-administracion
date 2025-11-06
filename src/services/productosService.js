@@ -58,19 +58,30 @@ export const crearProducto = async (productoData, imagen = null) => {
     }
     
     // Agregar imagen si existe
-    if (imagen) {
-      formData.append('imagen', {
-        uri: imagen.uri,
-        type: imagen.type || 'image/jpeg',
-        name: imagen.name || 'producto.jpg',
-      });
+    if (imagen && imagen.uri) {
+      // Crear blob desde URI para web o usar directamente en mobile
+      if (imagen.uri.startsWith('blob:') || imagen.uri.startsWith('data:')) {
+        // Web: ya es un blob o data URL
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      } else if (imagen.uri.startsWith('file://')) {
+        // Mobile: usar objeto con uri, type, name
+        formData.append('imagen', {
+          uri: imagen.uri,
+          type: imagen.type || 'image/jpeg',
+          name: imagen.name || 'producto.jpg',
+        });
+      } else {
+        // Otro tipo de URI (http, https, etc.)
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      }
     }
     
-    const response = await api.post('/productos', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // No establecer Content-Type, axios lo hará automáticamente
+    const response = await api.post('/productos', formData);
     
     return response.data;
   } catch (error) {
@@ -109,19 +120,30 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
     }
     
     // Agregar imagen si existe
-    if (imagen) {
-      formData.append('imagen', {
-        uri: imagen.uri,
-        type: imagen.type || 'image/jpeg',
-        name: imagen.name || 'producto.jpg',
-      });
+    if (imagen && imagen.uri) {
+      // Crear blob desde URI para web o usar directamente en mobile
+      if (imagen.uri.startsWith('blob:') || imagen.uri.startsWith('data:')) {
+        // Web: ya es un blob o data URL
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      } else if (imagen.uri.startsWith('file://')) {
+        // Mobile: usar objeto con uri, type, name
+        formData.append('imagen', {
+          uri: imagen.uri,
+          type: imagen.type || 'image/jpeg',
+          name: imagen.name || 'producto.jpg',
+        });
+      } else {
+        // Otro tipo de URI (http, https, etc.)
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      }
     }
     
-    const response = await api.put(`/productos/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // No establecer Content-Type, axios lo hará automáticamente
+    const response = await api.put(`/productos/${id}`, formData);
     
     return response.data;
   } catch (error) {

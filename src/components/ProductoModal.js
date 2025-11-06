@@ -129,7 +129,46 @@ export default function ProductoModal({
   // Manejar selección de imagen (simulado para web)
   const handleSeleccionarImagen = async () => {
     try {
-      // Solicitar permisos para acceder a la galería (requerido en iOS)
+      // En web, usar input file nativo
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
+        
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          // Validar tamaño (máx 5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            Alert.alert('Error', 'La imagen no debe superar los 5MB');
+            return;
+          }
+          
+          // Validar tipo
+          if (!file.type.startsWith('image/')) {
+            Alert.alert('Error', 'Solo se permiten archivos de imagen');
+            return;
+          }
+          
+          // Crear URL para previsualización
+          const uri = URL.createObjectURL(file);
+          
+          const imagenSeleccionada = {
+            uri: uri,
+            type: file.type,
+            name: file.name,
+          };
+          
+          setImagen(imagenSeleccionada);
+          setImagenUrl(uri);
+        };
+        
+        input.click();
+        return;
+      }
+      
+      // En móvil, usar ImagePicker
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
@@ -210,7 +249,7 @@ export default function ProductoModal({
   // Mostrar opciones para seleccionar imagen
   const mostrarOpcionesImagen = () => {
     if (Platform.OS === 'web') {
-      // En web, solo permitir seleccionar desde galería
+      // En web, solo permitir seleccionar desde archivos
       handleSeleccionarImagen();
     } else {
       // En móvil, mostrar opciones

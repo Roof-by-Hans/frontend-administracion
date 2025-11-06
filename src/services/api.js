@@ -22,6 +22,11 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // Si es FormData, no establecer Content-Type (axios lo hará automáticamente con el boundary correcto)
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+      }
     } catch (error) {
       console.error('Error al obtener token:', error);
     }
