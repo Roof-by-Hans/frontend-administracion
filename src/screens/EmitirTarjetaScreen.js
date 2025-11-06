@@ -1,13 +1,24 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CardPreview from "../components/CardPreview";
+import RfidScanModal from "../components/RfidScanModal";
 import { useAuth } from "../context/AuthContext";
+import cardService from "../services/cardService";
 
 export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
   const [selectedClient, setSelectedClient] = useState("");
   const [subscriptionType, setSubscriptionType] = useState("credito");
+  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'success', 'error'
+  const [scannedUid, setScannedUid] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
   const { width } = useWindowDimensions();
@@ -28,30 +39,68 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
     return client ? client.name : "NOMBRE APELLIDO";
   };
 
-  const handleEmitir = () => {
+  const handleEmitir = async () => {
     if (!selectedClient) {
       alert("Por favor selecciona un cliente");
       return;
     }
-    // Aquí iría la lógica para emitir la tarjeta
-    alert(`Tarjeta emitida para ${getClientName()} con tipo: ${subscriptionType}`);
+
+    // Iniciar escaneo
+    setScanStatus("scanning");
+    setScannedUid("");
+    setErrorMessage("");
+
+    try {
+      // Llamar al endpoint de escaneo RFID
+      const response = await cardService.scanRFID();
+
+      // Log de la respuesta
+      console.log("📡 Respuesta del servicio RFID:", response);
+      console.log("🆔 UID de la tarjeta:", response.uid);
+
+      // Éxito - mostrar modal de éxito
+      setScannedUid(response.uid);
+      setScanStatus("success");
+
+      // TODO: Aquí iría la lógica para asociar la tarjeta al cliente
+      // await asociarTarjetaCliente(selectedClient, response.uid, subscriptionType);
+    } catch (error) {
+      console.error("❌ Error al escanear tarjeta:", error.message);
+
+      // Error - mostrar modal de error
+      setErrorMessage(error.message);
+      setScanStatus("error");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setScanStatus("");
+    setScannedUid("");
+    setErrorMessage("");
   };
 
   return (
-    <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
+    <DashboardLayout
+      userName={displayName}
+      onLogout={logout}
+      onNavigate={onNavigate}
+      currentScreen={currentScreen}
+    >
       <View style={styles.wrapper}>
         <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>
           Emitir nueva tarjeta
         </Text>
 
         {/* Contenedor principal con card y formulario lado a lado */}
-        <View style={[styles.mainContainer, isCompact && styles.mainContainerCompact]}>
+        <View
+          style={[
+            styles.mainContainer,
+            isCompact && styles.mainContainerCompact,
+          ]}
+        >
           {/* Card Preview a la izquierda */}
           <View style={styles.cardSection}>
-            <CardPreview 
-              clientName={getClientName()}
-
-            />
+            <CardPreview clientName={getClientName()} />
           </View>
 
           {/* Formulario a la derecha */}
@@ -68,52 +117,73 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
                 >
                   <Picker.Item label="Seleccionar cliente..." value="" />
                   {clients.map((client) => (
-                    <Picker.Item key={client.id} label={client.name} value={client.id} />
+                    <Picker.Item
+                      key={client.id}
+                      label={client.name}
+                      value={client.id}
+                    />
                   ))}
                 </Picker>
               </View>
             </View>
 
-          {/* Tipo de Suscripción */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Tipo de Suscripción</Text>
-            <View style={styles.radioGroup}>
-              <TouchableOpacity
-                style={styles.radioOption}
-                onPress={() => setSubscriptionType("credito")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.radioCircle}>
-                  {subscriptionType === "credito" && <View style={styles.radioSelected} />}
-                </View>
-                <Text style={styles.radioLabel}>Crédito</Text>
-              </TouchableOpacity>
+            {/* Tipo de Suscripción */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Tipo de Suscripción</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setSubscriptionType("credito")}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.radioCircle}>
+                    {subscriptionType === "credito" && (
+                      <View style={styles.radioSelected} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>Crédito</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.radioOption}
-                onPress={() => setSubscriptionType("prepago")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.radioCircle}>
-                  {subscriptionType === "prepago" && <View style={styles.radioSelected} />}
-                </View>
-                <Text style={styles.radioLabel}>Prepago</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setSubscriptionType("prepago")}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.radioCircle}>
+                    {subscriptionType === "prepago" && (
+                      <View style={styles.radioSelected} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>Prepago</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          {/* Botón Emitir */}
-          <TouchableOpacity
-            style={[styles.submitButton, !selectedClient && styles.submitButtonDisabled]}
-            onPress={handleEmitir}
-            disabled={!selectedClient}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.submitButtonText}>Emitir</Text>
-          </TouchableOpacity>
+            {/* Botón Emitir */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (!selectedClient || scanStatus === "scanning") &&
+                  styles.submitButtonDisabled,
+              ]}
+              onPress={handleEmitir}
+              disabled={!selectedClient || scanStatus === "scanning"}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.submitButtonText}>Emitir</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
+
+      {/* Modal de escaneo RFID */}
+      <RfidScanModal
+        visible={scanStatus !== ""}
+        status={scanStatus}
+        uid={scannedUid}
+        errorMessage={errorMessage}
+        onClose={handleCloseModal}
+      />
     </DashboardLayout>
   );
 }
