@@ -87,6 +87,24 @@ const clienteService = {
       throw error;
     }
   },
+
+  /**
+   * Desvincular la tarjeta asociada a un cliente
+   * @param {number} id - ID del cliente
+   * @returns {Promise} Resultado de la operación
+   */
+  desvincularTarjeta: async (id) => {
+    try {
+      const response = await api.patch(`/clientes/${id}/desvincular-tarjeta`);
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Error al desvincular la tarjeta del cliente ${id}:`,
+        error.message
+      );
+      throw error;
+    }
+  },
 };
 
 export default clienteService;
