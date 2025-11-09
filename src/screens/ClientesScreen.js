@@ -15,7 +15,7 @@ import ClienteModal from "../components/ClienteModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
-import { clienteService } from "../services/api";
+import clienteService from "../services/clientesService";
 
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);
