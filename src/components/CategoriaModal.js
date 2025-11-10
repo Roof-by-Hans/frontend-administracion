@@ -51,10 +51,38 @@ export default function CategoriaModal({
         
         // Si estamos editando, filtrar la categoría actual y sus hijos para evitar ciclos
         if (categoria) {
+          // Helper function to collect all descendant IDs of a category
+          function collectDescendantIds(catId, categoriasTree) {
+            let ids = [];
+            const findAndCollect = (nodes) => {
+              for (const node of nodes) {
+                if (node.id === catId) {
+                  // Collect all descendants recursively
+                  const collect = (children) => {
+                    for (const child of children) {
+                      ids.push(child.id);
+                      if (child.children && child.children.length > 0) {
+                        collect(child.children);
+                      }
+                    }
+                  };
+                  if (node.children && node.children.length > 0) {
+                    collect(node.children);
+                  }
+                  break;
+                } else if (node.children && node.children.length > 0) {
+                  findAndCollect(node.children);
+                }
+              }
+            };
+            findAndCollect(categoriasTree);
+            return ids;
+          }
+          const descendantIds = collectDescendantIds(categoria.id, response.data);
           const filtradas = planas.filter(cat => {
-            // No permitir que sea su propio padre
+            // No permitir que sea su propio padre ni uno de sus descendientes
             if (cat.id === categoria.id) return false;
-            // TODO: También filtrar hijos de la categoría actual (requiere lógica adicional)
+            if (descendantIds.includes(cat.id)) return false;
             return true;
           });
           setCategoriasPlanas(filtradas);
