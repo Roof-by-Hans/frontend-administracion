@@ -20,7 +20,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const userName = user?.usuario || "Usuario";
 
   // Cargar categorías desde el backend al montar el componente
