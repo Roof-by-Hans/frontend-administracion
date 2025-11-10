@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions, ActivityIndicator } from "react-native";
+import Alert from "@blazejkustra/react-native-alert";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
