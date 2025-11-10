@@ -1,5 +1,5 @@
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Configura la URL base del backend desde las variables de entorno
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -16,12 +16,12 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem("token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error('Error al obtener token:', error);
+      // Silenciar logs en producción
     }
     return config;
   },
@@ -40,10 +40,11 @@ api.interceptors.response.use(
       // Si es 401, el token expiró o es inválido
       if (error.response.status === 401) {
         try {
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("user");
+          // Nota: El AuthContext detectará esto y redirigirá al login
         } catch (e) {
-          console.error('Error al limpiar storage:', e);
+          // Silenciar logs en producción
         }
       }
     } else if (error.request) {
