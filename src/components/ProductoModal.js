@@ -446,7 +446,7 @@ export default function ProductoModal({
                       {imagenUrl ? "Cambiar imagen" : "Seleccionar imagen"}
                     </Text>
                   </TouchableOpacity>
-                  {!Platform.OS === 'web' && (
+                  {Platform.OS !== 'web' && (
                     <TouchableOpacity
                       style={[styles.imageButton, styles.cameraButton]}
                       onPress={handleTomarFoto}
