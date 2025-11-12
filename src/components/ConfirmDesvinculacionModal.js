@@ -55,6 +55,15 @@ export default function ConfirmDesvinculacionModal({
   const tarjetaActual = conflicto.tarjetaActual || {};
   const esMismoCliente = conflicto.esMismoCliente || false;
 
+  // Debug: Log para verificar qué está recibiendo el modal
+  console.log("🔔 ConfirmDesvinculacionModal - conflicto recibido:", conflicto);
+  console.log("🔔 ConfirmDesvinculacionModal - clienteActual:", clienteActual);
+  console.log("🔔 ConfirmDesvinculacionModal - clienteNuevo:", clienteNuevo);
+  console.log(
+    "🔔 ConfirmDesvinculacionModal - esMismoCliente:",
+    esMismoCliente
+  );
+
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -99,10 +108,16 @@ export default function ConfirmDesvinculacionModal({
                   {esMismoCliente ? "Cliente:" : "Cliente Actual:"}
                 </Text>
               </View>
-              <Text style={styles.infoBoxContent}>
-                {clienteActual.nombre || "Sin información"}{" "}
-                {clienteActual.apellido || ""}
-              </Text>
+              {clienteActual &&
+              (clienteActual.nombre || clienteActual.apellido) ? (
+                <Text style={styles.infoBoxContent}>
+                  {clienteActual.nombre || ""} {clienteActual.apellido || ""}
+                </Text>
+              ) : (
+                <Text style={[styles.infoBoxContent, styles.warningColor]}>
+                  Sin información disponible
+                </Text>
+              )}
               <Text style={styles.infoBoxSubtext}>
                 {esMismoCliente
                   ? "Se resetearán los datos de su tarjeta"
@@ -311,6 +326,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginBottom: 4,
+  },
+  infoBoxId: {
+    fontSize: 13,
+    color: "#999",
+    marginBottom: 4,
+  },
+  warningColor: {
+    color: "#e65100",
   },
   infoBoxSubtext: {
     fontSize: 13,

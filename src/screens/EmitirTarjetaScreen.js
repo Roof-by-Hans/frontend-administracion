@@ -189,6 +189,11 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
         const errorData = error.response.data;
 
         console.log("📦 Error 409 - Datos completos:", errorData);
+        console.log("📦 errorData.data:", errorData.data);
+        console.log(
+          "📦 errorData.data.clienteActual:",
+          errorData.data?.clienteActual
+        );
 
         // Preparar información del conflicto
         const conflicto = {
@@ -198,6 +203,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
         };
 
         console.log("🔍 Conflicto preparado:", conflicto);
+        console.log("🔍 Cliente actual en conflicto:", conflicto.clienteActual);
 
         // Extraer rfidUid del request original que falló
         const datosOriginales = error.config?.data
