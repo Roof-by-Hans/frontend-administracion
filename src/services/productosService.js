@@ -59,11 +59,24 @@ export const crearProducto = async (productoData, imagen = null) => {
     
     // Agregar imagen si existe
     if (imagen) {
-      formData.append('imagen', {
-        uri: imagen.uri,
-        type: imagen.type || 'image/jpeg',
-        name: imagen.name || 'producto.jpg',
-      });
+      // En web, si tenemos el archivo real, usarlo directamente
+      if (imagen.file) {
+        formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
+      }
+      // En web, si solo tenemos blob URI
+      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      } 
+      // En React Native móvil
+      else {
+        formData.append('imagen', {
+          uri: imagen.uri,
+          type: imagen.type || 'image/jpeg',
+          name: imagen.name || 'producto.jpg',
+        });
+      }
     }
     
     const response = await api.post('/productos', formData, {
@@ -110,11 +123,24 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
     
     // Agregar imagen si existe
     if (imagen) {
-      formData.append('imagen', {
-        uri: imagen.uri,
-        type: imagen.type || 'image/jpeg',
-        name: imagen.name || 'producto.jpg',
-      });
+      // En web, si tenemos el archivo real, usarlo directamente
+      if (imagen.file) {
+        formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
+      }
+      // En web, si solo tenemos blob URI
+      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+        const response = await fetch(imagen.uri);
+        const blob = await response.blob();
+        formData.append('imagen', blob, imagen.name || 'producto.jpg');
+      } 
+      // En React Native móvil
+      else {
+        formData.append('imagen', {
+          uri: imagen.uri,
+          type: imagen.type || 'image/jpeg',
+          name: imagen.name || 'producto.jpg',
+        });
+      }
     }
     
     const response = await api.put(`/productos/${id}`, formData, {

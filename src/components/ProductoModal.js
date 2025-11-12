@@ -158,6 +158,7 @@ export default function ProductoModal({
             uri: uri,
             type: file.type,
             name: file.name,
+            file: file, // Guardar el archivo real para el envío
           };
           
           setImagen(imagenSeleccionada);
