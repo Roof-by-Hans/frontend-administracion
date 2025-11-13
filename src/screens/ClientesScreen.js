@@ -17,7 +17,7 @@ import DataTable from "../components/DataTable";
 import SuccessModal from "../components/SuccessModal";
 import ConfirmTarjetaDesvinculacionModal from "../components/ConfirmTarjetaDesvinculacionModal";
 import { useAuth } from "../context/AuthContext";
-import clienteService from "../services/clienteService";
+import clienteService from "../services/clientesService";
 
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);

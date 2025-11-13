@@ -21,6 +21,11 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // Si es FormData, no establecer Content-Type (axios lo hará automáticamente con el boundary correcto)
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+      }
     } catch (error) {
       // Silenciar logs en producción
     }
@@ -53,8 +58,10 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       // La petición se hizo pero no hubo respuesta
+      console.error('Error de red - No se recibió respuesta del servidor');
     } else {
       // Algo pasó al configurar la petición
+      console.error('Error:', error.message);
     }
     return Promise.reject(error);
   }
