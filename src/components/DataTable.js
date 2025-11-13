@@ -12,6 +12,7 @@ import { Box, Paper } from '@mui/material';
  * @param {Function} onEdit - Callback cuando se hace clic en editar
  * @param {Function} onDelete - Callback cuando se hace clic en eliminar
  * @param {Number} pageSize - Tamaño de página por defecto (default: 10)
+ * @param {Number} rowHeight - Altura de las filas en píxeles (default: 80)
  * @param {Boolean} checkboxSelection - Habilitar selección múltiple (default: false)
  * @param {Object} sx - Estilos personalizados de Material-UI
  */
@@ -22,6 +23,7 @@ export default function DataTable({
   onDelete,
   pageSize = 10,
   checkboxSelection = false,
+  rowHeight = 80,
   sx = {},
   ...props
 }) {
@@ -39,10 +41,13 @@ export default function DataTable({
           pageSizeOptions={[5, 10, 25, 50]}
           checkboxSelection={checkboxSelection}
           disableRowSelectionOnClick
+          rowHeight={rowHeight}
           sx={{
             border: 0,
             '& .MuiDataGrid-cell': {
               borderBottom: '1px solid #f0f0f0',
+              display: 'flex',
+              alignItems: 'center',
             },
             '& .MuiDataGrid-columnHeaders': {
               backgroundColor: '#f5f5f5',
