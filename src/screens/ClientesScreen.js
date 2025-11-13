@@ -14,6 +14,8 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import ClienteModal from "../components/ClienteModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
+import SuccessModal from "../components/SuccessModal";
+import ConfirmTarjetaDesvinculacionModal from "../components/ConfirmTarjetaDesvinculacionModal";
 import { useAuth } from "../context/AuthContext";
 import clienteService from "../services/clientesService";
 
@@ -23,6 +25,11 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [clienteAEliminar, setClienteAEliminar] = useState(null);
+  const [desvincularModalVisible, setDesvincularModalVisible] = useState(false);
+  const [clienteADesvincular, setClienteADesvincular] = useState(null);
+  const [desvinculandoTarjeta, setDesvinculandoTarjeta] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,7 +49,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       const response = await clienteService.getClientes();
 
       // El backend devuelve { success, data, message }
-      const clientesData = response.data.data || [];
+      // El servicio ya devuelve response.data, así que accedemos directamente a .data
+      const clientesData = response.data || [];
 
       // Asegurarse de que cada cliente tenga un ID válido
       const clientesConId = clientesData.map((cliente) => ({
@@ -167,6 +175,20 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             >
               <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
             </IconButton>
+            {params.row?.idTarjeta && (
+              <IconButton
+                onClick={() => handleDesvincularTarjeta(params.row)}
+                color="warning"
+                size="small"
+                title="Desvincular tarjeta"
+              >
+                <MaterialCommunityIcons
+                  name="credit-card-off-outline"
+                  size={20}
+                  color="#ff9800"
+                />
+              </IconButton>
+            )}
             <IconButton
               onClick={() => handleEliminarCliente(params.row.id)}
               color="error"
@@ -197,6 +219,12 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
   const handleEliminarCliente = (clienteId) => {
     setClienteAEliminar(clienteId);
     setConfirmModalVisible(true);
+  };
+
+  // Función para abrir modal de desvinculación de tarjeta
+  const handleDesvincularTarjeta = (cliente) => {
+    setClienteADesvincular(cliente);
+    setDesvincularModalVisible(true);
   };
 
   // Función para confirmar la eliminación
@@ -266,6 +294,80 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     setClienteAEliminar(null);
   };
 
+  const cancelarDesvinculacionTarjeta = () => {
+    if (desvinculandoTarjeta) return;
+    setDesvincularModalVisible(false);
+    setClienteADesvincular(null);
+  };
+
+  const confirmarDesvinculacionTarjeta = async () => {
+    if (!clienteADesvincular) return;
+
+    try {
+      setDesvinculandoTarjeta(true);
+      const response = await clienteService.desvincularTarjeta(
+        clienteADesvincular.id
+      );
+
+      setClientes((prevClientes) =>
+        prevClientes.map((cliente) =>
+          cliente.id === clienteADesvincular.id
+            ? { ...cliente, idTarjeta: null, tarjeta: null }
+            : cliente
+        )
+      );
+
+      setSuccessMessage(
+        response?.message ||
+          `Tarjeta desvinculada correctamente de ${
+            clienteADesvincular.nombre || ""
+          } ${clienteADesvincular.apellido || ""}`
+      );
+      setShowSuccessModal(true);
+      setDesvincularModalVisible(false);
+      setClienteADesvincular(null);
+    } catch (error) {
+      console.error("Error al desvincular tarjeta del cliente:", error);
+
+      if (error.response?.status === 401) {
+        Alert.alert(
+          "Sesión expirada",
+          "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+          [{ text: "OK", onPress: () => logout() }]
+        );
+      } else if (error.response?.status === 403) {
+        Alert.alert(
+          "Sin permisos",
+          "No tienes permisos para realizar esta acción."
+        );
+      } else if (error.response?.status === 404) {
+        Alert.alert(
+          "Cliente no encontrado",
+          "El cliente no existe o ya fue modificado. Refrescando la lista...",
+          [
+            {
+              text: "Aceptar",
+              onPress: () => cargarClientes(),
+            },
+          ]
+        );
+      } else if (error.response?.status === 400) {
+        Alert.alert(
+          "Operación no válida",
+          error.response?.data?.message ||
+            "El cliente no tiene una tarjeta asociada."
+        );
+      } else {
+        const mensaje =
+          error.response?.data?.message ||
+          "Error al desvincular la tarjeta. Por favor, intenta nuevamente.";
+        Alert.alert("Error", mensaje);
+      }
+    } finally {
+      setDesvinculandoTarjeta(false);
+    }
+  };
+
   // Función para guardar cliente (agregar o editar)
   const handleGuardarCliente = async (formData, clienteId) => {
     try {
@@ -279,7 +381,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         );
 
         // El backend devuelve { success, data, message }
-        const clienteActualizado = response.data.data;
+        // El servicio ya devuelve response.data, así que accedemos directamente a .data
+        const clienteActualizado = response.data;
 
         // Actualizar la lista local
         setClientes(
@@ -292,7 +395,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         const response = await clienteService.crearCliente(formData);
 
         // El backend devuelve { success, data, message }
-        const clienteCreado = response.data.data;
+        // El servicio ya devuelve response.data, así que accedemos directamente a .data
+        const clienteCreado = response.data;
 
         // Agregar a la lista local
         setClientes([...clientes, clienteCreado]);
@@ -480,6 +584,25 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           message="¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer."
           onConfirm={confirmarEliminacion}
           onCancel={cancelarEliminacion}
+        />
+
+        <ConfirmTarjetaDesvinculacionModal
+          visible={desvincularModalVisible}
+          cliente={clienteADesvincular}
+          loading={desvinculandoTarjeta}
+          onConfirm={confirmarDesvinculacionTarjeta}
+          onCancel={cancelarDesvinculacionTarjeta}
+        />
+
+        <SuccessModal
+          visible={showSuccessModal}
+          title="Operación exitosa"
+          message={successMessage}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessMessage("");
+          }}
+          autoCloseDelay={3000}
         />
       </View>
     </DashboardLayout>
