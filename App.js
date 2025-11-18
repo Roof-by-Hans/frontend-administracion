@@ -9,6 +9,7 @@ import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
 import MozosScreen from "./src/screens/MozosScreen";
 import ProductosScreen from "./src/screens/ProductosScreen";
+import CajaScreen from "./src/screens/CajaScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -48,6 +49,13 @@ function AppContent() {
     case "productos":
       return (
         <ProductosScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "caja":
+      return (
+        <CajaScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />

@@ -18,7 +18,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [mozoEditando, setMozoEditando] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [mozoAEliminar, setMozoAEliminar] = useState(null);
 
   const { user, logout } = useAuth();
@@ -173,6 +173,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       onNavigate={onNavigate} 
       currentScreen={currentScreen}
       userName={userName}
+      onLogout={logout}
     >
       <View style={styles.container}>
         {/* Header */}
