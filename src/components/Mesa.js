@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, PanResponder } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function Mesa({ 
+// Componente memorizado para evitar re-renders innecesarios
+const Mesa = React.memo(({ 
   numero, 
   estado = "libre",
   posicion = { x: 0, y: 0 },
@@ -11,7 +12,8 @@ export default function Mesa({
   unidaCon = [],
   isSelected = false,
   draggable = false,
-}) {
+  nombreGrupo = null, // Nombre del grupo (si está en uno)
+}) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDragging, setIsDragging] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(posicion);
@@ -23,6 +25,11 @@ export default function Mesa({
       pan.setValue(posicion);
     }
   }, [posicion.x, posicion.y, isDragging]);
+
+  // Log cuando cambia isSelected para debugging
+  useEffect(() => {
+    console.log(`🎨 Mesa ${numero} - isSelected cambió a:`, isSelected);
+  }, [isSelected, numero]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
@@ -70,28 +77,45 @@ export default function Mesa({
 
   const handlePress = () => {
     // Si no se está arrastrando: disparar onPress
-    if (onPress) {
+    console.log('🎯 Mesa.handlePress llamado');
+    console.log('   - Mesa:', numero);
+    console.log('   - Draggable:', draggable);
+    console.log('   - IsDragging:', isDragging);
+    console.log('   - IsSelected:', isSelected);
+    
+    if (!isDragging && onPress) {
+      console.log('✅ Ejecutando onPress para mesa', numero);
       onPress(numero);
+    } else {
+      console.log('⚠️ No se ejecutó onPress - isDragging:', isDragging, 'onPress existe:', !!onPress);
     }
   };
 
+  // Determinar colores según estado y grupo
+  const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;
+  
   const backgroundColor = estado === "ocupada" 
     ? "#ff6b6b" 
-    : "#51cf66";
+    : tieneGrupo 
+      ? "#339af0" // Azul para mesas en grupo
+      : "#51cf66"; // Verde para mesas libres individuales
 
   const borderColor = isSelected 
     ? "#ffd43b" 
     : estado === "ocupada" 
       ? "#fa5252" 
-      : "#37b24d";
+      : tieneGrupo
+        ? "#228be6" // Borde azul más oscuro para grupos
+        : "#37b24d";
 
-  const borderWidth = isSelected ? 5 : 3;
+  const borderWidth = isSelected ? 5 : tieneGrupo ? 4 : 3;
 
   const mesaStyle = [
     styles.mesa,
     { backgroundColor, borderColor, borderWidth },
     isSelected && styles.mesaSelected,
     draggable && styles.mesaDraggable,
+    tieneGrupo && styles.mesaEnGrupo,
   ];
 
   return (
@@ -106,14 +130,14 @@ export default function Mesa({
             : [{ translateX: 0 }, { translateY: 0 }],
         },
       ]}
-      {...panResponder.panHandlers}
+      {...(draggable ? panResponder.panHandlers : {})}
     >
       <Pressable
         onPress={handlePress}
         style={mesaStyle}
         android_ripple={{ color: "rgba(255,255,255,0.3)" }}
-        // permitir eventos de puntero para todos los modos; la lógica de "draggable" la manejamos desde el padre
         pointerEvents="auto"
+        disabled={false}
       >
         {/* Número de mesa */}
         <Text style={styles.numeroMesa}>{numero}</Text>
@@ -127,17 +151,37 @@ export default function Mesa({
           />
         </View>
 
-        {/* Indicador de mesas unidas */}
+        {/* Badge de grupo (superior izquierdo) */}
+        {tieneGrupo && (
+          <View style={styles.grupoBadge}>
+            <MaterialCommunityIcons name="link-variant" size={12} color="#fff" />
+          </View>
+        )}
+
+        {/* Indicador de cantidad de mesas en el grupo */}
         {unidaCon.length > 0 && (
-          <View style={styles.unidaIndicador}>
-            <MaterialCommunityIcons name="link-variant" size={14} color="#fff" />
-            <Text style={styles.unidaTexto}>+{unidaCon.length}</Text>
+          <View style={styles.cantidadBadge}>
+            <Text style={styles.cantidadTexto}>+{unidaCon.length}</Text>
+          </View>
+        )}
+
+        {/* Nombre del grupo (tooltip en la parte inferior) */}
+        {nombreGrupo && (
+          <View style={styles.nombreGrupoContainer}>
+            <Text style={styles.nombreGrupoTexto} numberOfLines={1}>
+              {nombreGrupo}
+            </Text>
           </View>
         )}
       </Pressable>
     </Animated.View>
   );
-}
+});
+
+// Agregar displayName para debugging
+Mesa.displayName = 'Mesa';
+
+export default Mesa;
 
 const styles = StyleSheet.create({
   mesaContainer: {
@@ -168,6 +212,11 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     transform: [{ scale: 1.05 }],
   },
+  mesaEnGrupo: {
+    shadowColor: "#228be6",
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
   numeroMesa: {
     fontSize: 28,
     fontWeight: "700",
@@ -184,21 +233,46 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 2,
   },
-  unidaIndicador: {
+  grupoBadge: {
     position: "absolute",
-    bottom: 4,
-    right: 4,
-    flexDirection: "row",
-    alignItems: "center",
+    top: 6,
+    left: 6,
     backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    gap: 2,
+    borderRadius: 12,
+    padding: 3,
   },
-  unidaTexto: {
-    fontSize: 10,
+  cantidadBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    backgroundColor: "#FF9500",
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  cantidadTexto: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  nombreGrupoContainer: {
+    position: "absolute",
+    bottom: -18,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  nombreGrupoTexto: {
+    fontSize: 9,
     fontWeight: "600",
     color: "#fff",
+    textAlign: 'center',
   },
 });
