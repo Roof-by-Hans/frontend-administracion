@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { SocketProvider } from "./src/context/SocketContext";
 import Login from "./src/screens/Login";
 import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
 import MesasScreen from "./src/screens/MesasScreen";
+import ClientesScreen from "./src/screens/ClientesScreen";
+import AjustesScreen from "./src/screens/AjustesScreen";
 import MozosScreen from "./src/screens/MozosScreen";
 import GestionUsuariosScreen from "./src/screens/GestionUsuariosScreen";
+import ProductosScreen from "./src/screens/ProductosScreen";
+import CategoriasScreen from "./src/screens/CategoriasScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -29,6 +34,13 @@ function AppContent() {
           currentScreen={currentScreen}
         />
       );
+    case "clientes":
+      return (
+        <ClientesScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "mozos":
       return (
         <MozosScreen
@@ -43,9 +55,30 @@ function AppContent() {
           currentScreen={currentScreen}
         />
       );
+    case "productos":
+      return (
+        <ProductosScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "categorias":
+      return (
+        <CategoriasScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "emitir-tarjeta":
       return (
         <EmitirTarjetaScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "ajustes":
+      return (
+        <AjustesScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />
@@ -65,7 +98,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AppContent />
+        <SocketProvider>
+          <AppContent />
+        </SocketProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

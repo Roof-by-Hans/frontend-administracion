@@ -20,6 +20,7 @@ const mainMenuItems = [
   },
   { icon: "account-tie", label: "Gestionar Mozos", screen: "mozos" },
   { icon: "basket-outline", label: "Gestionar Productos", screen: "productos" },
+  { icon: "shape-outline", label: "Gestionar Categorías", screen: "categorias" },
   { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
   { icon: "cash-register", label: "Caja", screen: "caja" },
 ];

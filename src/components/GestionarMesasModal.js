@@ -6,9 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   useWindowDimensions,
+  TextInput,
 } from "react-native";
+import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function GestionarMesasModal({ 
@@ -20,29 +21,32 @@ export default function GestionarMesasModal({
 }) {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const [nombreNuevaMesa, setNombreNuevaMesa] = useState("");
+  
   const handleAgregarMesa = () => {
-    const nuevoNumero = mesas.length > 0 
-      ? Math.max(...mesas.map(m => m.numero)) + 1 
-      : 1;
+    if (!nombreNuevaMesa.trim()) {
+      Alert.alert("⚠️ Error", "Por favor ingresa un nombre para la mesa");
+      return;
+    }
     
-    onAgregarMesa(nuevoNumero);
-    Alert.alert("✅ Mesa agregada", `Se agregó la mesa ${nuevoNumero}`);
+    onAgregarMesa(nombreNuevaMesa.trim());
+    setNombreNuevaMesa(""); // Limpiar el input
   };
 
-  const handleEliminarMesa = (numero) => {
+  const handleEliminarMesa = (numero, nombre) => {
     Alert.alert(
-      "⚠️ Eliminar mesa",
-      `¿Estás seguro de eliminar la mesa ${numero}?`,
+      "⚠️ Confirmar eliminación",
+      `¿Estás seguro de eliminar la mesa "${nombre || numero}"?`,
       [
-        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
         {
           text: "Eliminar",
-          style: "destructive",
-          onPress: () => {
-            onEliminarMesa(numero);
-            Alert.alert("✅ Mesa eliminada", `Se eliminó la mesa ${numero}`);
-          },
-        },
+          onPress: () => onEliminarMesa(numero),
+          style: "destructive"
+        }
       ]
     );
   };
@@ -70,47 +74,70 @@ export default function GestionarMesasModal({
           </View>
 
           {/* Agregar nueva mesa */}
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAgregarMesa}
-          >
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>Agregar nueva mesa</Text>
-          </TouchableOpacity>
+          <View style={styles.addSection}>
+            <Text style={styles.sectionTitle}>Agregar nueva mesa</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre de la mesa (ej: Mesa Terraza 1)"
+                value={nombreNuevaMesa}
+                onChangeText={setNombreNuevaMesa}
+                onSubmitEditing={handleAgregarMesa}
+                returnKeyType="done"
+              />
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={handleAgregarMesa}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>Agregar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Lista de mesas */}
-          <Text style={styles.sectionTitle}>Mesas actuales</Text>
+          <Text style={styles.sectionTitle}>Mesas actuales ({mesas?.length || 0})</Text>
           <ScrollView style={styles.mesasList}>
-            {mesas.map((mesa) => (
-              <View key={mesa.numero} style={styles.mesaItem}>
-                <View style={styles.mesaInfo}>
-                  <View style={[
-                    styles.mesaIndicador, 
-                    { backgroundColor: mesa.estado === "ocupada" ? "#ff6b6b" : "#51cf66" }
-                  ]}>
-                    <Text style={styles.mesaNumero}>{mesa.numero}</Text>
+            {mesas && mesas.length > 0 ? (
+              // Filtrar duplicados usando Map
+              Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map((mesa) => (
+                <View key={`modal-mesa-${mesa.idMesa || mesa.numero}`} style={styles.mesaItem}>
+                  <View style={styles.mesaInfo}>
+                    <View style={[
+                      styles.mesaIndicador, 
+                      { backgroundColor: mesa.estado === "ocupada" ? "#ff6b6b" : "#51cf66" }
+                    ]}>
+                      <Text style={styles.mesaNumero}>{mesa.numero}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mesaNombre}>{mesa.nombre || `Mesa ${mesa.numero}`}</Text>
+                      <Text style={styles.mesaEstado}>
+                        {mesa.estado === "ocupada" ? "Ocupada" : "Libre"}
+                        {mesa.unidaCon && mesa.unidaCon.length > 0 && ` • Unida con: ${mesa.unidaCon.join(", ")}`}
+                        {mesa.grupo && ` • Grupo: ${mesa.grupo.nombre || mesa.nombreGrupo}`}
+                      </Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.mesaNombre}>Mesa {mesa.numero}</Text>
-                    <Text style={styles.mesaEstado}>
-                      {mesa.estado === "ocupada" ? "Ocupada" : "Libre"}
-                      {mesa.unidaCon.length > 0 && ` • Unida con: ${mesa.unidaCon.join(", ")}`}
-                    </Text>
-                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleEliminarMesa(mesa.numero, mesa.nombre)}
+                    style={styles.deleteButton}
+                    disabled={mesa.estado === "ocupada"}
+                  >
+                    <MaterialCommunityIcons 
+                      name="delete" 
+                      size={20} 
+                      color={mesa.estado === "ocupada" ? "#ccc" : "#ff6b6b"} 
+                    />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={() => handleEliminarMesa(mesa.numero)}
-                  style={styles.deleteButton}
-                  disabled={mesa.estado === "ocupada"}
-                >
-                  <MaterialCommunityIcons 
-                    name="delete" 
-                    size={20} 
-                    color={mesa.estado === "ocupada" ? "#ccc" : "#ff6b6b"} 
-                  />
-                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="table-furniture" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>No hay mesas creadas</Text>
+                <Text style={styles.emptyStateSubtext}>Agrega tu primera mesa arriba</Text>
               </View>
-            ))}
+            )}
           </ScrollView>
 
           <Text style={styles.note}>
@@ -165,19 +192,37 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
+  addSection: {
+    marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'stretch',
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    backgroundColor: '#fff',
+  },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: "#228be6",
-    paddingVertical: 14,
-    borderRadius: 10,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
   sectionTitle: {
@@ -229,6 +274,21 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#868e96',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#adb5bd',
+    marginTop: 4,
   },
   note: {
     fontSize: 13,
