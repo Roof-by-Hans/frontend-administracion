@@ -13,6 +13,7 @@ const Mesa = React.memo(({
   isSelected = false,
   draggable = false,
   nombreGrupo = null, // Nombre del grupo (si está en uno)
+  tienePedido = false, // Indica si tiene pedido activo (factura pendiente)
 }) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDragging, setIsDragging] = useState(false);
@@ -93,6 +94,11 @@ const Mesa = React.memo(({
 
   // Determinar colores según estado y grupo
   const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;
+  
+  // Log para debugging
+  if (tienePedido || estado === "ocupada") {
+    console.log(`🎨 Mesa ${numero} - Estado: ${estado}, TienePedido: ${tienePedido}, TieneGrupo: ${tieneGrupo}`);
+  }
   
   const backgroundColor = estado === "ocupada" 
     ? "#ff6b6b" 
@@ -240,6 +246,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 12,
     padding: 3,
+  },
+  pedidoBadge: {
+    position: "absolute",
+    top: 6,
+    right: 30,
+    backgroundColor: "#34C759",
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   cantidadBadge: {
     position: "absolute",

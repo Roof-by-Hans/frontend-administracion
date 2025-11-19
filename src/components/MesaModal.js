@@ -1,22 +1,65 @@
-import React from "react";
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TouchableOpacity, useWindowDimensions } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import pedidosService from "../services/pedidosService";
 
 export default function MesaModal({ 
   visible, 
   onClose, 
   mesa,
+  grupo,
   onUnirMesas,
   onSepararMesas,
   onLimpiarMesa,
   onIniciarPedido,
+  onNuevoPedido,
+  onPagarCuenta,
+  onEditarPedido,
+  onEliminarPedido,
+  tienePedido = false,
 }) {
-  if (!mesa) return null;
-
-  const { numero, estado, pedido, unidaCon } = mesa;
+  const [pedidosActivos, setPedidosActivos] = useState([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(false);
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
   const isLargeTablet = width >= 1024;
+
+  // Cargar pedidos activos
+  useEffect(() => {
+    if (!visible || (!mesa && !grupo)) return;
+
+    const cargarPedidos = async () => {
+      try {
+        setLoadingPedidos(true);
+        let pedidos = [];
+        
+        if (grupo) {
+          console.log('🔵 Cargando pedidos de grupo:', grupo.id);
+          pedidos = await pedidosService.getPedidosGrupo(grupo.id);
+        } else if (mesa) {
+          console.log('🔵 Cargando pedidos de mesa:', mesa.idMesa || mesa.id);
+          pedidos = await pedidosService.getPedidosMesa(mesa.idMesa || mesa.id);
+        }
+        
+        console.log('🔵 Pedidos cargados en modal:', pedidos.length);
+        setPedidosActivos(pedidos);
+      } catch (error) {
+        console.error('Error al cargar pedidos:', error);
+      } finally {
+        setLoadingPedidos(false);
+      }
+    };
+
+    cargarPedidos();
+  }, [visible, mesa, grupo]);
+
+  // Validación después de todos los hooks
+  if (!mesa && !grupo) return null;
+
+  const numero = mesa?.numero || grupo?.nombre;
+  const estado = mesa?.estado || (grupo?.mesas?.some(m => m.estado === 'ocupada') ? 'ocupada' : 'libre');
+  const pedido = mesa?.pedido;
+  const unidaCon = mesa?.unidaCon;
 
   const calcularTotal = () => {
     if (!pedido || !pedido.items) return 0;
@@ -73,86 +116,196 @@ export default function MesaModal({
 
           {/* Contenido */}
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {estado === "libre" ? (
+            {loadingPedidos ? (
               <View style={styles.emptyState}>
-                <MaterialCommunityIcons name="check-circle-outline" size={isTablet ? 80 : 64} color="#51cf66" />
-                <Text style={[styles.emptyTitle, isTablet && styles.emptyTitleTablet]}>Mesa disponible</Text>
+                <ActivityIndicator size="large" color="#007bff" />
                 <Text style={[styles.emptySubtitle, isTablet && styles.emptySubtitleTablet]}>
-                  Esta mesa está lista para recibir clientes
+                  Cargando pedidos...
+                </Text>
+              </View>
+            ) : pedidosActivos.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons 
+                  name="receipt-text-outline" 
+                  size={isTablet ? 80 : 64} 
+                  color="#ccc" 
+                />
+                <Text style={[styles.emptyTitle, isTablet && styles.emptyTitleTablet]}>
+                  Sin pedidos activos
+                </Text>
+                <Text style={[styles.emptySubtitle, isTablet && styles.emptySubtitleTablet]}>
+                  Presione "Nuevo Pedido" para comenzar
                 </Text>
               </View>
             ) : (
               <>
-                {/* Información del pedido */}
-                {pedido && (
-                  <>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Mozo:</Text>
-                      <Text style={styles.infoValue}>{pedido.mozo || "No asignado"}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Hora inicio:</Text>
-                      <Text style={styles.infoValue}>{pedido.horaInicio || "--:--"}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Comensales:</Text>
-                      <Text style={styles.infoValue}>{pedido.comensales || 0}</Text>
-                    </View>
-
-                    {/* Items del pedido */}
-                    {pedido.items && pedido.items.length > 0 && (
-                      <>
-                        <Text style={styles.sectionTitle}>Pedido</Text>
-                        <ScrollView 
-                          horizontal 
-                          showsHorizontalScrollIndicator={true}
-                          style={styles.itemsScrollView}
-                          contentContainerStyle={styles.itemsScrollContent}
-                        >
-                          {pedido.items.map((item, index) => (
-                            <View key={index} style={styles.itemCard}>
-                              <View style={styles.itemCardHeader}>
-                                <Text style={styles.itemCardCantidad}>{item.cantidad}x</Text>
-                              </View>
-                              <Text style={styles.itemCardNombre} numberOfLines={2}>
-                                {item.nombre}
-                              </Text>
-                              <Text style={styles.itemCardPrecio}>
-                                {formatearPrecio(item.precio * item.cantidad)}
-                              </Text>
-                            </View>
-                          ))}
-                        </ScrollView>
-
-                        {/* Total */}
-                        <View style={styles.totalRow}>
-                          <Text style={styles.totalLabel}>Total:</Text>
-                          <Text style={styles.totalValue}>
-                            {formatearPrecio(calcularTotal())}
+                {/* Lista de pedidos activos */}
+                <Text style={styles.sectionTitle}>
+                  Pedidos Activos ({pedidosActivos.length})
+                </Text>
+                {pedidosActivos.map((pedido, pedidoIndex) => {
+                  const total = pedido.productos.reduce(
+                    (sum, p) => sum + (p.cantidad * p.precioUnitario), 
+                    0
+                  );
+                  
+                  return (
+                    <View key={pedido.id} style={styles.pedidoCard}>
+                      {/* Header del pedido con acciones */}
+                      <View style={styles.pedidoHeader}>
+                        <View style={styles.pedidoHeaderLeft}>
+                          <MaterialCommunityIcons 
+                            name="account" 
+                            size={isTablet ? 20 : 16} 
+                            color="#666" 
+                          />
+                          <Text style={[styles.pedidoCliente, isTablet && styles.pedidoClienteTablet]}>
+                            {pedido.nombreCliente}
                           </Text>
                         </View>
-                      </>
-                    )}
-                  </>
-                )}
+                        <View style={styles.pedidoHeaderRight}>
+                          <Text style={[styles.pedidoFecha, isTablet && styles.pedidoFechaTablet]}>
+                            {new Date(pedido.fecha).toLocaleTimeString('es-AR', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              // Editar pedido - abrir modal con datos precargados
+                              if (onEditarPedido) {
+                                onEditarPedido(pedido);
+                              }
+                            }}
+                            style={styles.pedidoActionBtn}
+                          >
+                            <MaterialCommunityIcons name="pencil-outline" size={18} color="#007AFF" />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              Alert.alert(
+                                'Eliminar pedido',
+                                '\u00bfEst\u00e1 seguro de eliminar este pedido?',
+                                [
+                                  { text: 'Cancelar', style: 'cancel' },
+                                  { 
+                                    text: 'Eliminar', 
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                      const clave = grupo ? `grupo-${grupo.id}` : `mesa-${mesa.idMesa || mesa.id}`;
+                                      await pedidosService.eliminarPedido(pedido.id, clave);
+                                      
+                                      // Notificar al padre para que emita evento WebSocket
+                                      if (onEliminarPedido) {
+                                        onEliminarPedido(pedido.id, mesa?.idMesa, grupo?.id);
+                                      }
+                                      
+                                      // Recargar pedidos
+                                      const pedidosActualizados = await (grupo 
+                                        ? pedidosService.getPedidosGrupo(grupo.id)
+                                        : pedidosService.getPedidosMesa(mesa.idMesa || mesa.id));
+                                      setPedidosActivos(pedidosActualizados);
+                                    }
+                                  },
+                                ]
+                              );
+                            }}
+                            style={styles.pedidoActionBtn}
+                          >
+                            <MaterialCommunityIcons name="delete-outline" size={18} color="#ff3b30" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Productos del pedido */}
+                      <View style={styles.pedidoProductos}>
+                        {pedido.productos.map((producto, idx) => (
+                          <View key={idx} style={styles.productoRow}>
+                            <Text style={[styles.productoCantidad, isTablet && styles.productoCantidadTablet]}>
+                              {producto.cantidad}x
+                            </Text>
+                            <Text style={[styles.productoNombre, isTablet && styles.productoNombreTablet]}>
+                              {producto.nombre}
+                            </Text>
+                            <Text style={[styles.productoPrecio, isTablet && styles.productoPrecioTablet]}>
+                              ${(producto.cantidad * producto.precioUnitario).toFixed(2)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Observaciones */}
+                      {pedido.observaciones && (
+                        <View style={styles.pedidoObservaciones}>
+                          <MaterialCommunityIcons 
+                            name="note-text" 
+                            size={isTablet ? 16 : 14} 
+                            color="#888" 
+                          />
+                          <Text style={[styles.observacionesText, isTablet && styles.observacionesTextTablet]}>
+                            {pedido.observaciones}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Total del pedido */}
+                      <View style={styles.pedidoTotal}>
+                        <Text style={[styles.pedidoTotalLabel, isTablet && styles.pedidoTotalLabelTablet]}>
+                          Subtotal:
+                        </Text>
+                        <Text style={[styles.pedidoTotalValue, isTablet && styles.pedidoTotalValueTablet]}>
+                          ${total.toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+
+                {/* Total general */}
+                <View style={styles.totalGeneralCard}>
+                  <Text style={[styles.totalGeneralLabel, isTablet && styles.totalGeneralLabelTablet]}>
+                    Total a cobrar:
+                  </Text>
+                  <Text style={[styles.totalGeneralValue, isTablet && styles.totalGeneralValueTablet]}>
+                    ${pedidosService.calcularTotal(pedidosActivos).toFixed(2)}
+                  </Text>
+                </View>
               </>
             )}
           </ScrollView>
 
           {/* Acciones */}
           <View style={styles.actions}>
-            {estado === "libre" ? (
+            {/* Botón Nuevo Pedido - Siempre visible */}
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.startButton, isTablet && styles.actionButtonTablet]}
+              onPress={() => {
+                onNuevoPedido && onNuevoPedido();
+              }}
+            >
+              <MaterialCommunityIcons name="plus-circle" size={isTablet ? 26 : 20} color="#fff" />
+              <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Nuevo Pedido</Text>
+            </TouchableOpacity>
+
+            {/* Botón Cobrar Mesa - Solo si hay pedidos activos */}
+            {(() => {
+              console.log('🔵 pedidosActivos.length:', pedidosActivos.length);
+              console.log('🔵 ¿Mostrar botón Cobrar?', pedidosActivos.length > 0);
+              return pedidosActivos.length > 0;
+            })() && (
               <TouchableOpacity 
-                style={[styles.actionButton, styles.startButton, isTablet && styles.actionButtonTablet]}
+                style={[styles.actionButton, styles.payButton, isTablet && styles.actionButtonTablet]}
                 onPress={() => {
-                  onIniciarPedido && onIniciarPedido(numero);
-                  onClose();
+                  onPagarCuenta && onPagarCuenta();
                 }}
               >
-                <MaterialCommunityIcons name="plus-circle" size={isTablet ? 26 : 20} color="#fff" />
-                <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Iniciar pedido</Text>
+                <MaterialCommunityIcons name="cash-register" size={isTablet ? 26 : 20} color="#fff" />
+                <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Cobrar Mesa</Text>
               </TouchableOpacity>
-            ) : (
+            )}
+
+            {/* Botón Limpiar Mesa - Solo si está ocupada */}
+            {estado === "ocupada" && (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.clearButton, isTablet && styles.actionButtonTablet]}
                 onPress={() => {
@@ -161,20 +314,9 @@ export default function MesaModal({
                 }}
               >
                 <MaterialCommunityIcons name="broom" size={isTablet ? 26 : 20} color="#fff" />
-                <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Limpiar mesa</Text>
+                <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Limpiar Mesa</Text>
               </TouchableOpacity>
             )}
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.linkButton, isTablet && styles.actionButtonTablet]}
-              onPress={() => {
-                onUnirMesas && onUnirMesas(numero);
-                onClose();
-              }}
-            >
-              <MaterialCommunityIcons name="link-variant" size={isTablet ? 26 : 20} color="#fff" />
-              <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Unir mesas</Text>
-            </TouchableOpacity>
           </View>
         </Pressable>
       </Pressable>
@@ -320,6 +462,155 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 12,
   },
+  pedidoCard: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  pedidoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#dee2e6",
+  },
+  pedidoHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  pedidoHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  pedidoActionBtn: {
+    padding: 4,
+  },
+  pedidoCliente: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2f2f2f",
+  },
+  pedidoClienteTablet: {
+    fontSize: 20,
+  },
+  pedidoFecha: {
+    fontSize: 13,
+    color: "#868e96",
+  },
+  pedidoFechaTablet: {
+    fontSize: 16,
+  },
+  pedidoProductos: {
+    marginBottom: 12,
+  },
+  productoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    gap: 8,
+  },
+  productoCantidad: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#228be6",
+    minWidth: 30,
+  },
+  productoCantidadTablet: {
+    fontSize: 17,
+  },
+  productoNombre: {
+    fontSize: 14,
+    color: "#495057",
+    flex: 1,
+  },
+  productoNombreTablet: {
+    fontSize: 17,
+  },
+  productoPrecio: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#37b24d",
+  },
+  productoPrecioTablet: {
+    fontSize: 17,
+  },
+  pedidoObservaciones: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e9ecef",
+  },
+  observacionesText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    flex: 1,
+  },
+  observacionesTextTablet: {
+    fontSize: 16,
+  },
+  pedidoTotal: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#dee2e6",
+  },
+  pedidoTotalLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#495057",
+  },
+  pedidoTotalLabelTablet: {
+    fontSize: 18,
+  },
+  pedidoTotalValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#37b24d",
+  },
+  pedidoTotalValueTablet: {
+    fontSize: 20,
+  },
+  totalGeneralCard: {
+    backgroundColor: "#e7f5ff",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    borderWidth: 2,
+    borderColor: "#339af0",
+  },
+  totalGeneralLabel: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1864ab",
+  },
+  totalGeneralLabelTablet: {
+    fontSize: 22,
+  },
+  totalGeneralValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1864ab",
+  },
+  totalGeneralValueTablet: {
+    fontSize: 28,
+  },
   itemsScrollView: {
     marginBottom: 16,
   },
@@ -414,6 +705,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
@@ -421,6 +713,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+    minWidth: "45%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -437,6 +730,9 @@ const styles = StyleSheet.create({
   },
   startButton: {
     backgroundColor: "#51cf66",
+  },
+  payButton: {
+    backgroundColor: "#FF9500",
   },
   linkButton: {
     backgroundColor: "#4a90e2",

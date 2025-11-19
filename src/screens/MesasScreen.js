@@ -7,9 +7,14 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import Mesa from "../components/Mesa";
 import MesaModal from "../components/MesaModal";
 import GestionarMesasModal from "../components/GestionarMesasModal";
+import PedidoMesaModal from "../components/PedidoMesaModal";
+import PagoFacturaModal from "../components/PagoFacturaModal";
 import { useAuth } from "../context/AuthContext";
 import mesasService from "../services/mesasService";
+import facturasService from "../services/facturasService";
+import pedidosService from "../services/pedidosService";
 import { useMesasSocket } from "../hooks/useMesasSocket";
+import { usePedidosSocket } from "../hooks/usePedidosSocket";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {
@@ -35,6 +40,11 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   const [gestionModalVisible, setGestionModalVisible] = useState(false);
   const [salonDimensions, setSalonDimensions] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
+  const [pedidoModalVisible, setPedidoModalVisible] = useState(false);
+  const [pagoModalVisible, setPagoModalVisible] = useState(false);
+  const [pedidosActivos, setPedidosActivos] = useState(new Map());
+  const [pedidosMesaSeleccionada, setPedidosMesaSeleccionada] = useState([]);
+  const [pedidoEnEdicion, setPedidoEnEdicion] = useState(null);
   
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -61,6 +71,41 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                      'ℹ️ Información');
       
       Alert.alert(title, notification.message);
+    }
+  });
+
+  // Hook personalizado de WebSocket para pedidos en tiempo real
+  const {
+    isConnected: pedidosWsConnected,
+    emitirPedidoCreado,
+    emitirPedidoActualizado,
+    emitirPedidoEliminado,
+    emitirMesaCobrada,
+    emitirMesaActualizada
+  } = usePedidosSocket({
+    onPedidoCreado: (data) => {
+      console.log('🔔 Pedido creado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoActualizado: (data) => {
+      console.log('🔔 Pedido actualizado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoEliminado: (data) => {
+      console.log('🔔 Pedido eliminado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoCobrado: (data) => {
+      console.log('🔔 Mesa cobrada en tiempo real:', data);
+      // Recargar pedidos y mesas
+      cargarPedidosActivos();
+    },
+    onMesaActualizada: (data) => {
+      console.log('🔔 Mesa actualizada en tiempo real:', data);
+      // El hook de useMesasSocket ya maneja esto
     }
   });
 
@@ -106,6 +151,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             'FUERA_DE_SERVICIO': 'fuera_servicio'
           };
           estadoLocal = estadoMap[mesa.estado] || "libre";
+          console.log(`📊 Mesa ${mesa.idMesa} - Estado backend: ${mesa.estado} → Estado local: ${estadoLocal}`);
         }
 
         // Verificar si la mesa pertenece a un grupo
@@ -156,14 +202,47 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   // Cargar mesas iniciales al montar el componente
   useEffect(() => {
     cargarMesas();
+    cargarPedidosActivos();
   }, [cargarMesas]);
 
   // Recargar mesas cuando la pantalla vuelve a estar activa
   useEffect(() => {
     if (currentScreen === 'mesas') {
       cargarMesas();
+      cargarPedidosActivos();
     }
   }, [currentScreen, cargarMesas]);
+
+  // Función para cargar pedidos activos de todas las mesas/grupos desde localStorage
+  const cargarPedidosActivos = useCallback(() => {
+    try {
+      console.log('🔵 Cargando pedidos activos...');
+      const mapaPedidos = new Map();
+      
+      // Recorrer todas las mesas y verificar si tienen pedidos
+      mesas.forEach(mesa => {
+        const clave = mesa.grupo ? `grupo-${mesa.grupo}` : `mesa-${mesa.idMesa}`;
+        const pedidos = pedidosService.getPedidosLocal(clave);
+        
+        if (pedidos.length > 0) {
+          console.log(`✅ Mesa/Grupo ${clave} tiene ${pedidos.length} pedido(s)`);
+          mapaPedidos.set(clave, pedidos);
+        }
+      });
+      
+      console.log('🔵 Total de mesas/grupos con pedidos:', mapaPedidos.size);
+      setPedidosActivos(mapaPedidos);
+    } catch (error) {
+      console.error('Error al cargar pedidos activos:', error);
+    }
+  }, [mesas]);
+
+  // Actualizar pedidos activos automáticamente cuando cambian las mesas
+  useEffect(() => {
+    if (mesas.length > 0) {
+      cargarPedidosActivos();
+    }
+  }, [mesas, cargarPedidosActivos]);
 
   // Actualizar mesaSeleccionada cuando cambie el estado de las mesas
   useEffect(() => {
@@ -175,6 +254,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       }
     }
   }, [mesas, modalVisible]);
+
+  // Recargar pedidos activos cuando se abre el modal
+  useEffect(() => {
+    if (modalVisible) {
+      cargarPedidosActivos();
+    }
+  }, [modalVisible, cargarPedidosActivos]);
 
   const TAMANO_MESA = 80;
   const MARGEN_SEGURIDAD = 20; // Margen inferior y derecho
@@ -241,6 +327,144 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       setModalVisible(true);
     }
   }, [modoActivo, mesas]);
+
+  // Función para abrir modal de nuevo pedido
+  const handleNuevoPedido = () => {
+    setPedidoEnEdicion(null);
+    setModalVisible(false);
+    setPedidoModalVisible(true);
+  };
+
+  // Función para editar un pedido existente
+  const handleEditarPedido = (pedido) => {
+    setPedidoEnEdicion(pedido);
+    setModalVisible(false);
+    setPedidoModalVisible(true);
+  };
+
+  // Función para eliminar un pedido
+  const handleEliminarPedido = (idPedido, idMesa, idGrupo) => {
+    // Emitir evento WebSocket
+    emitirPedidoEliminado(idPedido, idMesa, idGrupo);
+  };
+
+  // Función para abrir modal de pago
+  const handlePagarCuenta = async () => {
+    try {
+      setModalVisible(false);
+      
+      // Determinar si es mesa o grupo
+      const esMesa = !mesaSeleccionada.grupo;
+      const clave = esMesa 
+        ? `mesa-${mesaSeleccionada.idMesa}` 
+        : `grupo-${mesaSeleccionada.grupo}`;
+      
+      // Obtener pedidos activos de esta mesa/grupo
+      const pedidos = pedidosService.getPedidosLocal(clave);
+      
+      if (pedidos.length === 0) {
+        Alert.alert('Sin pedidos', 'Esta mesa no tiene pedidos pendientes');
+        return;
+      }
+      
+      // Guardar pedidos para que el modal de pago los use
+      setPedidosMesaSeleccionada(pedidos);
+      setPagoModalVisible(true);
+    } catch (error) {
+      console.error('Error al obtener pedidos:', error);
+      Alert.alert('Error', 'No se pudo obtener la información de los pedidos');
+    }
+  };
+
+  // Callback cuando se crea un pedido exitosamente
+  const handlePedidoCreado = async (pedido) => {
+    setPedidoModalVisible(false);
+    
+    console.log('🍽️ Pedido creado:', pedido);
+    console.log('🍽️ Mesa seleccionada estado actual:', mesaSeleccionada?.estado);
+    
+    // Emitir evento WebSocket para notificar a otros clientes
+    if (pedido) {
+      emitirPedidoCreado({
+        pedido,
+        idMesa: mesaSeleccionada?.idMesa,
+        idGrupo: mesaSeleccionada?.grupo
+      });
+    }
+    
+    // Ocupar la mesa si no está ocupada
+    if (mesaSeleccionada && mesaSeleccionada.estado !== 'ocupada') {
+      try {
+        console.log('🔴 Cambiando estado de mesa a OCUPADA...');
+        
+        // Actualizar localmente primero para feedback inmediato
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            m.idMesa === mesaSeleccionada.idMesa 
+              ? { ...m, estado: 'ocupada' }
+              : m
+          )
+        );
+        
+        // Ocupar mesa en el backend usando el endpoint correcto
+        await mesasService.ocuparMesa(mesaSeleccionada.idMesa);
+        console.log('✅ Mesa ocupada en backend');
+        
+        // Emitir actualización de mesa
+        emitirMesaActualizada(mesaSeleccionada.idMesa, 'OCUPADA');
+      } catch (error) {
+        console.error('Error al ocupar mesa:', error);
+        // Si falla, recargar para volver al estado real
+        await cargarMesas();
+      }
+    } else {
+      console.log('⚠️ Mesa ya está ocupada o no hay mesa seleccionada');
+    }
+    
+    // Recargar datos (pedidos se actualizarán automáticamente con el useEffect)
+    await cargarMesas();
+    
+    // Mantener el modal abierto con la mesa actualizada
+    if (mesaSeleccionada) {
+      const mesaActualizada = mesas.find(m => m.idMesa === mesaSeleccionada.idMesa);
+      setMesaSeleccionada(mesaActualizada || mesaSeleccionada);
+      setModalVisible(true);
+    }
+  };
+
+  // Callback cuando se completa un pago
+  const handlePagoExitoso = async (factura) => {
+    setPagoModalVisible(false);
+    setPedidosMesaSeleccionada([]);
+    
+    // Emitir evento WebSocket de mesa cobrada
+    emitirMesaCobrada(
+      mesaSeleccionada?.idMesa,
+      mesaSeleccionada?.grupo,
+      factura
+    );
+    
+    // Limpiar pedidos de la mesa
+    const clave = mesaSeleccionada?.grupo 
+      ? `grupo-${mesaSeleccionada.grupo}` 
+      : `mesa-${mesaSeleccionada?.idMesa}`;
+    pedidosService.limpiarPedidos(clave);
+    
+    // Liberar la mesa
+    if (mesaSeleccionada && !mesaSeleccionada.grupo) {
+      try {
+        console.log('🟢 Liberando mesa...');
+        await mesasService.liberarMesa(mesaSeleccionada.idMesa);
+        console.log('✅ Mesa liberada');
+      } catch (error) {
+        console.error('Error al liberar mesa:', error);
+      }
+    }
+    
+    setMesaSeleccionada(null);
+    await cargarMesas();
+    cargarPedidosActivos();
+  };
 
   const activarModo = (modo) => {
     const nuevoModo = modoActivo === modo ? null : modo;
@@ -765,11 +989,18 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
-                {/* Indicador de conexión WebSocket */}
-                <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
-                  <Text style={styles.wsIndicatorText}>
-                    {wsConnected ? '🟢 Conectado' : '🔴 Desconectado'}
-                  </Text>
+                {/* Indicadores de conexión WebSocket */}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
+                    <Text style={styles.wsIndicatorText}>
+                      {wsConnected ? '🟢' : '🔴'} Mesas
+                    </Text>
+                  </View>
+                  <View style={[styles.wsIndicator, pedidosWsConnected ? styles.wsConnected : styles.wsDisconnected]}>
+                    <Text style={styles.wsIndicatorText}>
+                      {pedidosWsConnected ? '🟢' : '🔴'} Pedidos
+                    </Text>
+                  </View>
                 </View>
               </View>
               <Text style={styles.pageSubtitle}>
@@ -880,28 +1111,50 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           )}
 
           {/* Filtrar duplicados antes de renderizar */}
-          {Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map(m => (
-            <Mesa
-              key={`mesa-${m.idMesa || m.numero}`}
-              numero={m.numero}
-              estado={m.estado}
-              posicion={m.posicion}
-              unidaCon={m.unidaCon}
-              nombreGrupo={m.nombreGrupo}
-              onPosicionChange={handlePosicionChange}
-              onPress={handleMesaPress}
-              isSelected={mesasSeleccionadas.includes(m.numero)}
-              draggable={modoActivo === 'mover'}
-            />
-          ))}
+          {Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map(m => {
+            // Verificar si la mesa o su grupo tiene pedidos activos
+            const claveMesa = `mesa-${m.idMesa}`;
+            const claveGrupo = m.grupo ? `grupo-${m.grupo}` : null;
+            const tienePedido = pedidosActivos.has(claveMesa) || (claveGrupo && pedidosActivos.has(claveGrupo));
+            
+            // Log para debugging
+            if (tienePedido) {
+              console.log(`🔍 Renderizando Mesa ${m.numero} - Estado: ${m.estado}, TienePedido: ${tienePedido}`);
+            }
+            
+            return (
+              <Mesa
+                key={`mesa-${m.idMesa || m.numero}`}
+                numero={m.numero}
+                estado={m.estado}
+                posicion={m.posicion}
+                unidaCon={m.unidaCon}
+                nombreGrupo={m.nombreGrupo}
+                tienePedido={tienePedido}
+                onPosicionChange={handlePosicionChange}
+                onPress={handleMesaPress}
+                isSelected={mesasSeleccionadas.includes(m.numero)}
+                draggable={modoActivo === 'mover'}
+              />
+            );
+          })}
         </View>
 
         <MesaModal 
           visible={modalVisible} 
           onClose={() => setModalVisible(false)} 
-          mesa={mesaSeleccionada} 
+          mesa={mesaSeleccionada}
+          grupo={mesaSeleccionada?.grupo ? { id: mesaSeleccionada.grupo, nombre: mesaSeleccionada.nombreGrupo } : null}
           onIniciarPedido={handleIniciarPedido}
           onLimpiarMesa={handleLimpiarMesa}
+          onNuevoPedido={handleNuevoPedido}
+          onEditarPedido={handleEditarPedido}
+          onEliminarPedido={handleEliminarPedido}
+          onPagarCuenta={handlePagarCuenta}
+          tienePedido={mesaSeleccionada && (
+            pedidosActivos.has(`mesa-${mesaSeleccionada.idMesa}`) ||
+            (mesaSeleccionada.grupo && pedidosActivos.has(`grupo-${mesaSeleccionada.grupo}`))
+          )}
         />
 
         <GestionarMesasModal
@@ -910,6 +1163,41 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           mesas={mesas}
           onAgregarMesa={handleAgregarMesa}
           onEliminarMesa={handleEliminarMesa}
+        />
+
+        {/* Modal de Pedidos */}
+        {mesaSeleccionada && (
+          <PedidoMesaModal
+            visible={pedidoModalVisible}
+            onClose={() => {
+              setPedidoModalVisible(false);
+              setPedidoEnEdicion(null);
+              // NO limpiar mesaSeleccionada para mantener el contexto
+            }}
+            mesa={!mesaSeleccionada.grupo ? mesaSeleccionada : null}
+            grupo={mesaSeleccionada.grupo ? { 
+              id: mesaSeleccionada.grupo, 
+              nombre: mesaSeleccionada.nombreGrupo 
+            } : null}
+            pedidoEnEdicion={pedidoEnEdicion}
+            onPedidoCreado={handlePedidoCreado}
+          />
+        )}
+
+        {/* Modal de Pago */}
+        <PagoFacturaModal
+          visible={pagoModalVisible}
+          onClose={() => {
+            setPagoModalVisible(false);
+            setPedidosMesaSeleccionada([]);
+          }}
+          pedidos={pedidosMesaSeleccionada}
+          mesa={mesaSeleccionada && !mesaSeleccionada.grupo ? mesaSeleccionada : null}
+          grupo={mesaSeleccionada?.grupo ? { 
+            id: mesaSeleccionada.grupo, 
+            nombre: mesaSeleccionada.nombreGrupo 
+          } : null}
+          onPagoExitoso={handlePagoExitoso}
         />
       </View>
     </DashboardLayout>
