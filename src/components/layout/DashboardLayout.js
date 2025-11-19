@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f5f5f5",
     position: "relative",
   },
   rootCompact: {
