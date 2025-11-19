@@ -6,6 +6,7 @@ import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
 import MesasScreen from "./src/screens/MesasScreen";
 import MozosScreen from "./src/screens/MozosScreen";
+import GestionUsuariosScreen from "./src/screens/GestionUsuariosScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -31,6 +32,13 @@ function AppContent() {
     case "mozos":
       return (
         <MozosScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "gestion-usuarios":
+      return (
+        <GestionUsuariosScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />

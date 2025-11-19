@@ -1,20 +1,67 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  useWindowDimensions,
+  Alert,
+} from "react-native";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../config/api";
 
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [recordarme, setRecordarme] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 400;
 
-  const handleLogin = () => {
-    if (usuario.trim() && contrasena.trim()) {
-      login({ usuario, recordarme });
-    } else {
-      console.log("Por favor complete todos los campos");
+  const handleLogin = async () => {
+    console.log("🚀 handleLogin ejecutado");
+    if (!usuario.trim() || !contrasena.trim()) {
+      Alert.alert("Error", "Por favor complete todos los campos");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("🔐 Intentando login con:", usuario);
+      console.log("🌐 URL:", `${API_URL}/auth/login`);
+
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombreUsuario: usuario,
+          contrasena: contrasena,
+        }),
+      });
+
+      console.log("📡 Status:", response.status);
+      const data = await response.json();
+      console.log("📥 Respuesta del servidor:", data);
+
+      if (response.ok && data.success) {
+        console.log("✅ Login exitoso");
+        await login({ usuario, recordarme }, data.data.token);
+      } else {
+        Alert.alert("Error", data.message || "Credenciales inválidas");
+      }
+    } catch (error) {
+      console.error("❌ Error en login:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo conectar con el servidor: " + error.message
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -23,7 +70,10 @@ export default function Login() {
       <View style={styles.loginCard}>
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
-            <Image source={require('../../assets/hans-logo.png')} style={styles.logo} />
+            <Image
+              source={require("../../assets/hans-logo.png")}
+              style={styles.logo}
+            />
           </View>
         </View>
         <View style={styles.inputContainer}>
@@ -49,18 +99,33 @@ export default function Login() {
           />
         </View>
 
-        <View style={[styles.optionsContainer, isSmallScreen && styles.optionsContainerStacked]}>
-          <TouchableOpacity 
-            style={[styles.checkboxContainer, isSmallScreen && styles.checkboxContainerStacked]}
+        <View
+          style={[
+            styles.optionsContainer,
+            isSmallScreen && styles.optionsContainerStacked,
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.checkboxContainer,
+              isSmallScreen && styles.checkboxContainerStacked,
+            ]}
             onPress={() => setRecordarme(!recordarme)}
           >
-            <View style={[styles.checkbox, recordarme && styles.checkboxSelected]}>
+            <View
+              style={[styles.checkbox, recordarme && styles.checkboxSelected]}
+            >
               {recordarme && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <Text style={styles.checkboxLabel}>Recordarme</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.forgotPasswordContainer, isSmallScreen && styles.forgotPasswordContainerStacked]}>
+          <TouchableOpacity
+            style={[
+              styles.forgotPasswordContainer,
+              isSmallScreen && styles.forgotPasswordContainerStacked,
+            ]}
+          >
             <Text style={styles.forgotPassword}>Recuperar contraseña</Text>
           </TouchableOpacity>
         </View>
@@ -100,11 +165,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 40,
   },
-  logoPlaceholder: {
-  },
+  logoPlaceholder: {},
   logo: {
     width: 120,
-    height: 120
+    height: 120,
   },
   inputContainer: {
     marginBottom: 20,
@@ -157,7 +221,7 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: "#666",
-    textDecoration: "none"
+    textDecoration: "none",
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
@@ -182,5 +246,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 1,
   },
-  
 });
