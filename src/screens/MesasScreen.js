@@ -343,9 +343,64 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   };
 
   // Función para eliminar un pedido
-  const handleEliminarPedido = (idPedido, idMesa, idGrupo) => {
+  const handleEliminarPedido = async (idPedido, idMesa, idGrupo) => {
+    console.log('🗑️ Eliminando pedido:', idPedido, 'Mesa:', idMesa, 'Grupo:', idGrupo);
+    
     // Emitir evento WebSocket
     emitirPedidoEliminado(idPedido, idMesa, idGrupo);
+    
+    // Recargar pedidos activos
+    cargarPedidosActivos();
+    
+    // Verificar si quedan pedidos en la mesa/grupo
+    const clave = idGrupo ? `grupo-${idGrupo}` : `mesa-${idMesa}`;
+    const pedidosRestantes = pedidosService.getPedidosLocal(clave);
+    
+    console.log('📊 Pedidos restantes en', clave, ':', pedidosRestantes.length);
+    
+    // Si no quedan pedidos, liberar la mesa o todas las del grupo
+    if (pedidosRestantes.length === 0) {
+      try {
+        console.log('🟢 No quedan pedidos, liberando mesa(s)...');
+        
+        // Si es un grupo, obtener todas las mesas del grupo
+        let mesasALiberar = [];
+        if (idGrupo) {
+          mesasALiberar = mesas.filter(m => m.grupo === idGrupo).map(m => m.idMesa);
+        } else if (idMesa) {
+          // Verificar si la mesa pertenece a un grupo
+          const mesa = mesas.find(m => m.idMesa === idMesa);
+          if (mesa?.grupo) {
+            mesasALiberar = mesas.filter(m => m.grupo === mesa.grupo).map(m => m.idMesa);
+          } else {
+            mesasALiberar = [idMesa];
+          }
+        }
+        
+        console.log('📋 Mesas a liberar:', mesasALiberar);
+        
+        // Actualizar localmente primero
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            mesasALiberar.includes(m.idMesa)
+              ? { ...m, estado: 'libre' }
+              : m
+          )
+        );
+        
+        // Liberar todas las mesas en el backend
+        for (const mesaId of mesasALiberar) {
+          try {
+            await mesasService.liberarMesa(mesaId);
+            console.log(`✅ Mesa ${mesaId} liberada automáticamente`);
+          } catch (error) {
+            console.error(`Error al liberar mesa ${mesaId}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error('Error al liberar mesa:', error);
+      }
+    }
   };
 
   // Función para abrir modal de pago
@@ -363,7 +418,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       const pedidos = pedidosService.getPedidosLocal(clave);
       
       if (pedidos.length === 0) {
-        Alert.alert('Sin pedidos', 'Esta mesa no tiene pedidos pendientes');
+        console.log('⚠️ Esta mesa no tiene pedidos pendientes');
         return;
       }
       
@@ -397,18 +452,31 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       try {
         console.log('🔴 Cambiando estado de mesa a OCUPADA...');
         
+        // Si es un grupo, obtener todas las mesas del grupo
+        const mesasDelGrupo = mesaSeleccionada.grupo 
+          ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
+          : [mesaSeleccionada.idMesa];
+        
+        console.log('📋 Mesas a ocupar:', mesasDelGrupo);
+        
         // Actualizar localmente primero para feedback inmediato
         setMesas(prevMesas => 
           prevMesas.map(m => 
-            m.idMesa === mesaSeleccionada.idMesa 
+            mesasDelGrupo.includes(m.idMesa)
               ? { ...m, estado: 'ocupada' }
               : m
           )
         );
         
-        // Ocupar mesa en el backend usando el endpoint correcto
-        await mesasService.ocuparMesa(mesaSeleccionada.idMesa);
-        console.log('✅ Mesa ocupada en backend');
+        // Ocupar todas las mesas del grupo en el backend
+        for (const idMesa of mesasDelGrupo) {
+          try {
+            await mesasService.ocuparMesa(idMesa);
+            console.log(`✅ Mesa ${idMesa} ocupada en backend`);
+          } catch (error) {
+            console.error(`Error al ocupar mesa ${idMesa}:`, error);
+          }
+        }
         
         // Emitir actualización de mesa
         emitirMesaActualizada(mesaSeleccionada.idMesa, 'OCUPADA');
@@ -450,12 +518,36 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       : `mesa-${mesaSeleccionada?.idMesa}`;
     pedidosService.limpiarPedidos(clave);
     
-    // Liberar la mesa
-    if (mesaSeleccionada && !mesaSeleccionada.grupo) {
+    // Liberar las mesas (individual o todas del grupo)
+    if (mesaSeleccionada) {
       try {
-        console.log('🟢 Liberando mesa...');
-        await mesasService.liberarMesa(mesaSeleccionada.idMesa);
-        console.log('✅ Mesa liberada');
+        console.log('🟢 Liberando mesa(s)...');
+        
+        // Si es un grupo, obtener todas las mesas del grupo
+        const mesasDelGrupo = mesaSeleccionada.grupo 
+          ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
+          : [mesaSeleccionada.idMesa];
+        
+        console.log('📋 Mesas a liberar:', mesasDelGrupo);
+        
+        // Actualizar localmente primero
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            mesasDelGrupo.includes(m.idMesa)
+              ? { ...m, estado: 'libre' }
+              : m
+          )
+        );
+        
+        // Liberar todas las mesas en el backend
+        for (const idMesa of mesasDelGrupo) {
+          try {
+            await mesasService.liberarMesa(idMesa);
+            console.log(`✅ Mesa ${idMesa} liberada`);
+          } catch (error) {
+            console.error(`Error al liberar mesa ${idMesa}:`, error);
+          }
+        }
       } catch (error) {
         console.error('Error al liberar mesa:', error);
       }
@@ -531,7 +623,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
               // y confirmará/actualizará el estado
 
-              Alert.alert('✅ Éxito', `Grupo "${nombre}" creado correctamente`);
+              console.log(`✅ Grupo "${nombre}" creado correctamente`);
               setModoActivo(null);
               setMesasSeleccionadas([]);
               
@@ -700,17 +792,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       // Ocupar la mesa en el backend (esto emitirá el evento WebSocket)
       const response = await mesasService.ocuparMesa(mesaActual.idMesa);
       
-      const cantidadMesas = 1 + (mesaActual.unidaCon?.length || 0);
-      
-      // Mostrar confirmación sin bloquear
-      setTimeout(() => {
-        Alert.alert(
-          "✅ Pedido iniciado", 
-          cantidadMesas > 1 
-            ? `Pedido iniciado para ${cantidadMesas} mesas unidas`
-            : `Mesa ${mesaActual.nombre || numero} ahora está ocupada`
-        );
-      }, 100);
+      console.log('✅ Pedido iniciado para mesa', mesaActual.idMesa);
       
     } catch (error) {
       console.error('❌ Error al ocupar mesa:', error);
@@ -740,24 +822,20 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     }
 
     // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
-    const mesasDelGrupo = [numero, ...(mesaActual.unidaCon || [])];
+    // Obtener IDs de las mesas del grupo si existe
+    const mesasDelGrupo = mesaActual.grupo
+      ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
+      : [mesaActual.idMesa];
     
-    // Actualizar estado local inmediatamente
+    // Actualizar estado local inmediatamente (solo cambiar estado, NO tocar el grupo)
     setMesas(prevMesas => {
       return prevMesas.map(mesa => {
-        if (mesasDelGrupo.includes(mesa.numero)) {
+        if (mesasDelGrupo.includes(mesa.idMesa)) {
           return {
             ...mesa,
             estado: "libre",
             pedido: null,
-            unidaCon: []
-          };
-        }
-        // Limpiar referencias en otras mesas
-        if (mesa.unidaCon.some(n => mesasDelGrupo.includes(n))) {
-          return {
-            ...mesa,
-            unidaCon: mesa.unidaCon.filter(n => !mesasDelGrupo.includes(n))
+            // NO eliminar unidaCon ni grupo - mantener la asociación
           };
         }
         return mesa;
@@ -766,20 +844,36 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
     // 2. SINCRONIZAR CON BACKEND
     try {
-      // Liberar la mesa en el backend (esto emitirá el evento WebSocket)
-      const response = await mesasService.liberarMesa(mesaActual.idMesa);
+      // Limpiar pedidos de localStorage primero
+      const clave = mesaActual.grupo 
+        ? `grupo-${mesaActual.grupo}` 
+        : `mesa-${mesaActual.idMesa}`;
       
-      const cantidadMesas = 1 + (mesaActual.unidaCon?.length || 0);
+      console.log('🧹 Limpiando pedidos de:', clave);
+      pedidosService.limpiarPedidos(clave);
       
-      // Mostrar confirmación sin bloquear
-      setTimeout(() => {
-        Alert.alert(
-          "✅ Mesa limpiada", 
-          cantidadMesas > 1 
-            ? `Se liberaron ${cantidadMesas} mesas y se separaron`
-            : `Mesa ${mesaActual.nombre || numero} ahora está libre`
-        );
-      }, 100);
+      // Actualizar el Map de pedidos activos
+      cargarPedidosActivos();
+      
+      // Si es un grupo, obtener todas las mesas del grupo, sino solo la mesa actual
+      const mesasALiberar = mesaActual.grupo
+        ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
+        : [mesaActual.idMesa];
+      
+      console.log('📋 Liberando mesas:', mesasALiberar);
+      
+      // Liberar todas las mesas del grupo en el backend
+      for (const idMesa of mesasALiberar) {
+        try {
+          await mesasService.liberarMesa(idMesa);
+          console.log(`✅ Mesa ${idMesa} liberada en backend`);
+        } catch (error) {
+          console.error(`Error al liberar mesa ${idMesa}:`, error);
+        }
+      }
+      
+      const cantidadMesas = mesasALiberar.length;
+      console.log(`✅ ${cantidadMesas} mesa(s) liberada(s)`);
       
     } catch (error) {
       console.error('Error al liberar mesa:', error);
@@ -869,7 +963,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         }
         return [...prev, nuevaMesa];
       });
-      Alert.alert('✅ Éxito', `Mesa "${nombreMesa}" creada correctamente`);
+      
+      console.log(`✅ Mesa "${nombreMesa}" creada correctamente`);
     } catch (error) {
       console.error('Error al crear mesa:', error);
       Alert.alert('Error', 'No se pudo crear la mesa en el servidor');
@@ -908,7 +1003,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           }))
       );
       
-      Alert.alert('✅ Éxito', 'Mesa eliminada correctamente');
+      console.log('✅ Mesa eliminada correctamente');
     } catch (error) {
       console.error('Error al eliminar mesa:', error);
       Alert.alert('❌ Error', 'No se pudo eliminar la mesa del servidor');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Alert from "@blazejkustra/react-native-alert";
 import pedidosService from "../services/pedidosService";
 
 export default function MesaModal({ 
@@ -188,25 +189,32 @@ export default function MesaModal({
                                 '\u00bfEst\u00e1 seguro de eliminar este pedido?',
                                 [
                                   { text: 'Cancelar', style: 'cancel' },
-                                  { 
-                                    text: 'Eliminar', 
-                                    style: 'destructive',
-                                    onPress: async () => {
-                                      const clave = grupo ? `grupo-${grupo.id}` : `mesa-${mesa.idMesa || mesa.id}`;
-                                      await pedidosService.eliminarPedido(pedido.id, clave);
-                                      
-                                      // Notificar al padre para que emita evento WebSocket
-                                      if (onEliminarPedido) {
-                                        onEliminarPedido(pedido.id, mesa?.idMesa, grupo?.id);
-                                      }
-                                      
-                                      // Recargar pedidos
-                                      const pedidosActualizados = await (grupo 
-                                        ? pedidosService.getPedidosGrupo(grupo.id)
-                                        : pedidosService.getPedidosMesa(mesa.idMesa || mesa.id));
-                                      setPedidosActivos(pedidosActualizados);
-                                    }
-                                  },
+                          { 
+                            text: 'Eliminar', 
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                const clave = grupo ? `grupo-${grupo.id}` : `mesa-${mesa.idMesa || mesa.id}`;
+                                await pedidosService.eliminarPedido(pedido.id, clave);
+                                
+                                // Recargar pedidos localmente
+                                const pedidosActualizados = await (grupo 
+                                  ? pedidosService.getPedidosGrupo(grupo.id)
+                                  : pedidosService.getPedidosMesa(mesa.idMesa || mesa.id));
+                                setPedidosActivos(pedidosActualizados);
+                                
+                                // Notificar al padre para que emita evento WebSocket y actualice
+                                if (onEliminarPedido) {
+                                  onEliminarPedido(pedido.id, mesa?.idMesa, grupo?.id);
+                                }
+                                
+                                console.log('✅ Pedido eliminado exitosamente');
+                              } catch (error) {
+                                console.error('Error al eliminar pedido:', error);
+                                Alert.alert('Error', 'No se pudo eliminar el pedido');
+                              }
+                            }
+                          },
                                 ]
                               );
                             }}

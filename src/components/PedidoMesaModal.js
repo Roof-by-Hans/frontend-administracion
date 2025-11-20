@@ -35,16 +35,24 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
   useEffect(() => {
     if (visible) {
       cargarDatos();
-      
-      // Si hay pedido en edición, cargar sus datos
-      if (pedidoEnEdicion) {
-        const cliente = clientes.find(c => c.id === pedidoEnEdicion.idCliente);
-        setClienteSeleccionado(cliente || null);
-        setProductosSeleccionados(pedidoEnEdicion.productos || []);
-        setObservaciones(pedidoEnEdicion.observaciones || "");
-      }
     }
-  }, [visible, pedidoEnEdicion]);
+  }, [visible]);
+
+  // Cargar datos del pedido en edición cuando estén listos los clientes
+  useEffect(() => {
+    if (visible && pedidoEnEdicion && clientes.length > 0) {
+      console.log('📝 Cargando pedido en edición:', pedidoEnEdicion);
+      const cliente = clientes.find(c => c.id === pedidoEnEdicion.idCliente);
+      setClienteSeleccionado(cliente || null);
+      setProductosSeleccionados(pedidoEnEdicion.productos || []);
+      setObservaciones(pedidoEnEdicion.observaciones || "");
+    } else if (visible && !pedidoEnEdicion) {
+      // Limpiar formulario si no hay pedido en edición
+      setClienteSeleccionado(null);
+      setProductosSeleccionados([]);
+      setObservaciones("");
+    }
+  }, [visible, pedidoEnEdicion, clientes]);
 
   const cargarDatos = async () => {
     try {

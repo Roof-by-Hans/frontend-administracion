@@ -545,15 +545,8 @@ export function useMesasSocket(options = {}) {
               })
             );
 
-            // Notificación visual
-            if (options.onNotification) {
-              options.onNotification({
-                type: 'info',
-                title: 'ℹ️ Grupo Disuelto',
-                message: `${mesasLiberadas.length} mesa(s) liberada(s)`,
-                timestamp: payload.timestamp
-              });
-            }
+            // Log en consola
+            console.log(`ℹ️ Grupo Disuelto: ${mesasLiberadas.length} mesa(s) liberada(s)`);
           }
         });
 
