@@ -468,7 +468,8 @@ export function useMesasSocket(options = {}) {
                 numero: m.numero,
                 idMesa: m.idMesa,
                 nombre: m.nombre,
-                grupo: m.grupo
+                grupo: m.grupo,
+                estado: m.estado
               })));
 
               const nuevasMesas = prev.map(mesa => {
@@ -489,13 +490,15 @@ export function useMesasSocket(options = {}) {
                   console.log(`✅ Mesa ${mesa.numero} (ID: ${mesa.idMesa}) ahora en grupo ${grupoId}`);
                   console.log(`   Unida con mesas (números locales):`, otrasMesasLocal);
                   console.log(`   🔒 MANTENIENDO posición actual:`, mesa.posicion);
+                  console.log(`   Estado actual: ${mesa.estado}`);
                   
                   return {
                     ...mesa,
                     grupo: grupoId,
                     unidaCon: otrasMesasLocal,
                     nombreGrupo: payload.data.nombre
-                    // ⚠️ NO tocar mesa.posicion - se mantiene la actual
+                    // ⚠️ NO tocar mesa.posicion ni mesa.estado - se mantiene el actual
+                    // El estado se actualiza a "ocupada" solo cuando se transfieren pedidos
                   };
                 }
                 return mesa;
@@ -506,7 +509,8 @@ export function useMesasSocket(options = {}) {
                 idMesa: m.idMesa,
                 nombre: m.nombre,
                 grupo: m.grupo,
-                unidaCon: m.unidaCon
+                unidaCon: m.unidaCon,
+                estado: m.estado
               })));
 
               return nuevasMesas;

@@ -101,7 +101,7 @@ export default function PagoFacturaModal({ visible, onClose, pedidos = [], mesa,
 
       Alert.alert(
         "Cobro exitoso",
-        `Factura #${facturaGenerada.id} cobrada: $${totalPedidos.toFixed(2)}`,
+        `Factura #${facturaGenerada.factura.id} cobrada: $${totalPedidos.toFixed(2)}`,
         [
           {
             text: "OK",

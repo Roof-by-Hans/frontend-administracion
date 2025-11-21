@@ -127,6 +127,48 @@ const pedidosService = {
       return total + subtotal;
     }, 0);
   },
+
+  /**
+   * Transferir pedidos de mesas individuales a un grupo
+   * @param {Array<number>} mesasIds - IDs de las mesas
+   * @param {number} grupoId - ID del grupo
+   * @returns {number} - Cantidad de pedidos transferidos
+   */
+  transferirPedidosAGrupo(mesasIds, grupoId) {
+    if (typeof localStorage === 'undefined') {
+      console.error('⚠️ localStorage no disponible');
+      return 0;
+    }
+
+    let pedidosATransferir = [];
+    
+    // Recolectar pedidos de todas las mesas
+    for (const mesaId of mesasIds) {
+      const claveMesa = `mesa-${mesaId}`;
+      const pedidosMesa = this.getPedidosLocal(claveMesa);
+      
+      if (pedidosMesa.length > 0) {
+        console.log(`📋 Transfiriendo ${pedidosMesa.length} pedido(s) de mesa ${mesaId}`);
+        pedidosATransferir = [...pedidosATransferir, ...pedidosMesa];
+      }
+    }
+    
+    if (pedidosATransferir.length > 0) {
+      // Guardar todos los pedidos en el grupo
+      const claveGrupo = `grupo-${grupoId}`;
+      localStorage.setItem(`pedidos-${claveGrupo}`, JSON.stringify(pedidosATransferir));
+      console.log(`✅ ${pedidosATransferir.length} pedido(s) transferidos a ${claveGrupo}`);
+      
+      // Limpiar pedidos de las mesas individuales
+      for (const mesaId of mesasIds) {
+        const claveMesa = `mesa-${mesaId}`;
+        this.limpiarPedidos(claveMesa);
+        console.log(`🧹 Pedidos limpiados de ${claveMesa}`);
+      }
+    }
+    
+    return pedidosATransferir.length;
+  },
 };
 
 export default pedidosService;

@@ -592,38 +592,111 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             }
 
             try {
+              // Obtener las mesas seleccionadas con sus datos completos
+              const mesasSeleccionadasData = numeros.map(num => {
+                return mesas.find(m => m.numero === num);
+              }).filter(Boolean);
+
               // Obtener los IDs reales de las mesas
-              const mesasIds = numeros.map(num => {
-                const mesa = mesas.find(m => m.numero === num);
-                return mesa?.idMesa || num;
-              });
+              const mesasIds = mesasSeleccionadasData.map(mesa => mesa.idMesa);
+
+              // ========== VERIFICAR SI HAY PEDIDOS EN LAS MESAS ==========
+              let tienePedidos = false;
+              
+              for (const mesa of mesasSeleccionadasData) {
+                const claveMesa = `mesa-${mesa.idMesa}`;
+                const pedidosMesa = pedidosService.getPedidosLocal(claveMesa);
+                
+                if (pedidosMesa.length > 0) {
+                  console.log(`📋 Mesa ${mesa.numero} tiene ${pedidosMesa.length} pedido(s)`);
+                  tienePedidos = true;
+                  break;
+                }
+              }
 
               // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
               const ordenadas = [...numeros].sort((a, b) => a - b);
-              setMesas(prev => {
-                // Actualizar mesas con el grupo PERO MANTENER SUS POSICIONES ACTUALES
-                return prev.map(m => {
-                  if (numeros.includes(m.numero)) {
-                    const nuevasUniones = ordenadas.filter(n => n !== m.numero);
-                    return {
-                      ...m,
-                      // NO cambiar la posición - mantener posicion actual
-                      unidaCon: nuevasUniones,
-                      nombreGrupo: nombre
-                    };
-                  }
-                  return m;
-                });
-              });
-
               
               // 2. SINCRONIZAR CON BACKEND
               const resultado = await mesasService.createGrupo(nombre, mesasIds);
+              const grupoId = resultado.id || resultado.idGrupo;
+              
+              console.log(`✅ Grupo "${nombre}" creado con ID: ${grupoId}`);
+
+              // 3. TRANSFERIR PEDIDOS AL GRUPO SI HAY ALGUNO
+              if (tienePedidos && grupoId) {
+                const cantidadTransferida = pedidosService.transferirPedidosAGrupo(mesasIds, grupoId);
+                
+                if (cantidadTransferida > 0) {
+                  console.log(`🔄 ${cantidadTransferida} pedido(s) transferidos al grupo ${grupoId}`);
+                  
+                  // Actualizar estado de todas las mesas del grupo a "ocupada"
+                  for (const mesaId of mesasIds) {
+                    try {
+                      await mesasService.ocuparMesa(mesaId);
+                      console.log(`✅ Mesa ${mesaId} marcada como ocupada`);
+                    } catch (error) {
+                      console.error(`❌ Error al ocupar mesa ${mesaId}:`, error);
+                    }
+                  }
+
+                  // Actualizar UI local con todas las mesas ocupadas
+                  setMesas(prev => {
+                    return prev.map(m => {
+                      if (numeros.includes(m.numero)) {
+                        const nuevasUniones = ordenadas.filter(n => n !== m.numero);
+                        return {
+                          ...m,
+                          unidaCon: nuevasUniones,
+                          nombreGrupo: nombre,
+                          grupo: grupoId,
+                          estado: 'ocupada' // ✅ Marcar como ocupada (en rojo)
+                        };
+                      }
+                      return m;
+                    });
+                  });
+
+                  // Recargar pedidos activos para reflejar los cambios
+                  cargarPedidosActivos();
+                } else {
+                  // Sin pedidos, solo actualizar las mesas con el grupo
+                  setMesas(prev => {
+                    return prev.map(m => {
+                      if (numeros.includes(m.numero)) {
+                        const nuevasUniones = ordenadas.filter(n => n !== m.numero);
+                        return {
+                          ...m,
+                          unidaCon: nuevasUniones,
+                          nombreGrupo: nombre,
+                          grupo: grupoId
+                        };
+                      }
+                      return m;
+                    });
+                  });
+                }
+              } else {
+                // Si no hay pedidos, solo actualizar las mesas con el grupo
+                setMesas(prev => {
+                  return prev.map(m => {
+                    if (numeros.includes(m.numero)) {
+                      const nuevasUniones = ordenadas.filter(n => n !== m.numero);
+                      return {
+                        ...m,
+                        unidaCon: nuevasUniones,
+                        nombreGrupo: nombre,
+                        grupo: grupoId
+                      };
+                    }
+                    return m;
+                  });
+                });
+              }
               
               // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
               // y confirmará/actualizará el estado
 
-              console.log(`✅ Grupo "${nombre}" creado correctamente`);
               setModoActivo(null);
               setMesasSeleccionadas([]);
               
@@ -637,7 +710,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                     return {
                       ...mesa,
                       unidaCon: [],
-                      nombreGrupo: null
+                      nombreGrupo: null,
+                      grupo: null
                     };
                   }
                   return mesa;
