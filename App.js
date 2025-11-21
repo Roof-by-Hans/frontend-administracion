@@ -3,8 +3,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { SocketProvider } from "./src/context/SocketContext";
 import Login from "./src/screens/Login";
-import InvoicesScreen from "./src/screens/InvoicesScreen";
+import FacturasScreen from "./src/screens/FacturasScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
+import CargarSaldoScreen from "./src/screens/CargarSaldoScreen";
 import MesasScreen from "./src/screens/MesasScreen";
 import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
@@ -68,6 +69,13 @@ function AppContent() {
           currentScreen={currentScreen}
         />
       );
+    case "cargar-saldo":
+      return (
+        <CargarSaldoScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
     case "ajustes":
       return (
         <AjustesScreen
@@ -78,7 +86,7 @@ function AppContent() {
     case "facturas":
     default:
       return (
-        <InvoicesScreen
+        <FacturasScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />

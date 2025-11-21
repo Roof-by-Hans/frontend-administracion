@@ -658,6 +658,24 @@ const mesasService = {
       throw error;
     }
   },
+
+  /**
+   * Actualizar el estado de una mesa (DISPONIBLE, OCUPADA, etc.)
+   * @param {number} idMesa - ID de la mesa
+   * @param {string} estado - Nuevo estado ('DISPONIBLE', 'OCUPADA', 'RESERVADA', 'FUERA_DE_SERVICIO')
+   * @returns {Promise<Object>} - Mesa actualizada
+   */
+  async actualizarEstado(idMesa, estado) {
+    try {
+      console.log(`📤 Actualizando estado de mesa ${idMesa} a ${estado}`);
+      const response = await api.patch(`/mesas/${idMesa}`, { estado });
+      console.log('✅ Estado actualizado:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error al actualizar estado:', error.message);
+      throw error;
+    }
+  },
 };
 
 export default mesasService;

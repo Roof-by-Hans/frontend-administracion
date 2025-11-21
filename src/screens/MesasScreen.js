@@ -1,15 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
-import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Defs, Pattern, Rect, Line } from "react-native-svg";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Mesa from "../components/Mesa";
 import MesaModal from "../components/MesaModal";
 import GestionarMesasModal from "../components/GestionarMesasModal";
+import PedidoMesaModal from "../components/PedidoMesaModal";
+import PagoFacturaModal from "../components/PagoFacturaModal";
+import ConfirmActionModal from "../components/ConfirmActionModal";
+import SuccessModal from "../components/SuccessModal";
 import { useAuth } from "../context/AuthContext";
 import mesasService from "../services/mesasService";
+import facturasService from "../services/facturasService";
+import pedidosService from "../services/pedidosService";
 import { useMesasSocket } from "../hooks/useMesasSocket";
+import { usePedidosSocket } from "../hooks/usePedidosSocket";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {
@@ -35,6 +41,46 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   const [gestionModalVisible, setGestionModalVisible] = useState(false);
   const [salonDimensions, setSalonDimensions] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
+  const [pedidoModalVisible, setPedidoModalVisible] = useState(false);
+  const [pagoModalVisible, setPagoModalVisible] = useState(false);
+  const [pedidosActivos, setPedidosActivos] = useState(new Map());
+  const [pedidosMesaSeleccionada, setPedidosMesaSeleccionada] = useState([]);
+  const [pedidoEnEdicion, setPedidoEnEdicion] = useState(null);
+  
+  // Estado para el modal de confirmación genérico
+  const [confirmModal, setConfirmModal] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirmar",
+    cancelText: "Cancelar",
+    confirmColor: "#000",
+    icon: "alert-circle-outline",
+    showInput: false,
+    inputValue: "",
+    inputPlaceholder: "",
+    singleButton: false
+  });
+
+  const showConfirm = (config) => {
+    setConfirmModal({
+      visible: true,
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      confirmColor: "#000",
+      icon: "alert-circle-outline",
+      showInput: false,
+      inputValue: "",
+      inputPlaceholder: "",
+      singleButton: false,
+      ...config
+    });
+  };
+
+  const hideConfirm = () => {
+    setConfirmModal(prev => ({ ...prev, visible: false }));
+  };
   
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -60,7 +106,49 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                      notification.type === 'success' ? '✅ Éxito' : 
                      'ℹ️ Información');
       
-      Alert.alert(title, notification.message);
+      showConfirm({
+        title,
+        message: notification.message,
+        singleButton: true,
+        confirmColor: notification.type === 'error' ? '#d32f2f' : '#000',
+        icon: notification.type === 'error' ? 'alert-circle' : 'information',
+        onConfirm: hideConfirm
+      });
+    }
+  });
+
+  // Hook personalizado de WebSocket para pedidos en tiempo real
+  const {
+    isConnected: pedidosWsConnected,
+    emitirPedidoCreado,
+    emitirPedidoActualizado,
+    emitirPedidoEliminado,
+    emitirMesaCobrada,
+    emitirMesaActualizada
+  } = usePedidosSocket({
+    onPedidoCreado: (data) => {
+      console.log('🔔 Pedido creado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoActualizado: (data) => {
+      console.log('🔔 Pedido actualizado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoEliminado: (data) => {
+      console.log('🔔 Pedido eliminado en tiempo real:', data);
+      // Recargar pedidos activos de esa mesa/grupo
+      cargarPedidosActivos();
+    },
+    onPedidoCobrado: (data) => {
+      console.log('🔔 Mesa cobrada en tiempo real:', data);
+      // Recargar pedidos y mesas
+      cargarPedidosActivos();
+    },
+    onMesaActualizada: (data) => {
+      console.log('🔔 Mesa actualizada en tiempo real:', data);
+      // El hook de useMesasSocket ya maneja esto
     }
   });
 
@@ -106,6 +194,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             'FUERA_DE_SERVICIO': 'fuera_servicio'
           };
           estadoLocal = estadoMap[mesa.estado] || "libre";
+          console.log(`📊 Mesa ${mesa.idMesa} - Estado backend: ${mesa.estado} → Estado local: ${estadoLocal}`);
         }
 
         // Verificar si la mesa pertenece a un grupo
@@ -146,7 +235,14 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       setMesas(mesasTransformadas);
     } catch (error) {
       console.error('Error al cargar mesas:', error);
-      Alert.alert('Error', `No se pudieron cargar las mesas: ${error.message}`);
+      console.error('Error al cargar mesas:', error);
+      showConfirm({
+        title: 'Error',
+        message: `No se pudieron cargar las mesas: ${error.message}`,
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       setMesas([]);
     } finally {
       setLoading(false);
@@ -156,14 +252,47 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   // Cargar mesas iniciales al montar el componente
   useEffect(() => {
     cargarMesas();
+    cargarPedidosActivos();
   }, [cargarMesas]);
 
   // Recargar mesas cuando la pantalla vuelve a estar activa
   useEffect(() => {
     if (currentScreen === 'mesas') {
       cargarMesas();
+      cargarPedidosActivos();
     }
   }, [currentScreen, cargarMesas]);
+
+  // Función para cargar pedidos activos de todas las mesas/grupos desde localStorage
+  const cargarPedidosActivos = useCallback(() => {
+    try {
+      console.log('🔵 Cargando pedidos activos...');
+      const mapaPedidos = new Map();
+      
+      // Recorrer todas las mesas y verificar si tienen pedidos
+      mesas.forEach(mesa => {
+        const clave = mesa.grupo ? `grupo-${mesa.grupo}` : `mesa-${mesa.idMesa}`;
+        const pedidos = pedidosService.getPedidosLocal(clave);
+        
+        if (pedidos.length > 0) {
+          console.log(`✅ Mesa/Grupo ${clave} tiene ${pedidos.length} pedido(s)`);
+          mapaPedidos.set(clave, pedidos);
+        }
+      });
+      
+      console.log('🔵 Total de mesas/grupos con pedidos:', mapaPedidos.size);
+      setPedidosActivos(mapaPedidos);
+    } catch (error) {
+      console.error('Error al cargar pedidos activos:', error);
+    }
+  }, [mesas]);
+
+  // Actualizar pedidos activos automáticamente cuando cambian las mesas
+  useEffect(() => {
+    if (mesas.length > 0) {
+      cargarPedidosActivos();
+    }
+  }, [mesas, cargarPedidosActivos]);
 
   // Actualizar mesaSeleccionada cuando cambie el estado de las mesas
   useEffect(() => {
@@ -175,6 +304,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       }
     }
   }, [mesas, modalVisible]);
+
+  // Recargar pedidos activos cuando se abre el modal
+  useEffect(() => {
+    if (modalVisible) {
+      cargarPedidosActivos();
+    }
+  }, [modalVisible, cargarPedidosActivos]);
 
   const TAMANO_MESA = 80;
   const MARGEN_SEGURIDAD = 20; // Margen inferior y derecho
@@ -242,6 +378,236 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     }
   }, [modoActivo, mesas]);
 
+  // Función para abrir modal de nuevo pedido
+  const handleNuevoPedido = () => {
+    setPedidoEnEdicion(null);
+    setModalVisible(false);
+    setPedidoModalVisible(true);
+  };
+
+  // Función para editar un pedido existente
+  const handleEditarPedido = (pedido) => {
+    setPedidoEnEdicion(pedido);
+    setModalVisible(false);
+    setPedidoModalVisible(true);
+  };
+
+  // Función para eliminar un pedido
+  const handleEliminarPedido = async (idPedido, idMesa, idGrupo) => {
+    console.log('🗑️ Eliminando pedido:', idPedido, 'Mesa:', idMesa, 'Grupo:', idGrupo);
+    
+    // Emitir evento WebSocket
+    emitirPedidoEliminado(idPedido, idMesa, idGrupo);
+    
+    // Recargar pedidos activos
+    cargarPedidosActivos();
+    
+    // Verificar si quedan pedidos en la mesa/grupo
+    const clave = idGrupo ? `grupo-${idGrupo}` : `mesa-${idMesa}`;
+    const pedidosRestantes = pedidosService.getPedidosLocal(clave);
+    
+    console.log('📊 Pedidos restantes en', clave, ':', pedidosRestantes.length);
+    
+    // Si no quedan pedidos, liberar la mesa o todas las del grupo
+    if (pedidosRestantes.length === 0) {
+      try {
+        console.log('🟢 No quedan pedidos, liberando mesa(s)...');
+        
+        // Si es un grupo, obtener todas las mesas del grupo
+        let mesasALiberar = [];
+        if (idGrupo) {
+          mesasALiberar = mesas.filter(m => m.grupo === idGrupo).map(m => m.idMesa);
+        } else if (idMesa) {
+          // Verificar si la mesa pertenece a un grupo
+          const mesa = mesas.find(m => m.idMesa === idMesa);
+          if (mesa?.grupo) {
+            mesasALiberar = mesas.filter(m => m.grupo === mesa.grupo).map(m => m.idMesa);
+          } else {
+            mesasALiberar = [idMesa];
+          }
+        }
+        
+        console.log('📋 Mesas a liberar:', mesasALiberar);
+        
+        // Actualizar localmente primero
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            mesasALiberar.includes(m.idMesa)
+              ? { ...m, estado: 'libre' }
+              : m
+          )
+        );
+        
+        // Liberar todas las mesas en el backend
+        for (const mesaId of mesasALiberar) {
+          try {
+            await mesasService.liberarMesa(mesaId);
+            console.log(`✅ Mesa ${mesaId} liberada automáticamente`);
+          } catch (error) {
+            console.error(`Error al liberar mesa ${mesaId}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error('Error al liberar mesa:', error);
+      }
+    }
+  };
+
+  // Función para abrir modal de pago
+  const handlePagarCuenta = async () => {
+    try {
+      setModalVisible(false);
+      
+      // Determinar si es mesa o grupo
+      const esMesa = !mesaSeleccionada.grupo;
+      const clave = esMesa 
+        ? `mesa-${mesaSeleccionada.idMesa}` 
+        : `grupo-${mesaSeleccionada.grupo}`;
+      
+      // Obtener pedidos activos de esta mesa/grupo
+      const pedidos = pedidosService.getPedidosLocal(clave);
+      
+      if (pedidos.length === 0) {
+        console.log('⚠️ Esta mesa no tiene pedidos pendientes');
+        return;
+      }
+      
+      // Guardar pedidos para que el modal de pago los use
+      setPedidosMesaSeleccionada(pedidos);
+      setPagoModalVisible(true);
+    } catch (error) {
+      console.error('Error al obtener pedidos:', error);
+      Alert.alert('Error', 'No se pudo obtener la información de los pedidos');
+    }
+  };
+
+  // Callback cuando se crea un pedido exitosamente
+  const handlePedidoCreado = async (pedido) => {
+    setPedidoModalVisible(false);
+    
+    console.log('🍽️ Pedido creado:', pedido);
+    console.log('🍽️ Mesa seleccionada estado actual:', mesaSeleccionada?.estado);
+    
+    // Emitir evento WebSocket para notificar a otros clientes
+    if (pedido) {
+      emitirPedidoCreado({
+        pedido,
+        idMesa: mesaSeleccionada?.idMesa,
+        idGrupo: mesaSeleccionada?.grupo
+      });
+    }
+    
+    // Ocupar la mesa si no está ocupada
+    if (mesaSeleccionada && mesaSeleccionada.estado !== 'ocupada') {
+      try {
+        console.log('🔴 Cambiando estado de mesa a OCUPADA...');
+        
+        // Si es un grupo, obtener todas las mesas del grupo
+        const mesasDelGrupo = mesaSeleccionada.grupo 
+          ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
+          : [mesaSeleccionada.idMesa];
+        
+        console.log('📋 Mesas a ocupar:', mesasDelGrupo);
+        
+        // Actualizar localmente primero para feedback inmediato
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            mesasDelGrupo.includes(m.idMesa)
+              ? { ...m, estado: 'ocupada' }
+              : m
+          )
+        );
+        
+        // Ocupar todas las mesas del grupo en el backend
+        for (const idMesa of mesasDelGrupo) {
+          try {
+            await mesasService.ocuparMesa(idMesa);
+            console.log(`✅ Mesa ${idMesa} ocupada en backend`);
+          } catch (error) {
+            console.error(`Error al ocupar mesa ${idMesa}:`, error);
+          }
+        }
+        
+        // Emitir actualización de mesa
+        emitirMesaActualizada(mesaSeleccionada.idMesa, 'OCUPADA');
+      } catch (error) {
+        console.error('Error al ocupar mesa:', error);
+        // Si falla, recargar para volver al estado real
+        await cargarMesas();
+      }
+    } else {
+      console.log('⚠️ Mesa ya está ocupada o no hay mesa seleccionada');
+    }
+    
+    // Recargar datos (pedidos se actualizarán automáticamente con el useEffect)
+    await cargarMesas();
+    
+    // Mantener el modal abierto con la mesa actualizada
+    if (mesaSeleccionada) {
+      const mesaActualizada = mesas.find(m => m.idMesa === mesaSeleccionada.idMesa);
+      setMesaSeleccionada(mesaActualizada || mesaSeleccionada);
+      setModalVisible(true);
+    }
+  };
+
+  // Callback cuando se completa un pago
+  const handlePagoExitoso = async (factura) => {
+    setPagoModalVisible(false);
+    setPedidosMesaSeleccionada([]);
+    
+    // Emitir evento WebSocket de mesa cobrada
+    emitirMesaCobrada(
+      mesaSeleccionada?.idMesa,
+      mesaSeleccionada?.grupo,
+      factura
+    );
+    
+    // Limpiar pedidos de la mesa
+    const clave = mesaSeleccionada?.grupo 
+      ? `grupo-${mesaSeleccionada.grupo}` 
+      : `mesa-${mesaSeleccionada?.idMesa}`;
+    pedidosService.limpiarPedidos(clave);
+    
+    // Liberar las mesas (individual o todas del grupo)
+    if (mesaSeleccionada) {
+      try {
+        console.log('🟢 Liberando mesa(s)...');
+        
+        // Si es un grupo, obtener todas las mesas del grupo
+        const mesasDelGrupo = mesaSeleccionada.grupo 
+          ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
+          : [mesaSeleccionada.idMesa];
+        
+        console.log('📋 Mesas a liberar:', mesasDelGrupo);
+        
+        // Actualizar localmente primero
+        setMesas(prevMesas => 
+          prevMesas.map(m => 
+            mesasDelGrupo.includes(m.idMesa)
+              ? { ...m, estado: 'libre' }
+              : m
+          )
+        );
+        
+        // Liberar todas las mesas en el backend
+        for (const idMesa of mesasDelGrupo) {
+          try {
+            await mesasService.liberarMesa(idMesa);
+            console.log(`✅ Mesa ${idMesa} liberada`);
+          } catch (error) {
+            console.error(`Error al liberar mesa ${idMesa}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error('Error al liberar mesa:', error);
+      }
+    }
+    
+    setMesaSeleccionada(null);
+    await cargarMesas();
+    cargarPedidosActivos();
+  };
+
   const activarModo = (modo) => {
     const nuevoModo = modoActivo === modo ? null : modo;
     
@@ -251,96 +617,194 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
   const unirMesas = (numeros) => {
     if (numeros.length < 2) {
-      Alert.alert('Error', 'Selecciona al menos 2 mesas para unir');
+    if (numeros.length < 2) {
+      showConfirm({
+        title: 'Error',
+        message: 'Selecciona al menos 2 mesas para unir',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       return;
+    }
     }
 
     // Generar nombre por defecto
     const nombreDefault = `Grupo ${new Date().getTime() % 1000}`;
     
     // Usar Alert.prompt para pedir el nombre del grupo
-    Alert.prompt(
-      'Nombre del grupo',
-      'Ingresa un nombre para el grupo de mesas:',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel'
-        },
-        {
-          text: 'Crear',
-          onPress: async (nombre) => {
-            if (!nombre || nombre.trim() === '') {
-              Alert.alert('Error', 'Debes ingresar un nombre para el grupo');
-              return;
+    // Usar ConfirmActionModal con input para pedir el nombre del grupo
+    showConfirm({
+      title: 'Nombre del grupo',
+      message: 'Ingresa un nombre para el grupo de mesas:',
+      showInput: true,
+      inputValue: nombreDefault,
+      inputPlaceholder: "Nombre del grupo",
+      confirmText: "Crear",
+      confirmColor: "#51cf66",
+      icon: "table-furniture",
+      onConfirm: async (nombre) => {
+        hideConfirm();
+        
+        if (!nombre || nombre.trim() === '') {
+          showConfirm({
+            title: 'Error',
+            message: 'Debes ingresar un nombre para el grupo',
+            singleButton: true,
+            confirmColor: '#d32f2f',
+            onConfirm: hideConfirm
+          });
+          return;
+        }
+
+        try {
+          // Obtener las mesas seleccionadas con sus datos completos
+          const mesasSeleccionadasData = numeros.map(num => {
+            return mesas.find(m => m.numero === num);
+          }).filter(Boolean);
+
+          // Obtener los IDs reales de las mesas
+          const mesasIds = mesasSeleccionadasData.map(mesa => mesa.idMesa);
+
+          // ========== VERIFICAR SI HAY PEDIDOS EN LAS MESAS ==========
+          let tienePedidos = false;
+          
+          for (const mesa of mesasSeleccionadasData) {
+            const claveMesa = `mesa-${mesa.idMesa}`;
+            const pedidosMesa = pedidosService.getPedidosLocal(claveMesa);
+            
+            if (pedidosMesa.length > 0) {
+              console.log(`📋 Mesa ${mesa.numero} tiene ${pedidosMesa.length} pedido(s)`);
+              tienePedidos = true;
+              break;
             }
+          }
 
-            try {
-              // Obtener los IDs reales de las mesas
-              const mesasIds = numeros.map(num => {
-                const mesa = mesas.find(m => m.numero === num);
-                return mesa?.idMesa || num;
-              });
+          // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
+          const ordenadas = [...numeros].sort((a, b) => a - b);
+          
+          // 2. SINCRONIZAR CON BACKEND
+          const resultado = await mesasService.createGrupo(nombre, mesasIds);
+          const grupoId = resultado.id || resultado.idGrupo;
+          
+          console.log(`✅ Grupo "${nombre}" creado con ID: ${grupoId}`);
 
-              // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
-              const ordenadas = [...numeros].sort((a, b) => a - b);
+          // 3. TRANSFERIR PEDIDOS AL GRUPO SI HAY ALGUNO
+          if (tienePedidos && grupoId) {
+            const cantidadTransferida = pedidosService.transferirPedidosAGrupo(mesasIds, grupoId);
+            
+            if (cantidadTransferida > 0) {
+              console.log(`🔄 ${cantidadTransferida} pedido(s) transferidos al grupo ${grupoId}`);
+              
+              // Actualizar estado de todas las mesas del grupo a "ocupada"
+              for (const mesaId of mesasIds) {
+                try {
+                  await mesasService.ocuparMesa(mesaId);
+                  console.log(`✅ Mesa ${mesaId} marcada como ocupada`);
+                } catch (error) {
+                  console.error(`❌ Error al ocupar mesa ${mesaId}:`, error);
+                }
+              }
+
+              // Actualizar UI local con todas las mesas ocupadas
               setMesas(prev => {
-                // Actualizar mesas con el grupo PERO MANTENER SUS POSICIONES ACTUALES
                 return prev.map(m => {
                   if (numeros.includes(m.numero)) {
                     const nuevasUniones = ordenadas.filter(n => n !== m.numero);
                     return {
                       ...m,
-                      // NO cambiar la posición - mantener posicion actual
                       unidaCon: nuevasUniones,
-                      nombreGrupo: nombre
+                      nombreGrupo: nombre,
+                      grupo: grupoId,
+                      estado: 'ocupada' // ✅ Marcar como ocupada (en rojo)
                     };
                   }
                   return m;
                 });
               });
 
-              
-              // 2. SINCRONIZAR CON BACKEND
-              const resultado = await mesasService.createGrupo(nombre, mesasIds);
-              
-              // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
-              // y confirmará/actualizará el estado
-
-              Alert.alert('✅ Éxito', `Grupo "${nombre}" creado correctamente`);
-              setModoActivo(null);
-              setMesasSeleccionadas([]);
-              
-            } catch (error) {
-              console.error('Error al crear grupo:', error);
-              
-              // 3. REVERTIR CAMBIOS SI FALLA
-              setMesas(prev =>
-                prev.map(mesa => {
-                  if (numeros.includes(mesa.numero)) {
+              // Recargar pedidos activos para reflejar los cambios
+              cargarPedidosActivos();
+            } else {
+              // Sin pedidos, solo actualizar las mesas con el grupo
+              setMesas(prev => {
+                return prev.map(m => {
+                  if (numeros.includes(m.numero)) {
+                    const nuevasUniones = ordenadas.filter(n => n !== m.numero);
                     return {
-                      ...mesa,
-                      unidaCon: [],
-                      nombreGrupo: null
+                      ...m,
+                      unidaCon: nuevasUniones,
+                      nombreGrupo: nombre,
+                      grupo: grupoId
                     };
                   }
-                  return mesa;
-                })
-              );
-              
-              Alert.alert('Error', `No se pudo crear el grupo: ${error.message}`);
+                  return m;
+                });
+              });
             }
+          } else {
+            // Si no hay pedidos, solo actualizar las mesas con el grupo
+            setMesas(prev => {
+              return prev.map(m => {
+                if (numeros.includes(m.numero)) {
+                  const nuevasUniones = ordenadas.filter(n => n !== m.numero);
+                  return {
+                    ...m,
+                    unidaCon: nuevasUniones,
+                    nombreGrupo: nombre,
+                    grupo: grupoId
+                  };
+                }
+                return m;
+              });
+            });
           }
+          
+          // El evento 'grupo:creado' se recibirá automáticamente por WebSocket
+          // y confirmará/actualizará el estado
+
+          setModoActivo(null);
+          setMesasSeleccionadas([]);
+          
+        } catch (error) {
+          console.error('Error al crear grupo:', error);
+          
+          // 3. REVERTIR CAMBIOS SI FALLA
+          setMesas(prev =>
+            prev.map(mesa => {
+              if (numeros.includes(mesa.numero)) {
+                return {
+                  ...mesa,
+                  unidaCon: [],
+                  nombreGrupo: null,
+                  grupo: null
+                };
+              }
+              return mesa;
+            })
+          );
+          
+          showConfirm({
+            title: 'Error',
+            message: `No se pudo crear el grupo: ${error.message}`,
+            singleButton: true,
+            confirmColor: '#d32f2f',
+            onConfirm: hideConfirm
+          });
         }
-      ],
-      'plain-text',
-      nombreDefault
-    );
+      }
+    });
   };
 
   const confirmarUnir = () => {
     if (mesasSeleccionadas.length < 2) {
-      return Alert.alert("Error", "Selecciona al menos 2 mesas");
+      return showConfirm({
+        title: 'Error',
+        message: 'Selecciona al menos 2 mesas',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
     
     unirMesas(mesasSeleccionadas);
@@ -350,7 +814,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
   const confirmarSeparar = async () => {
     if (!mesasSeleccionadas.length)
-      return Alert.alert("Error", "Selecciona al menos 1 mesa");
+      return showConfirm({
+        title: 'Error',
+        message: 'Selecciona al menos 1 mesa',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
 
     try {
       // Encontrar el grupo al que pertenecen las mesas seleccionadas
@@ -359,7 +829,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       );
 
       if (mesasConGrupo.length === 0) {
-        return Alert.alert("Error", "Las mesas seleccionadas no pertenecen a ningún grupo");
+        return showConfirm({
+          title: 'Error',
+          message: 'Las mesas seleccionadas no pertenecen a ningún grupo',
+          singleButton: true,
+          confirmColor: '#d32f2f',
+          onConfirm: hideConfirm
+        });
       }
 
       // Obtener el ID del grupo
@@ -384,64 +860,80 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       }
 
       // Mostrar confirmación
-      Alert.alert(
-        "Separar Mesas",
-        mensaje,
-        [
-          {
-            text: "Cancelar",
-            style: "cancel"
-          },
-          {
-            text: "Confirmar",
-            onPress: async () => {
-              try {
-                // 1. ACTUALIZACIÓN OPTIMISTA
-                setMesas(prev => prev.map(m => {
-                  if (mesasSeleccionadas.includes(m.numero)) {
-                    return {
-                      ...m,
-                      unidaCon: [],
-                      grupo: null,
-                      nombreGrupo: null
-                    };
-                  } else if (m.grupo === grupoId) {
-                    return {
-                      ...m,
-                      unidaCon: m.unidaCon.filter(n => !mesasSeleccionadas.includes(n))
-                    };
-                  }
-                  return m;
-                }));
-
-                // 2. SINCRONIZAR CON BACKEND
-                await mesasService.removerMesasDeGrupo(
-                  grupoId,
-                  mesasIdsARemover,
-                  todasLasMesasDelGrupo,
-                  nombreGrupo
-                );
-
-                const mensajeExito = mesasRestantes < 2 
-                  ? `Grupo "${nombreGrupo}" disuelto correctamente`
-                  : `Mesa(s) separada(s) del grupo "${nombreGrupo}"`;
-                  
-                Alert.alert("✅ Éxito", mensajeExito);
-                setModoActivo(null);
-                setMesasSeleccionadas([]);
-
-              } catch (error) {
-                console.error('Error al separar mesas:', error);
-                await cargarMesas();
-                Alert.alert('Error', 'No se pudo separar las mesas. Intenta de nuevo.');
+      // Mostrar confirmación
+      showConfirm({
+        title: "Separar Mesas",
+        message: mensaje,
+        confirmText: "Confirmar",
+        confirmColor: "#ffa94d",
+        icon: "link-variant-off",
+        onConfirm: async () => {
+          hideConfirm();
+          try {
+            // 1. ACTUALIZACIÓN OPTIMISTA
+            setMesas(prev => prev.map(m => {
+              if (mesasSeleccionadas.includes(m.numero)) {
+                return {
+                  ...m,
+                  unidaCon: [],
+                  grupo: null,
+                  nombreGrupo: null
+                };
+              } else if (m.grupo === grupoId) {
+                return {
+                  ...m,
+                  unidaCon: m.unidaCon.filter(n => !mesasSeleccionadas.includes(n))
+                };
               }
-            }
+              return m;
+            }));
+
+            // 2. SINCRONIZAR CON BACKEND
+            await mesasService.removerMesasDeGrupo(
+              grupoId,
+              mesasIdsARemover,
+              todasLasMesasDelGrupo,
+              nombreGrupo
+            );
+
+            const mensajeExito = mesasRestantes < 2 
+              ? `Grupo "${nombreGrupo}" disuelto correctamente`
+              : `Mesa(s) separada(s) del grupo "${nombreGrupo}"`;
+              
+            showConfirm({
+              title: "✅ Éxito",
+              message: mensajeExito,
+              singleButton: true,
+              confirmColor: "#51cf66",
+              icon: "check-circle",
+              onConfirm: hideConfirm
+            });
+            setModoActivo(null);
+            setMesasSeleccionadas([]);
+
+          } catch (error) {
+            console.error('Error al separar mesas:', error);
+            await cargarMesas();
+            showConfirm({
+              title: 'Error',
+              message: 'No se pudo separar las mesas. Intenta de nuevo.',
+              singleButton: true,
+              confirmColor: '#d32f2f',
+              onConfirm: hideConfirm
+            });
           }
-        ]
-      );
+        }
+      });
     } catch (error) {
       console.error('Error en confirmarSeparar:', error);
-      Alert.alert('Error', 'Ocurrió un error al procesar la solicitud');
+      console.error('Error en confirmarSeparar:', error);
+      showConfirm({
+        title: 'Error',
+        message: 'Ocurrió un error al procesar la solicitud',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
   };
 
@@ -449,8 +941,16 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     // Encontrar la mesa actual
     const mesaActual = mesas.find(m => m.numero === numero);
     if (!mesaActual) {
-      Alert.alert('Error', 'Mesa no encontrada');
+    if (!mesaActual) {
+      showConfirm({
+        title: 'Error',
+        message: 'Mesa no encontrada',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       return;
+    }
     }
 
     // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
@@ -476,17 +976,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       // Ocupar la mesa en el backend (esto emitirá el evento WebSocket)
       const response = await mesasService.ocuparMesa(mesaActual.idMesa);
       
-      const cantidadMesas = 1 + (mesaActual.unidaCon?.length || 0);
-      
-      // Mostrar confirmación sin bloquear
-      setTimeout(() => {
-        Alert.alert(
-          "✅ Pedido iniciado", 
-          cantidadMesas > 1 
-            ? `Pedido iniciado para ${cantidadMesas} mesas unidas`
-            : `Mesa ${mesaActual.nombre || numero} ahora está ocupada`
-        );
-      }, 100);
+      console.log('✅ Pedido iniciado para mesa', mesaActual.idMesa);
       
     } catch (error) {
       console.error('❌ Error al ocupar mesa:', error);
@@ -500,10 +990,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         )
       );
       
-      Alert.alert(
-        'Error', 
-        'No se pudo ocupar la mesa. El cambio se ha revertido.'
-      );
+      showConfirm({
+        title: 'Error',
+        message: 'No se pudo ocupar la mesa. El cambio se ha revertido.',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
   };
 
@@ -511,29 +1004,33 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     // Encontrar la mesa actual
     const mesaActual = mesas.find(m => m.numero === numero);
     if (!mesaActual) {
-      Alert.alert('Error', 'Mesa no encontrada');
+    if (!mesaActual) {
+      showConfirm({
+        title: 'Error',
+        message: 'Mesa no encontrada',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       return;
+    }
     }
 
     // 1. ACTUALIZACIÓN OPTIMISTA - Actualizar UI inmediatamente
-    const mesasDelGrupo = [numero, ...(mesaActual.unidaCon || [])];
+    // Obtener IDs de las mesas del grupo si existe
+    const mesasDelGrupo = mesaActual.grupo
+      ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
+      : [mesaActual.idMesa];
     
-    // Actualizar estado local inmediatamente
+    // Actualizar estado local inmediatamente (solo cambiar estado, NO tocar el grupo)
     setMesas(prevMesas => {
       return prevMesas.map(mesa => {
-        if (mesasDelGrupo.includes(mesa.numero)) {
+        if (mesasDelGrupo.includes(mesa.idMesa)) {
           return {
             ...mesa,
             estado: "libre",
             pedido: null,
-            unidaCon: []
-          };
-        }
-        // Limpiar referencias en otras mesas
-        if (mesa.unidaCon.some(n => mesasDelGrupo.includes(n))) {
-          return {
-            ...mesa,
-            unidaCon: mesa.unidaCon.filter(n => !mesasDelGrupo.includes(n))
+            // NO eliminar unidaCon ni grupo - mantener la asociación
           };
         }
         return mesa;
@@ -542,20 +1039,36 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
     // 2. SINCRONIZAR CON BACKEND
     try {
-      // Liberar la mesa en el backend (esto emitirá el evento WebSocket)
-      const response = await mesasService.liberarMesa(mesaActual.idMesa);
+      // Limpiar pedidos de localStorage primero
+      const clave = mesaActual.grupo 
+        ? `grupo-${mesaActual.grupo}` 
+        : `mesa-${mesaActual.idMesa}`;
       
-      const cantidadMesas = 1 + (mesaActual.unidaCon?.length || 0);
+      console.log('🧹 Limpiando pedidos de:', clave);
+      pedidosService.limpiarPedidos(clave);
       
-      // Mostrar confirmación sin bloquear
-      setTimeout(() => {
-        Alert.alert(
-          "✅ Mesa limpiada", 
-          cantidadMesas > 1 
-            ? `Se liberaron ${cantidadMesas} mesas y se separaron`
-            : `Mesa ${mesaActual.nombre || numero} ahora está libre`
-        );
-      }, 100);
+      // Actualizar el Map de pedidos activos
+      cargarPedidosActivos();
+      
+      // Si es un grupo, obtener todas las mesas del grupo, sino solo la mesa actual
+      const mesasALiberar = mesaActual.grupo
+        ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
+        : [mesaActual.idMesa];
+      
+      console.log('📋 Liberando mesas:', mesasALiberar);
+      
+      // Liberar todas las mesas del grupo en el backend
+      for (const idMesa of mesasALiberar) {
+        try {
+          await mesasService.liberarMesa(idMesa);
+          console.log(`✅ Mesa ${idMesa} liberada en backend`);
+        } catch (error) {
+          console.error(`Error al liberar mesa ${idMesa}:`, error);
+        }
+      }
+      
+      const cantidadMesas = mesasALiberar.length;
+      console.log(`✅ ${cantidadMesas} mesa(s) liberada(s)`);
       
     } catch (error) {
       console.error('Error al liberar mesa:', error);
@@ -569,10 +1082,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         )
       );
       
-      Alert.alert(
-        'Error', 
-        'No se pudo liberar la mesa. El cambio se ha revertido.'
-      );
+      showConfirm({
+        title: 'Error',
+        message: 'No se pudo liberar la mesa. El cambio se ha revertido.',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
   };
 
@@ -645,10 +1161,18 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         }
         return [...prev, nuevaMesa];
       });
-      Alert.alert('✅ Éxito', `Mesa "${nombreMesa}" creada correctamente`);
+      
+      console.log(`✅ Mesa "${nombreMesa}" creada correctamente`);
     } catch (error) {
       console.error('Error al crear mesa:', error);
-      Alert.alert('Error', 'No se pudo crear la mesa en el servidor');
+      console.error('Error al crear mesa:', error);
+      showConfirm({
+        title: 'Error',
+        message: 'No se pudo crear la mesa en el servidor',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
   };
 
@@ -661,13 +1185,29 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     }
     
     if (mesa.estado === "ocupada") {
-      Alert.alert("❌ Error", "No puedes eliminar una mesa ocupada");
+    if (mesa.estado === "ocupada") {
+      showConfirm({
+        title: "❌ Error",
+        message: "No puedes eliminar una mesa ocupada",
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       return;
+    }
     }
     
     if (mesa.unidaCon.length > 0) {
-      Alert.alert("❌ Error", "No puedes eliminar una mesa que está unida. Sepárala primero.");
+    if (mesa.unidaCon.length > 0) {
+      showConfirm({
+        title: "❌ Error",
+        message: "No puedes eliminar una mesa que está unida. Sepárala primero.",
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
       return;
+    }
     }
     
     try {
@@ -684,10 +1224,17 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           }))
       );
       
-      Alert.alert('✅ Éxito', 'Mesa eliminada correctamente');
+      console.log('✅ Mesa eliminada correctamente');
     } catch (error) {
       console.error('Error al eliminar mesa:', error);
-      Alert.alert('❌ Error', 'No se pudo eliminar la mesa del servidor');
+      console.error('Error al eliminar mesa:', error);
+      showConfirm({
+        title: '❌ Error',
+        message: 'No se pudo eliminar la mesa del servidor',
+        singleButton: true,
+        confirmColor: '#d32f2f',
+        onConfirm: hideConfirm
+      });
     }
   };
 
@@ -765,11 +1312,18 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
-                {/* Indicador de conexión WebSocket */}
-                <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
-                  <Text style={styles.wsIndicatorText}>
-                    {wsConnected ? '🟢 Conectado' : '🔴 Desconectado'}
-                  </Text>
+                {/* Indicadores de conexión WebSocket */}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
+                    <Text style={styles.wsIndicatorText}>
+                      {wsConnected ? '🟢' : '🔴'} Mesas
+                    </Text>
+                  </View>
+                  <View style={[styles.wsIndicator, pedidosWsConnected ? styles.wsConnected : styles.wsDisconnected]}>
+                    <Text style={styles.wsIndicatorText}>
+                      {pedidosWsConnected ? '🟢' : '🔴'} Pedidos
+                    </Text>
+                  </View>
                 </View>
               </View>
               <Text style={styles.pageSubtitle}>
@@ -880,28 +1434,50 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           )}
 
           {/* Filtrar duplicados antes de renderizar */}
-          {Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map(m => (
-            <Mesa
-              key={`mesa-${m.idMesa || m.numero}`}
-              numero={m.numero}
-              estado={m.estado}
-              posicion={m.posicion}
-              unidaCon={m.unidaCon}
-              nombreGrupo={m.nombreGrupo}
-              onPosicionChange={handlePosicionChange}
-              onPress={handleMesaPress}
-              isSelected={mesasSeleccionadas.includes(m.numero)}
-              draggable={modoActivo === 'mover'}
-            />
-          ))}
+          {Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map(m => {
+            // Verificar si la mesa o su grupo tiene pedidos activos
+            const claveMesa = `mesa-${m.idMesa}`;
+            const claveGrupo = m.grupo ? `grupo-${m.grupo}` : null;
+            const tienePedido = pedidosActivos.has(claveMesa) || (claveGrupo && pedidosActivos.has(claveGrupo));
+            
+            // Log para debugging
+            if (tienePedido) {
+              console.log(`🔍 Renderizando Mesa ${m.numero} - Estado: ${m.estado}, TienePedido: ${tienePedido}`);
+            }
+            
+            return (
+              <Mesa
+                key={`mesa-${m.idMesa || m.numero}`}
+                numero={m.numero}
+                estado={m.estado}
+                posicion={m.posicion}
+                unidaCon={m.unidaCon}
+                nombreGrupo={m.nombreGrupo}
+                tienePedido={tienePedido}
+                onPosicionChange={handlePosicionChange}
+                onPress={handleMesaPress}
+                isSelected={mesasSeleccionadas.includes(m.numero)}
+                draggable={modoActivo === 'mover'}
+              />
+            );
+          })}
         </View>
 
         <MesaModal 
           visible={modalVisible} 
           onClose={() => setModalVisible(false)} 
-          mesa={mesaSeleccionada} 
+          mesa={mesaSeleccionada}
+          grupo={mesaSeleccionada?.grupo ? { id: mesaSeleccionada.grupo, nombre: mesaSeleccionada.nombreGrupo } : null}
           onIniciarPedido={handleIniciarPedido}
           onLimpiarMesa={handleLimpiarMesa}
+          onNuevoPedido={handleNuevoPedido}
+          onEditarPedido={handleEditarPedido}
+          onEliminarPedido={handleEliminarPedido}
+          onPagarCuenta={handlePagarCuenta}
+          tienePedido={mesaSeleccionada && (
+            pedidosActivos.has(`mesa-${mesaSeleccionada.idMesa}`) ||
+            (mesaSeleccionada.grupo && pedidosActivos.has(`grupo-${mesaSeleccionada.grupo}`))
+          )}
         />
 
         <GestionarMesasModal
@@ -910,6 +1486,58 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           mesas={mesas}
           onAgregarMesa={handleAgregarMesa}
           onEliminarMesa={handleEliminarMesa}
+        />
+
+        {/* Modal de Pedidos */}
+        {mesaSeleccionada && (
+          <PedidoMesaModal
+            visible={pedidoModalVisible}
+            onClose={() => {
+              setPedidoModalVisible(false);
+              setPedidoEnEdicion(null);
+              // NO limpiar mesaSeleccionada para mantener el contexto
+            }}
+            mesa={!mesaSeleccionada.grupo ? mesaSeleccionada : null}
+            grupo={mesaSeleccionada.grupo ? { 
+              id: mesaSeleccionada.grupo, 
+              nombre: mesaSeleccionada.nombreGrupo 
+            } : null}
+            pedidoEnEdicion={pedidoEnEdicion}
+            onPedidoCreado={handlePedidoCreado}
+          />
+        )}
+
+        {/* Modal de Pago */}
+        <PagoFacturaModal
+          visible={pagoModalVisible}
+          onClose={() => {
+            setPagoModalVisible(false);
+            setPedidosMesaSeleccionada([]);
+          }}
+          pedidos={pedidosMesaSeleccionada}
+          mesa={mesaSeleccionada && !mesaSeleccionada.grupo ? mesaSeleccionada : null}
+          grupo={mesaSeleccionada?.grupo ? { 
+            id: mesaSeleccionada.grupo, 
+            nombre: mesaSeleccionada.nombreGrupo 
+          } : null}
+          onPagoExitoso={handlePagoExitoso}
+        />
+
+        <ConfirmActionModal
+          visible={confirmModal.visible}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={hideConfirm}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText}
+          confirmColor={confirmModal.confirmColor}
+          icon={confirmModal.icon}
+          showInput={confirmModal.showInput}
+          inputValue={confirmModal.inputValue}
+          inputPlaceholder={confirmModal.inputPlaceholder}
+          onInputChange={(text) => setConfirmModal(prev => ({ ...prev, inputValue: text }))}
+          singleButton={confirmModal.singleButton}
         />
       </View>
     </DashboardLayout>
