@@ -85,15 +85,19 @@ const tarjetaService = {
 
   /**
    * Cargar saldo a una tarjeta
-   * @param {number} idTarjeta - ID de la tarjeta
+   * @param {number} idCliente - ID del cliente
    * @param {number} monto - Monto a cargar
-   * @returns {Promise} Tarjeta actualizada con nuevo saldo
+   * @param {string} metodoPago - Método de pago (Efectivo, Tarjeta de Débito, etc.)
+   * @param {string} [observaciones] - Observaciones opcionales
+   * @returns {Promise} Resultado de la transacción
    */
-  cargarSaldo: async (idTarjeta, monto) => {
+  cargarSaldo: async (idCliente, monto, metodoPago, observaciones = "") => {
     try {
-      const response = await api.patch(`/tarjetas/${idTarjeta}/saldo`, {
+      const response = await api.post("/transacciones/recarga", {
+        idCliente,
         monto,
-        operacion: "agregar",
+        metodoPago,
+        observaciones,
       });
       return response.data;
     } catch (error) {

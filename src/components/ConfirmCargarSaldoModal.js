@@ -8,6 +8,7 @@ export default function ConfirmCargarSaldoModal({
   clienteNombre,
   saldoActual,
   montoCarga,
+  metodoPago,
   onConfirm,
   onCancel,
 }) {
@@ -60,6 +61,12 @@ export default function ConfirmCargarSaldoModal({
               <Text style={[styles.itemValue, styles.montoCarga]}>
                 + ${formatCurrency(montoCarga)}
               </Text>
+            </View>
+
+            {/* Método de pago */}
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Método de pago:</Text>
+              <Text style={styles.itemValue}>{metodoPago}</Text>
             </View>
 
             {/* Separador */}

@@ -26,6 +26,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
   const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoCargar, setMontoCargar] = useState("");
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
 
   // Estados para la lista
   const [clientes, setClientes] = useState([]);
@@ -216,8 +217,9 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       // Llamar al servicio para cargar saldo
       const resultado = await tarjetaService.cargarSaldo(
-        tarjetaSeleccionada.id,
-        monto
+        tarjetaSeleccionada.cliente.id,
+        monto,
+        metodoPago
       );
 
       console.log("✅ Saldo cargado exitosamente:", resultado);
@@ -225,7 +227,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
       // Actualizar la tarjeta seleccionada con el nuevo saldo
       setTarjetaSeleccionada({
         ...tarjetaSeleccionada,
-        saldoActual: resultado.data.saldoActual,
+        saldoActual: resultado.data.saldos.actual,
       });
 
       // Mostrar mensaje de éxito
@@ -233,7 +235,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         `Se cargaron $${formatCurrency(
           monto
         )} exitosamente. Nuevo saldo: $${formatCurrency(
-          resultado.data.saldoActual
+          resultado.data.saldos.actual
         )}`
       );
       setShowSuccessModal(true);
@@ -264,6 +266,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
   const handleLimpiar = () => {
     setTarjetaSeleccionada(null);
     setMontoCargar("");
+    setMetodoPago("Efectivo");
     setClienteSeleccionado("");
   };
 
@@ -478,6 +481,27 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
                   placeholderTextColor="#999"
                 />
 
+                <Text style={styles.label}>Método de pago</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={metodoPago}
+                    onValueChange={setMetodoPago}
+                    style={styles.picker}
+                    dropdownIconColor="#666"
+                  >
+                    <Picker.Item label="Efectivo" value="Efectivo" />
+                    <Picker.Item
+                      label="Tarjeta de Débito"
+                      value="Tarjeta de Débito"
+                    />
+                    <Picker.Item
+                      label="Tarjeta de Crédito"
+                      value="Tarjeta de Crédito"
+                    />
+                    <Picker.Item label="Transferencia" value="Transferencia" />
+                  </Picker>
+                </View>
+
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
                     style={styles.secondaryButton}
@@ -537,6 +561,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         }
         saldoActual={tarjetaSeleccionada?.saldoActual || 0}
         montoCarga={montoCargar || 0}
+        metodoPago={metodoPago}
         onConfirm={handleConfirmarCarga}
         onCancel={handleCancelarCarga}
       />
