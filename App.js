@@ -5,6 +5,7 @@ import { SocketProvider } from "./src/context/SocketContext";
 import Login from "./src/screens/Login";
 import InvoicesScreen from "./src/screens/InvoicesScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
+import CargarSaldoScreen from "./src/screens/CargarSaldoScreen";
 import MesasScreen from "./src/screens/MesasScreen";
 import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
@@ -64,6 +65,13 @@ function AppContent() {
     case "emitir-tarjeta":
       return (
         <EmitirTarjetaScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "cargar-saldo":
+      return (
+        <CargarSaldoScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />

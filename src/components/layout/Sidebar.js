@@ -1,19 +1,41 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, useWindowDimensions, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Image,
+  TouchableOpacity,
+  useWindowDimensions,
+  ScrollView,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const mainMenuItems = [
   { icon: "table-furniture", label: "Gestionar Mesas", screen: "mesas" },
-  { icon: "account-group-outline", label: "Gestionar Clientes", screen: "clientes" },
+  {
+    icon: "account-group-outline",
+    label: "Gestionar Clientes",
+    screen: "clientes",
+  },
   { icon: "account-tie", label: "Gestionar Mozos", screen: "mozos" },
   { icon: "basket-outline", label: "Gestionar Productos", screen: "productos" },
-  { icon: "shape-outline", label: "Gestionar Categorías", screen: "categorias" },
+  {
+    icon: "shape-outline",
+    label: "Gestionar Categorías",
+    screen: "categorias",
+  },
   { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
   { icon: "cash-register", label: "Caja", screen: "caja" },
 ];
 
 const secondaryMenuItems = [
-  { icon: "card-text-outline", label: "Emitir Tarjeta", screen: "emitir-tarjeta" },
+  {
+    icon: "card-text-outline",
+    label: "Emitir Tarjeta",
+    screen: "emitir-tarjeta",
+  },
+  { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
   { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 
@@ -37,7 +59,12 @@ const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
           color={currentScreen === item.screen ? "#1f1f1f" : "#3f3f3f"}
           style={styles.menuIcon}
         />
-        <Text style={[styles.menuLabel, currentScreen === item.screen && styles.menuLabelActive]}>
+        <Text
+          style={[
+            styles.menuLabel,
+            currentScreen === item.screen && styles.menuLabelActive,
+          ]}
+        >
           {item.label}
         </Text>
       </Pressable>
@@ -45,15 +72,28 @@ const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
   </View>
 );
 
-export default function Sidebar({ showCloseButton = false, onClose = () => {}, onLogout = () => {}, onNavigate = () => {}, currentScreen = "" }) {
+export default function Sidebar({
+  showCloseButton = false,
+  onClose = () => {},
+  onLogout = () => {},
+  onNavigate = () => {},
+  currentScreen = "",
+}) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
       {/* Header fijo */}
-      <View style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}>
-        <View style={[styles.brandContainer, isCompact && styles.brandContainerCompact]}>
+      <View
+        style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}
+      >
+        <View
+          style={[
+            styles.brandContainer,
+            isCompact && styles.brandContainerCompact,
+          ]}
+        >
           <Image
             source={require("../../../assets/hans-logo.png")}
             style={styles.brandLogo}
@@ -75,23 +115,25 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
       </View>
 
       {/* Contenido scrolleable */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={true}
         bounces={false}
       >
-        <View style={[styles.menuWrapper, isCompact && styles.menuWrapperCompact]}>
-          <MenuSection 
-            title="Menú principal" 
-            items={mainMenuItems} 
-            compact={isCompact} 
+        <View
+          style={[styles.menuWrapper, isCompact && styles.menuWrapperCompact]}
+        >
+          <MenuSection
+            title="Menú principal"
+            items={mainMenuItems}
+            compact={isCompact}
             onNavigate={onNavigate}
             currentScreen={currentScreen}
           />
-          <MenuSection 
-            title="Otras configuraciones" 
-            items={secondaryMenuItems} 
+          <MenuSection
+            title="Otras configuraciones"
+            items={secondaryMenuItems}
             compact={isCompact}
             onNavigate={onNavigate}
             currentScreen={currentScreen}
@@ -101,7 +143,10 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
 
       {/* Footer fijo */}
       <Pressable
-        style={({ hovered }) => [styles.logout, hovered && styles.menuItemHovered]}
+        style={({ hovered }) => [
+          styles.logout,
+          hovered && styles.menuItemHovered,
+        ]}
         android_ripple={{ color: "#e2e2e2" }}
         onPress={onLogout}
       >
