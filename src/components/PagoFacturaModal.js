@@ -13,31 +13,13 @@ import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import transaccionesService from "../services/transaccionesService";
 import pedidosService from "../services/pedidosService";
-import cardService from "../services/cardService";
-import tarjetaService from "../services/tarjetaService";
-import RfidScanModal from "./RfidScanModal";
-import SuccessModal from "./SuccessModal";
 
 /**
  * Modal para procesar el pago de pedidos
  * Genera la factura al momento de cobrar
  */
-export default function PagoFacturaModal({
-  visible,
-  onClose,
-  pedidos = [],
-  mesa,
-  grupo,
-  onPagoExitoso,
-}) {
+export default function PagoFacturaModal({ visible, onClose, pedidos = [], mesa, grupo, onPagoExitoso }) {
   const [loading, setLoading] = useState(false);
-  const [rfidModalVisible, setRfidModalVisible] = useState(false);
-  const [rfidStatus, setRfidStatus] = useState("scanning"); // 'scanning', 'error'
-  const [rfidUid, setRfidUid] = useState(null);
-  const [rfidError, setRfidError] = useState("");
-  const [successModalVisible, setSuccessModalVisible] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [facturaGenerada, setFacturaGenerada] = useState(null);
 
   // Calcular total de todos los pedidos
   const totalPedidos = useMemo(() => {
@@ -46,7 +28,6 @@ export default function PagoFacturaModal({
 
   // Obtener primer cliente de los pedidos
   const primerCliente = pedidos[0]?.idCliente;
-  const nombreCliente = pedidos[0]?.nombreCliente;
 
   const handleCobrar = async () => {
     // Validaciones
@@ -55,74 +36,14 @@ export default function PagoFacturaModal({
       return;
     }
 
-    // Validar que haya un cliente asociado
-    if (!primerCliente) {
-      Alert.alert("Error", "No se encontró un cliente asociado al pedido");
-      return;
-    }
-
-    // Iniciar el escaneo de tarjeta
-    iniciarEscaneoTarjeta();
-  };
-
-  const iniciarEscaneoTarjeta = async () => {
-    try {
-      // Mostrar modal de escaneo
-      setRfidStatus("scanning");
-      setRfidModalVisible(true);
-
-      // Escanear tarjeta
-      const response = await cardService.scanRFID();
-      const uid = response.uid;
-
-      console.log("🔵 Tarjeta escaneada:", uid);
-      setRfidUid(uid);
-
-      // Verificar que la tarjeta existe y obtener su propietario
-      const verificacion = await tarjetaService.verificarUid(uid);
-
-      if (!verificacion.existe) {
-        // Tarjeta no registrada
-        setRfidStatus("error");
-        setRfidError("Esta tarjeta no está registrada en el sistema");
-        return;
-      }
-
-      // Verificar que la tarjeta pertenece al cliente del pedido
-      if (!verificacion.data.asociadaACliente) {
-        setRfidStatus("error");
-        setRfidError("Esta tarjeta no está asociada a ningún cliente");
-        return;
-      }
-
-      if (verificacion.data.cliente.id !== primerCliente) {
-        setRfidStatus("error");
-        setRfidError(
-          `Esta tarjeta no pertenece al dueño del pedido.\n\n` +
-            `Tarjeta de: ${verificacion.data.cliente.nombre} ${verificacion.data.cliente.apellido}\n` +
-            `Pedido de: ${nombreCliente}`
-        );
-        return;
-      }
-
-      // ¡Tarjeta válida! Cerrar modal de escaneo y procesar pago directamente
-      setRfidModalVisible(false);
-      procesarPago();
-    } catch (error) {
-      console.error("Error al escanear tarjeta:", error);
-      setRfidStatus("error");
-      setRfidError(
-        error.message ||
-          "No se pudo leer la tarjeta. Por favor, intente nuevamente."
-      );
-    }
-  };
-
-  const cerrarRfidModal = () => {
-    setRfidModalVisible(false);
-    setRfidStatus("scanning");
-    setRfidUid(null);
-    setRfidError("");
+    Alert.alert(
+      "Confirmar cobro",
+      `¿Cobrar $${totalPedidos.toFixed(2)}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Cobrar", onPress: () => procesarPago() },
+      ]
+    );
   };
 
   const procesarPago = async () => {
@@ -133,24 +54,21 @@ export default function PagoFacturaModal({
       const todosLosProductos = [];
       let observaciones = [];
 
-      pedidos.forEach((pedido) => {
-        pedido.productos.forEach((prod) => {
+      pedidos.forEach(pedido => {
+        pedido.productos.forEach(prod => {
           const producto = {
             idProducto: prod.idProducto,
             cantidad: prod.cantidad,
           };
-
+          
           // Solo incluir precioUnitario si está definido
-          if (
-            prod.precioUnitario !== undefined &&
-            prod.precioUnitario !== null
-          ) {
+          if (prod.precioUnitario !== undefined && prod.precioUnitario !== null) {
             producto.precioUnitario = prod.precioUnitario;
           }
-
+          
           todosLosProductos.push(producto);
         });
-
+        
         if (pedido.observaciones) {
           observaciones.push(pedido.observaciones);
         }
@@ -161,10 +79,10 @@ export default function PagoFacturaModal({
         idCliente: primerCliente || 1, // Cliente genérico si no hay cliente guardado
         productos: todosLosProductos,
       };
-
+      
       // Solo agregar observaciones si hay alguna
       if (observaciones.length > 0) {
-        datosConsumo.observaciones = observaciones.join(" | ");
+        datosConsumo.observaciones = observaciones.join(' | ');
       }
 
       // Agregar idMesa o idGrupo
@@ -174,48 +92,33 @@ export default function PagoFacturaModal({
         datosConsumo.idMesa = mesa.idMesa || mesa.id;
       }
 
-      console.log(
-        "🔵 Datos enviados a registrarConsumo:",
-        JSON.stringify(datosConsumo, null, 2)
+      console.log('🔵 Datos enviados a registrarConsumo:', JSON.stringify(datosConsumo, null, 2));
+
+      const respuestaConsumo = await transaccionesService.registrarConsumo(datosConsumo);
+      const facturaGenerada = respuestaConsumo.data || respuestaConsumo;
+
+      console.log('🔵 Factura generada:', facturaGenerada);
+
+      Alert.alert(
+        "Cobro exitoso",
+        `Factura #${facturaGenerada.id} cobrada: $${totalPedidos.toFixed(2)}`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              onPagoExitoso?.(facturaGenerada);
+              onClose();
+            },
+          },
+        ]
       );
-
-      const respuestaConsumo = await transaccionesService.registrarConsumo(
-        datosConsumo
-      );
-      const factura = respuestaConsumo.data || respuestaConsumo;
-
-      console.log("🔵 Factura generada:", factura);
-
-      // Guardar la factura en el estado para usarla después
-      setFacturaGenerada(factura);
-
-      // Mostrar modal de éxito con estética consistente
-      setSuccessMessage(
-        `Factura #${factura.id} cobrada\n$${totalPedidos.toFixed(2)}`
-      );
-      setSuccessModalVisible(true);
     } catch (error) {
       console.error("Error al procesar pago:", error);
-      const mensaje =
-        error.response?.data?.message ||
-        error.message ||
-        "No se pudo procesar el pago";
+      const mensaje = error.response?.data?.message || error.message || "No se pudo procesar el pago";
       Alert.alert("Error", mensaje);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSuccessModalClose = () => {
-    setSuccessModalVisible(false);
-    setSuccessMessage("");
-
-    // Llamar al callback y cerrar el modal principal después de cerrar el modal de éxito
-    if (facturaGenerada) {
-      onPagoExitoso?.(facturaGenerada);
-      setFacturaGenerada(null);
-    }
-    onClose();
   };
 
   const handleClose = () => {
@@ -225,12 +128,7 @@ export default function PagoFacturaModal({
   if (!pedidos || pedidos.length === 0) return null;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
@@ -238,11 +136,7 @@ export default function PagoFacturaModal({
             <View>
               <Text style={styles.title}>Cobrar Mesa</Text>
               <Text style={styles.subtitle}>
-                {mesa
-                  ? `Mesa ${mesa.numero}`
-                  : grupo
-                  ? `Grupo ${grupo.nombre}`
-                  : "Pedido"}
+                {mesa ? `Mesa ${mesa.numero}` : grupo ? `Grupo ${grupo.nombre}` : 'Pedido'}
               </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -250,31 +144,19 @@ export default function PagoFacturaModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Información de los Pedidos */}
             <View style={styles.facturaInfo}>
               <View style={styles.infoRow}>
-                <MaterialCommunityIcons
-                  name="receipt-text"
-                  size={20}
-                  color="#666"
-                />
+                <MaterialCommunityIcons name="receipt-text" size={20} color="#666" />
                 <Text style={styles.infoText}>
-                  {pedidos.length} {pedidos.length === 1 ? "pedido" : "pedidos"}{" "}
-                  activo(s)
+                  {pedidos.length} {pedidos.length === 1 ? 'pedido' : 'pedidos'} activo(s)
                 </Text>
               </View>
 
               {pedidos[0]?.nombreCliente && (
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons
-                    name="account"
-                    size={20}
-                    color="#666"
-                  />
+                  <MaterialCommunityIcons name="account" size={20} color="#666" />
                   <Text style={styles.infoText}>
                     {pedidos[0].nombreCliente}
                   </Text>
@@ -283,22 +165,14 @@ export default function PagoFacturaModal({
 
               {mesa && (
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons
-                    name="table-chair"
-                    size={20}
-                    color="#666"
-                  />
+                  <MaterialCommunityIcons name="table-chair" size={20} color="#666" />
                   <Text style={styles.infoText}>Mesa {mesa.numero}</Text>
                 </View>
               )}
 
               {grupo && (
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons
-                    name="table-furniture"
-                    size={20}
-                    color="#666"
-                  />
+                  <MaterialCommunityIcons name="table-furniture" size={20} color="#666" />
                   <Text style={styles.infoText}>Grupo: {grupo.nombre}</Text>
                 </View>
               )}
@@ -311,10 +185,9 @@ export default function PagoFacturaModal({
                 {pedidos.map((pedido, pedidoIdx) => (
                   <View key={pedido.id} style={styles.pedidoGroup}>
                     <Text style={styles.pedidoHeader}>
-                      Pedido #{pedidoIdx + 1} -{" "}
-                      {new Date(pedido.fecha).toLocaleTimeString("es-AR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
+                      Pedido #{pedidoIdx + 1} - {new Date(pedido.fecha).toLocaleTimeString('es-AR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </Text>
                     {pedido.productos.map((prod, idx) => (
@@ -324,15 +197,11 @@ export default function PagoFacturaModal({
                             {prod.nombre}
                           </Text>
                           <Text style={styles.detalleCantidad}>
-                            {prod.cantidad} x $
-                            {parseFloat(prod.precioUnitario).toFixed(2)}
+                            {prod.cantidad} x ${parseFloat(prod.precioUnitario).toFixed(2)}
                           </Text>
                         </View>
                         <Text style={styles.detalleSubtotal}>
-                          $
-                          {(
-                            prod.cantidad * parseFloat(prod.precioUnitario)
-                          ).toFixed(2)}
+                          ${(prod.cantidad * parseFloat(prod.precioUnitario)).toFixed(2)}
                         </Text>
                       </View>
                     ))}
@@ -359,11 +228,7 @@ export default function PagoFacturaModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.button,
-                styles.buttonPrimary,
-                loading && styles.buttonDisabled,
-              ]}
+              style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
               onPress={handleCobrar}
               disabled={loading}
             >
@@ -371,37 +236,14 @@ export default function PagoFacturaModal({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <MaterialCommunityIcons
-                    name="cash-register"
-                    size={20}
-                    color="#fff"
-                  />
-                  <Text style={styles.buttonPrimaryText}>
-                    Cobrar ${totalPedidos.toFixed(2)}
-                  </Text>
+                  <MaterialCommunityIcons name="cash-register" size={20} color="#fff" />
+                  <Text style={styles.buttonPrimaryText}>Cobrar ${totalPedidos.toFixed(2)}</Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
         </View>
       </View>
-
-      {/* Modal de escaneo RFID */}
-      <RfidScanModal
-        visible={rfidModalVisible}
-        status={rfidStatus}
-        uid={rfidUid}
-        errorMessage={rfidError}
-        onClose={cerrarRfidModal}
-      />
-
-      {/* Modal de éxito */}
-      <SuccessModal
-        visible={successModalVisible}
-        title="¡Cobro exitoso!"
-        message={successMessage}
-        onClose={handleSuccessModalClose}
-      />
     </Modal>
   );
 }
