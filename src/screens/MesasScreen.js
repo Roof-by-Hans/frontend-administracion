@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Defs, Pattern, Rect, Line } from "react-native-svg";
@@ -10,6 +10,7 @@ import GestionarMesasModal from "../components/GestionarMesasModal";
 import { useAuth } from "../context/AuthContext";
 import mesasService from "../services/mesasService";
 import { useMesasSocket } from "../hooks/useMesasSocket";
+import { useResponsive } from "../utils/responsiveUtils";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {
@@ -38,8 +39,9 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
-  const { width } = useWindowDimensions();
-  const isCompact = width < 768;
+  const responsive = useResponsive();
+  const { isMobile, isTablet } = responsive;
+
 
   // Hook personalizado de WebSocket para mesas
   const { 
@@ -764,7 +766,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           <View style={styles.headerLeft}>
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
+                <Text style={[styles.pageTitle, isMobile && styles.pageTitleCompact]}>Administrar Mesas</Text>
                 {/* Indicador de conexión WebSocket */}
                 <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
                   <Text style={styles.wsIndicatorText}>
@@ -786,7 +788,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               <MaterialCommunityIcons name="cog-outline" size={20} color="#868e96" />
             </TouchableOpacity>
           </View>
-          <View style={[styles.statsContainer, isCompact && styles.statsContainerCompact]}>
+          <View style={[styles.statsContainer, isMobile && styles.statsContainerCompact]}>
             <View style={styles.statItem}>
               <View style={[styles.statBadge, { backgroundColor: "#51cf66" }]}><Text style={styles.statNumber}>{stats.libres}</Text></View>
               <Text style={styles.statLabel}>Libres</Text>

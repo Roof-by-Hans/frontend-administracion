@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, useWindowDimensions, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useResponsive } from "../../utils/responsiveUtils";
+
 
 const mainMenuItems = [
   { icon: "table-furniture", label: "Gestionar Mesas", screen: "mesas" },
@@ -17,14 +19,15 @@ const secondaryMenuItems = [
   { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 
-const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
-  <View style={[styles.section, compact && styles.sectionCompact]}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+const MenuSection = ({ title, items, isMobile, onNavigate, currentScreen }) => (
+  <View style={[styles.section, isMobile && styles.sectionCompact]}>
+    <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>{title}</Text>
     {items.map((item) => (
       <Pressable
         key={item.label}
         style={({ hovered }) => [
           styles.menuItem,
+          isMobile && styles.menuItemMobile,
           hovered && styles.menuItemHovered,
           currentScreen === item.screen && styles.menuItemActive,
         ]}
@@ -33,11 +36,15 @@ const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
       >
         <MaterialCommunityIcons
           name={item.icon}
-          size={18}
+          size={isMobile ? 20 : 18}
           color={currentScreen === item.screen ? "#1f1f1f" : "#3f3f3f"}
           style={styles.menuIcon}
         />
-        <Text style={[styles.menuLabel, currentScreen === item.screen && styles.menuLabelActive]}>
+        <Text style={[
+          styles.menuLabel, 
+          isMobile && styles.menuLabelMobile,
+          currentScreen === item.screen && styles.menuLabelActive
+        ]}>
           {item.label}
         </Text>
       </Pressable>
@@ -46,14 +53,15 @@ const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
 );
 
 export default function Sidebar({ showCloseButton = false, onClose = () => {}, onLogout = () => {}, onNavigate = () => {}, currentScreen = "" }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 900;
+  const responsive = useResponsive();
+  const { isMobile } = responsive;
+
 
   return (
-    <View style={[styles.container, isCompact && styles.containerCompact]}>
+    <View style={[styles.container, isMobile && styles.containerCompact]}>
       {/* Header fijo */}
-      <View style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}>
-        <View style={[styles.brandContainer, isCompact && styles.brandContainerCompact]}>
+      <View style={[styles.brandHeader, isMobile && styles.brandHeaderCompact]}>
+        <View style={[styles.brandContainer, isMobile && styles.brandContainerCompact]}>
           <Image
             source={require("../../../assets/hans-logo.png")}
             style={styles.brandLogo}
@@ -81,18 +89,18 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
         showsVerticalScrollIndicator={true}
         bounces={false}
       >
-        <View style={[styles.menuWrapper, isCompact && styles.menuWrapperCompact]}>
+        <View style={[styles.menuWrapper, isMobile && styles.menuWrapperCompact]}>
           <MenuSection 
             title="Menú principal" 
             items={mainMenuItems} 
-            compact={isCompact} 
+            isMobile={isMobile} 
             onNavigate={onNavigate}
             currentScreen={currentScreen}
           />
           <MenuSection 
             title="Otras configuraciones" 
             items={secondaryMenuItems} 
-            compact={isCompact}
+            isMobile={isMobile}
             onNavigate={onNavigate}
             currentScreen={currentScreen}
           />
@@ -101,17 +109,21 @@ export default function Sidebar({ showCloseButton = false, onClose = () => {}, o
 
       {/* Footer fijo */}
       <Pressable
-        style={({ hovered }) => [styles.logout, hovered && styles.menuItemHovered]}
+        style={({ hovered }) => [
+          styles.logout, 
+          isMobile && styles.logoutMobile,
+          hovered && styles.menuItemHovered
+        ]}
         android_ripple={{ color: "#e2e2e2" }}
         onPress={onLogout}
       >
         <MaterialCommunityIcons
           name="logout"
-          size={18}
+          size={isMobile ? 20 : 18}
           color="#4a4a4a"
           style={styles.menuIcon}
         />
-        <Text style={styles.menuLabel}>Cerrar Sesión</Text>
+        <Text style={[styles.menuLabel, isMobile && styles.menuLabelMobile]}>Cerrar Sesión</Text>
       </Pressable>
     </View>
   );
@@ -198,6 +210,10 @@ const styles = StyleSheet.create({
     color: "#1f1f1f",
     marginBottom: 18,
   },
+  sectionTitleMobile: {
+    fontSize: 14,
+    marginBottom: 14,
+  },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -206,6 +222,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     gap: 12,
+  },
+  menuItemMobile: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    gap: 14,
   },
   menuItemHovered: {
     backgroundColor: "#e7e7e7",
@@ -219,6 +241,9 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 14,
     color: "#4a4a4a",
+  },
+  menuLabelMobile: {
+    fontSize: 15,
   },
   menuLabelActive: {
     fontWeight: "600",
@@ -236,5 +261,10 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 18,
     marginTop: 8,
+  },
+  logoutMobile: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    gap: 14,
   },
 });

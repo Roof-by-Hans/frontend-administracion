@@ -1,33 +1,35 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
+import { useResponsive } from "../utils/responsiveUtils";
 
 export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [selectedClient, setSelectedClient] = useState("maximo");
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
-  const { width } = useWindowDimensions();
-  const isCompact = width < 768;
+  const responsive = useResponsive();
+  const { isMobile, isTablet } = responsive;
+
 
   return (
     <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
       <View style={styles.wrapper}>
         <Text
-          style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}
+          style={[styles.pageTitle, isMobile && styles.pageTitleCompact]}
           numberOfLines={2}
           adjustsFontSizeToFit
         >
           Facturas
         </Text>
-        <Text style={[styles.pageSubtitle, isCompact && styles.pageSubtitleCompact]}>
+        <Text style={[styles.pageSubtitle, isMobile && styles.pageSubtitleCompact]}>
           Gestiona y revisa las facturas generadas para tus clientes.
         </Text>
 
-        <View style={[styles.filterRow, isCompact && styles.filterRowCompact]}>
-          <Text style={styles.filterLabel}>Seleccione un cliente:</Text>
-          <View style={[styles.pickerWrapper, isCompact && styles.pickerWrapperCompact]}>
+        <View style={[styles.filterRow, isMobile && styles.filterRowCompact]}>
+          <Text style={[styles.filterLabel, isMobile && styles.filterLabelMobile]}>Seleccione un cliente:</Text>
+          <View style={[styles.pickerWrapper, isMobile && styles.pickerWrapperCompact]}>
             <Picker
               selectedValue={selectedClient}
               onValueChange={(value) => setSelectedClient(value)}
@@ -40,9 +42,9 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        <View style={[styles.placeholderCard, isCompact && styles.placeholderCardCompact]}>
-          <Text style={styles.placeholderTitle}>Facturas del cliente</Text>
-          <Text style={styles.placeholderText}>
+        <View style={[styles.placeholderCard, isMobile && styles.placeholderCardCompact]}>
+          <Text style={[styles.placeholderTitle, isMobile && styles.placeholderTitleMobile]}>Facturas del cliente</Text>
+          <Text style={[styles.placeholderText, isMobile && styles.placeholderTextMobile]}>
             Aquí se listarán las facturas correspondientes a {selectedClient === "maximo" ? "Máximo Majorel" : selectedClient === "laura" ? "Laura Pérez" : "Juan Andrade"}.
           </Text>
         </View>
@@ -87,6 +89,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
+  filterLabelMobile: {
+    fontSize: 15,
+    marginBottom: 8,
+  },
   pickerWrapper: {
     width: 220,
     backgroundColor: "#fff",
@@ -117,9 +123,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#2f2f2f",
   },
+  placeholderTitleMobile: {
+    fontSize: 17,
+  },
   placeholderText: {
     fontSize: 16,
     color: "#666",
     textAlign: "center",
+  },
+  placeholderTextMobile: {
+    fontSize: 15,
   },
 });

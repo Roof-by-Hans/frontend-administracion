@@ -14,24 +14,26 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { useResponsive, getSidebarWidth, getHorizontalPadding, getVerticalPadding } from "../../utils/responsiveUtils";
+
 
 export default function DashboardLayout({ children, userName, onLogout, onNavigate, currentScreen }) {
   const { width } = useWindowDimensions();
-  const isCompact = width < 900;
-  const isTablet = width >= 900 && width < 1200;
+  const responsive = useResponsive();
+  const { isMobile, isTablet, deviceType } = responsive;
   const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const animationValue = useRef(new Animated.Value(0)).current;
-  const overlayWidth = useMemo(() => Math.min(Math.max(width * 0.75, 240), 320), [width]);
+  const overlayWidth = useMemo(() => getSidebarWidth(deviceType, width), [deviceType, width]);
 
   const openMenu = useCallback(() => {
     setIsMenuVisible(true);
     animationValue.stopAnimation(() => {
       Animated.timing(animationValue, {
         toValue: 1,
-        duration: 220,
-        easing: Easing.out(Easing.ease),
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
     });
@@ -42,8 +44,8 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
       animationValue.stopAnimation(() => {
         Animated.timing(animationValue, {
           toValue: 0,
-          duration: 200,
-          easing: Easing.in(Easing.ease),
+          duration: 220,
+          easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }).start(({ finished }) => {
           if (finished) {
@@ -72,11 +74,19 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
     }
   }, [closeMenu, isMenuVisible]);
 
+  // Cerrar menú automáticamente en mobile cuando cambia la pantalla
   useEffect(() => {
-    if (!isCompact && isMenuVisible) {
+    if (isMobile && isMenuVisible) {
       closeMenu();
     }
-  }, [closeMenu, isCompact, isMenuVisible]);
+  }, [currentScreen]);
+
+  // Cerrar menú si el dispositivo cambia de mobile a tablet/desktop
+  useEffect(() => {
+    if (!isMobile && isMenuVisible) {
+      closeMenu();
+    }
+  }, [closeMenu, isMobile, isMenuVisible]);
 
   const backdropOpacity = animationValue;
   const sidebarTranslate = animationValue.interpolate({
@@ -86,12 +96,12 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
 
   const handleLogoutRequest = useCallback(() => {
     const revealPrompt = () => setShowLogoutPrompt(true);
-    if (isCompact && isMenuVisible) {
+    if (isMobile && isMenuVisible) {
       closeMenu(revealPrompt);
     } else {
       revealPrompt();
     }
-  }, [closeMenu, isCompact, isMenuVisible]);
+  }, [closeMenu, isMobile, isMenuVisible]);
 
   const handleConfirmLogout = useCallback(() => {
     setShowLogoutPrompt(false);
@@ -102,28 +112,40 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
     setShowLogoutPrompt(false);
   }, []);
 
+  // Wrapper para onNavigate que cierra el menú en mobile
+  const handleNavigate = useCallback((screen) => {
+    if (isMobile && isMenuVisible) {
+      closeMenu(() => {
+        onNavigate?.(screen);
+      });
+    } else {
+      onNavigate?.(screen);
+    }
+  }, [isMobile, isMenuVisible, closeMenu, onNavigate]);
+
+
   return (
     <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top }] }>
-      <View style={[styles.root, isCompact && styles.rootCompact]}>
-      {!isCompact && (
+      <View style={[styles.root, isMobile && styles.rootCompact]}>
+      {!isMobile && (
         <View style={styles.sidebarWrapper}>
-          <Sidebar onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
+          <Sidebar onLogout={handleLogoutRequest} onNavigate={handleNavigate} currentScreen={currentScreen} />
         </View>
       )}
       <View style={styles.mainArea}>
         <Topbar
           userName={userName}
           onLogout={handleLogoutRequest}
-          showMenuButton={isCompact}
+          showMenuButton={isMobile}
           onMenuPress={handleToggleMenu}
         />
         <View
-          style={[styles.content, isTablet && styles.contentTablet, isCompact && styles.contentCompact]}
+          style={[styles.content, isTablet && styles.contentTablet, isMobile && styles.contentCompact]}
         >
           {children}
         </View>
       </View>
-      {isCompact && isMenuVisible && (
+      {isMobile && isMenuVisible && (
         <View style={styles.sidebarOverlay} pointerEvents="box-none">
           <Animated.View
             pointerEvents="none"
@@ -139,7 +161,7 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
               },
             ]}
           >
-            <Sidebar showCloseButton onClose={handleCloseMenu} onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
+            <Sidebar showCloseButton onClose={handleCloseMenu} onLogout={handleLogoutRequest} onNavigate={handleNavigate} currentScreen={currentScreen} />
           </Animated.View>
         </View>
       )}
@@ -243,7 +265,7 @@ const styles = StyleSheet.create({
   },
   overlayBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   overlaySidebar: {
     position: "absolute",

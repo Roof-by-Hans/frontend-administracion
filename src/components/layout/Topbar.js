@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useResponsive } from "../../utils/responsiveUtils";
 
 export default function Topbar({
   userName = "Usuario",
@@ -8,12 +9,13 @@ export default function Topbar({
   showMenuButton = false,
   onMenuPress = () => {},
 }) {
-  const { width } = useWindowDimensions();
-  const isCompact = width < 768;
+  const responsive = useResponsive();
+  const { isMobile, isTablet } = responsive;
+
 
   return (
-    <View style={[styles.container, isCompact && styles.containerCompact]}>
-      <View style={[styles.leftBlock, isCompact && styles.leftBlockCompact]}>
+    <View style={[styles.container, isMobile && styles.containerCompact]}>
+      <View style={[styles.leftBlock, isMobile && styles.leftBlockCompact]}>
         {showMenuButton && (
           <TouchableOpacity
             style={styles.menuButton}
@@ -25,13 +27,13 @@ export default function Topbar({
             <MaterialCommunityIcons name="menu" size={24} color="#333" />
           </TouchableOpacity>
         )}
-        <Text style={[styles.greetingText, isCompact && styles.greetingTextCompact]} numberOfLines={1}>
+        <Text style={[styles.greetingText, isMobile && styles.greetingTextCompact]} numberOfLines={1}>
           ¡Hola <Text style={styles.userName}>{userName}</Text>!
         </Text>
       </View>
 
-      <View style={[styles.rightBlock, isCompact && styles.rightBlockCompact]}>
-        {!isCompact && (
+      <View style={[styles.rightBlock, isMobile && styles.rightBlockCompact]}>
+        {!isMobile && (
           <View style={styles.userActions}>
             <MaterialCommunityIcons name="account-circle" size={28} color="#4a4a4a" />
             <TouchableOpacity
@@ -140,5 +142,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     backgroundColor: "#e8e8e8",
+    marginRight: 4,
   },
 });
