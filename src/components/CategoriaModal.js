@@ -313,7 +313,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: "#333",
-    outlineStyle: "none",
   },
   inputError: {
     borderColor: "#d32f2f",
@@ -334,8 +333,6 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: 10,
     fontSize: 14,
-    border: "none",
-    outline: "none",
     backgroundColor: "transparent",
   },
   helperText: {

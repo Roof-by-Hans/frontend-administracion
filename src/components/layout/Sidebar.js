@@ -6,16 +6,29 @@ import { useResponsive } from "../../utils/responsiveUtils";
 
 const mainMenuItems = [
   { icon: "table-furniture", label: "Gestionar Mesas", screen: "mesas" },
-  { icon: "account-group-outline", label: "Gestionar Clientes", screen: "clientes" },
+  {
+    icon: "account-group-outline",
+    label: "Gestionar Clientes",
+    screen: "clientes",
+  },
   { icon: "account-tie", label: "Gestionar Mozos", screen: "mozos" },
   { icon: "basket-outline", label: "Gestionar Productos", screen: "productos" },
-  { icon: "shape-outline", label: "Gestionar Categorías", screen: "categorias" },
+  {
+    icon: "shape-outline",
+    label: "Gestionar Categorías",
+    screen: "categorias",
+  },
   { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
   { icon: "cash-register", label: "Caja", screen: "caja" },
 ];
 
 const secondaryMenuItems = [
-  { icon: "card-text-outline", label: "Emitir Tarjeta", screen: "emitir-tarjeta" },
+  {
+    icon: "card-text-outline",
+    label: "Emitir Tarjeta",
+    screen: "emitir-tarjeta",
+  },
+  { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
   { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 

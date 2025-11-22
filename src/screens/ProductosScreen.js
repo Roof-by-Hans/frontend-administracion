@@ -288,7 +288,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar productos por nombre, categoría o precio..."
+                placeholder="Buscar productos..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}

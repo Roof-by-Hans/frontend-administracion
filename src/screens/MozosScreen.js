@@ -193,7 +193,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar mozos por nombre, apellido, teléfono o turno..."
+                placeholder="Buscar mozos..."
                 placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
