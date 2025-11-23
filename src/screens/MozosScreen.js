@@ -134,21 +134,21 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   // Función para abrir modal de confirmación de eliminación
   const handleEliminarMozo = (mozoId) => {
     setMozoAEliminar(mozoId);
-    setConfirmModalVisible(true);
+    setConfirmVisible(true);
   };
 
   // Función para confirmar la eliminación
   const confirmarEliminacion = () => {
     if (mozoAEliminar) {
       setMozos(mozos.filter(m => m.id !== mozoAEliminar));
-      setConfirmModalVisible(false);
+      setConfirmVisible(false);
       setMozoAEliminar(null);
     }
   };
 
   // Función para cancelar la eliminación
   const cancelarEliminacion = () => {
-    setConfirmModalVisible(false);
+    setConfirmVisible(false);
     setMozoAEliminar(null);
   };
 
@@ -234,7 +234,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
 
         {/* Modal de confirmación para eliminar */}
         <ConfirmModal
-          visible={confirmModalVisible}
+          visible={confirmVisible}
           title="Eliminar Mozo"
           message="¿Estás seguro de que deseas eliminar este mozo? Esta acción no se puede deshacer."
           onConfirm={confirmarEliminacion}

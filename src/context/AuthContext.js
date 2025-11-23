@@ -57,7 +57,44 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Llamar al servicio de autenticación
+      // MODO DESARROLLO - Login sin backend
+      const DEV_MODE = true; // Cambiar a false para usar backend real
+      
+      if (DEV_MODE) {
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Usuario de prueba
+        const mockUser = {
+          id: 1,
+          nombre: nombreUsuario || 'Usuario',
+          rol: 'administrador',
+          email: 'admin@example.com',
+        };
+        
+        const mockToken = 'dev-token-' + Date.now();
+        
+        // Guardar en AsyncStorage
+        try {
+          await AsyncStorage.setItem('token', mockToken);
+          await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+          
+          if (recordarme) {
+            await AsyncStorage.setItem('recordarme', 'true');
+          }
+        } catch (storageError) {
+          console.error('Error al guardar en AsyncStorage:', storageError);
+        }
+        
+        // Actualizar el estado
+        setUser(mockUser);
+        setIsAuthenticated(true);
+        setLoading(false);
+        
+        return true;
+      }
+      
+      // Llamar al servicio de autenticación (cuando DEV_MODE = false)
       const response = await authService.login(nombreUsuario, contrasena);
       
       if (response.success && response.data) {

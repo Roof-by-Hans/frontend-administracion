@@ -166,7 +166,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   // Función para abrir modal de confirmación de eliminación
   const handleEliminarProducto = (productoId) => {
     setProductoAEliminar(productoId);
-    setConfirmModalVisible(true);
+    setConfirmVisible(true);
   };
 
   // Función para confirmar la eliminación
@@ -178,7 +178,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         
         // Actualizar la lista local
         setProductos(productos.filter(p => p.id !== productoAEliminar));
-        setConfirmModalVisible(false);
+        setConfirmVisible(false);
         setProductoAEliminar(null);
         Alert.alert("Éxito", "Producto eliminado correctamente.");
       } catch (error) {
@@ -192,7 +192,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
 
   // Función para cancelar la eliminación
   const cancelarEliminacion = () => {
-    setConfirmModalVisible(false);
+    setConfirmVisible(false);
     setProductoAEliminar(null);
   };
 
@@ -343,7 +343,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
 
         {/* Modal de confirmación para eliminar */}
         <ConfirmModal
-          visible={confirmModalVisible}
+          visible={confirmVisible}
           title="Eliminar Producto"
           message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
           onConfirm={confirmarEliminacion}

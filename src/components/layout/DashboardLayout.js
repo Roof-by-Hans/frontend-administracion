@@ -23,6 +23,7 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   // const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
+  const [userPhoto, setUserPhoto] = useState(null);
   const animationValue = useRef(new Animated.Value(0)).current;
   const overlayWidth = useMemo(() => Math.min(Math.max(width * 0.75, 240), 320), [width]);
 
@@ -103,6 +104,10 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
     setShowLogoutPrompt(false);
   }, []);
 
+  const handlePhotoChange = useCallback((photoUri) => {
+    setUserPhoto(photoUri);
+  }, []);
+
   return (
     <View style={[styles.safeArea]}>
       <View style={[styles.root, isCompact && styles.rootCompact]}>
@@ -117,6 +122,8 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
           onLogout={handleLogoutRequest}
           showMenuButton={isCompact}
           onMenuPress={handleToggleMenu}
+          userPhoto={userPhoto}
+          onPhotoChange={handlePhotoChange}
         />
         <ScrollView
           style={styles.scrollContainer}
