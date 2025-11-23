@@ -82,6 +82,44 @@ const tarjetaService = {
       throw error;
     }
   },
+
+  /**
+   * Cargar saldo a una tarjeta
+   * @param {number} idCliente - ID del cliente
+   * @param {number} monto - Monto a cargar
+   * @param {string} metodoPago - Método de pago (Efectivo, Tarjeta de Débito, etc.)
+   * @param {string} [observaciones] - Observaciones opcionales
+   * @returns {Promise} Resultado de la transacción
+   */
+  cargarSaldo: async (idCliente, monto, metodoPago, observaciones = "") => {
+    try {
+      const response = await api.post("/transacciones/recarga", {
+        idCliente,
+        monto,
+        metodoPago,
+        observaciones,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error al cargar saldo:", error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener tarjeta por ID
+   * @param {number} idTarjeta - ID de la tarjeta
+   * @returns {Promise} Información de la tarjeta
+   */
+  getTarjetaPorId: async (idTarjeta) => {
+    try {
+      const response = await api.get(`/tarjetas/${idTarjeta}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener tarjeta:", error.message);
+      throw error;
+    }
+  },
 };
 
 export default tarjetaService;
