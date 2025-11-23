@@ -1545,7 +1545,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
   loadingContainer: { 
     justifyContent: 'center', 
     alignItems: 'center', 
