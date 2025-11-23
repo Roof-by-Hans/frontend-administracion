@@ -9,8 +9,9 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+// import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -19,7 +20,7 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
   const isTablet = width >= 900 && width < 1200;
-  const insets = useSafeAreaInsets();
+  // const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const animationValue = useRef(new Animated.Value(0)).current;
@@ -103,7 +104,7 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   }, []);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top }] }>
+    <View style={[styles.safeArea]}>
       <View style={[styles.root, isCompact && styles.rootCompact]}>
       {!isCompact && (
         <View style={styles.sidebarWrapper}>
@@ -117,11 +118,22 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
           showMenuButton={isCompact}
           onMenuPress={handleToggleMenu}
         />
-        <View
-          style={[styles.content, isTablet && styles.contentTablet, isCompact && styles.contentCompact]}
+        <ScrollView
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
         >
-          {children}
-        </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            nestedScrollEnabled={true}
+            contentContainerStyle={{ minWidth: '100%' }}
+          >
+            <View style={[styles.content, isTablet && styles.contentTablet, isCompact && styles.contentCompact]}>
+              {children}
+            </View>
+          </ScrollView>
+        </ScrollView>
       </View>
       {isCompact && isMenuVisible && (
         <View style={styles.sidebarOverlay} pointerEvents="box-none">
@@ -149,7 +161,7 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
         onConfirm={handleConfirmLogout}
       />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -205,7 +217,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f5f5f5",
     position: "relative",
   },
   rootCompact: {
@@ -219,8 +231,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  content: {
+  scrollContainer: {
     flex: 1,
+  },
+  content: {
+    minWidth: 800,
+    width: '100%',
     paddingHorizontal: 32,
     paddingVertical: 28,
     backgroundColor: "#f5f5f5",

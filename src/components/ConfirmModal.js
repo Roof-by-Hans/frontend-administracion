@@ -8,13 +8,22 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function ConfirmModal({ visible, title, message, onConfirm, onCancel }) {
+export default function ConfirmModal({ 
+  visible, 
+  title, 
+  message, 
+  onConfirm, 
+  onClose, 
+  confirmText = "Eliminar",
+  confirmIcon = "delete",
+  confirmColor = "#f44336"
+}) {
   return (
     <Modal
       visible={visible}
       animationType="fade"
       transparent={true}
-      onRequestClose={onCancel}
+      onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -33,16 +42,16 @@ export default function ConfirmModal({ visible, title, message, onConfirm, onCan
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
-              onPress={onCancel}
+              onPress={onClose}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.confirmButton]}
+              style={[styles.button, styles.confirmButton, { backgroundColor: confirmColor }]}
               onPress={onConfirm}
             >
-              <MaterialCommunityIcons name="delete" size={20} color="#fff" />
-              <Text style={styles.confirmButtonText}>Eliminar</Text>
+              <MaterialCommunityIcons name={confirmIcon} size={20} color="#fff" />
+              <Text style={styles.confirmButtonText}>{confirmText}</Text>
             </TouchableOpacity>
           </View>
         </View>
