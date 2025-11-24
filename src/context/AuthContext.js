@@ -45,6 +45,29 @@ export const AuthProvider = ({ children }) => {
     checkStoredSession();
   }, []);
 
+  // Verificar periódicamente si el token sigue existiendo (detecta cuando es eliminado por JWT expirado)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkTokenInterval = setInterval(async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        
+        // Si el usuario está autenticado pero el token fue eliminado, cerrar sesión
+        if (!token && isAuthenticated) {
+          console.log('Token eliminado - cerrando sesión');
+          setUser(null);
+          setIsAuthenticated(false);
+          setError('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
+        }
+      } catch (err) {
+        console.error('Error al verificar token:', err);
+      }
+    }, 2000); // Verificar cada 2 segundos
+
+    return () => clearInterval(checkTokenInterval);
+  }, [isAuthenticated]);
+
   /**
    * Iniciar sesión con credenciales
    * @param {string} nombreUsuario - Nombre de usuario
