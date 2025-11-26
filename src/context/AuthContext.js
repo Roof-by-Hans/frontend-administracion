@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import authService from "../services/authService";
 
 const AuthContext = createContext();
 
@@ -14,27 +16,115 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const login = (userData, authToken) => {
-    console.log("Logging in user:", userData);
-    setUser(userData);
-    setToken(authToken);
-    setIsAuthenticated(true);
-    // Guardar en localStorage para persistencia en web
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem("token", authToken);
-      localStorage.setItem("user", JSON.stringify(userData));
+  // Cargar sesión guardada (AsyncStorage)
+  useEffect(() => {
+    const checkStoredSession = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("token");
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error("Error al cargar sesión guardada:", err);
+        try {
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("user");
+        } catch (e) {
+          console.error("Error al limpiar storage:", e);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkStoredSession();
+  }, []);
+
+  // login: soporte dual para compatibilidad con código existente
+  // - Si se llama como login(userData, token) -> guarda esa sesión
+  // - Si se llama como login(nombreUsuario, contrasena, recordarme) -> usa authService
+  const login = async (a, b, c = false) => {
+    // Caso 1: llamada desde el antiguo flujo: login(userData, token)
+    if (typeof a === "object" && typeof b === "string") {
+      const userData = a;
+      const authToken = b;
+      setUser(userData);
+      setToken(authToken);
+      setIsAuthenticated(true);
+      try {
+        await AsyncStorage.setItem("token", authToken);
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
+      } catch (err) {
+        console.error("Error al guardar sesión en AsyncStorage:", err);
+      }
+      return true;
+    }
+
+    // Caso 2: llamada con credenciales: login(nombreUsuario, contrasena, recordarme)
+    const nombreUsuario = a;
+    const contrasena = b;
+    const recordarme = c;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await authService.login(nombreUsuario, contrasena);
+      if (response && response.data) {
+        const { token: receivedToken, usuario } = response.data;
+        setUser(usuario);
+        setToken(receivedToken);
+        setIsAuthenticated(true);
+        try {
+          await AsyncStorage.setItem("token", receivedToken);
+          await AsyncStorage.setItem("user", JSON.stringify(usuario));
+          if (recordarme) {
+            await AsyncStorage.setItem("recordarme", "true");
+          }
+        } catch (storageErr) {
+          console.error("Error al guardar en AsyncStorage:", storageErr);
+        }
+        setLoading(false);
+        return true;
+      } else {
+        setError(response?.message || "Error al iniciar sesión");
+        setLoading(false);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error en login:", err);
+      let errorMessage = "Error al conectar con el servidor";
+      if (err.response) {
+        if (err.response.status === 401)
+          errorMessage = "Usuario o contraseña incorrectos";
+        else if (err.response.status === 403)
+          errorMessage = "Usuario inactivo. Contacte al administrador.";
+        else if (err.response.data?.message)
+          errorMessage = err.response.data.message;
+      } else if (err.request) {
+        errorMessage =
+          "No se pudo conectar con el servidor. Verifique su conexión.";
+      }
+      setError(errorMessage);
+      setLoading(false);
+      return false;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
-    // Limpiar localStorage
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    try {
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("user");
+      await AsyncStorage.removeItem("recordarme");
+    } catch (err) {
+      console.error("Error al limpiar AsyncStorage en logout:", err);
     }
   };
 
@@ -46,6 +136,8 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         logout,
+        loading,
+        error,
       }}
     >
       {children}

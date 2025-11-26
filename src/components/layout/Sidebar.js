@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -20,7 +20,11 @@ const mainMenuItems = [
   },
   { icon: "account-tie", label: "Gestionar Mozos", screen: "mozos" },
   { icon: "basket-outline", label: "Gestionar Productos", screen: "productos" },
-  { icon: "shape-outline", label: "Gestionar Categorías", screen: "categorias" },
+  {
+    icon: "shape-outline",
+    label: "Gestionar Categorías",
+    screen: "categorias",
+  },
   { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
   { icon: "cash-register", label: "Caja", screen: "caja" },
 ];
@@ -31,6 +35,7 @@ const secondaryMenuItems = [
     label: "Emitir Tarjeta",
     screen: "emitir-tarjeta",
   },
+  { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
   {
     icon: "account-cog-outline",
     label: "Gestión de Usuarios",

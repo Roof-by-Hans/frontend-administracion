@@ -14,7 +14,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -257,6 +257,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       onNavigate={onNavigate} 
       currentScreen={currentScreen}
       userName={userName}
+      onLogout={logout}
     >
       <View style={styles.container}>
         {/* Header */}
