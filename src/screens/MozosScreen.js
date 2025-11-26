@@ -4,14 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import MozoModal from "../components/MozoModal";
+import DataTable from "../components/DataTable";
 import { getMozos, getMozosActivos } from "../services/mozoService";
 import { useAuth } from "../context/AuthContext";
 
@@ -20,8 +19,6 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   const displayName = user?.usuario || "Usuario";
   const [mozos, setMozos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [mozoEditando, setMozoEditando] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,29 +44,104 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   // Filtrar mozos
   const mozosFiltrados = mozos.filter((mozo) => {
     const nombreUsuario = mozo.nombreUsuario?.toLowerCase() || "";
-    return nombreUsuario.includes(busqueda.toLowerCase());
+    const nombre = mozo.nombre?.toLowerCase() || "";
+    const apellido = mozo.apellido?.toLowerCase() || "";
+    const busquedaLower = busqueda.toLowerCase();
+
+    return (
+      nombreUsuario.includes(busquedaLower) ||
+      nombre.includes(busquedaLower) ||
+      apellido.includes(busquedaLower)
+    );
   });
 
-  const handleAgregarMozo = () => {
-    Alert.alert(
-      "Información",
-      "Para agregar un mozo, ve a 'Gestión de Usuarios' y asigna el rol 'Mozo' a un usuario"
-    );
-  };
-
-  const handleEditarMozo = (mozo) => {
-    Alert.alert(
-      "Información",
-      "Para editar un mozo, ve a 'Gestión de Usuarios'"
-    );
-  };
-
-  const handleEliminarMozo = (id) => {
-    Alert.alert(
-      "Información",
-      "Para eliminar un mozo, ve a 'Gestión de Usuarios'"
-    );
-  };
+  // Definir columnas para DataTable
+  const columns = [
+    {
+      field: "nombreUsuario",
+      headerName: "Usuario",
+      width: 150,
+      headerAlign: "center",
+      align: "left",
+    },
+    {
+      field: "nombre",
+      headerName: "Nombre",
+      flex: 1,
+      minWidth: 150,
+      headerAlign: "center",
+      align: "left",
+    },
+    {
+      field: "apellido",
+      headerName: "Apellido",
+      flex: 1,
+      minWidth: 150,
+      headerAlign: "center",
+      align: "left",
+    },
+    {
+      field: "activo",
+      headerName: "Estado",
+      width: 130,
+      headerAlign: "center",
+      align: "center",
+      renderCell: (params) => (
+        <View
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+            width: "100%",
+          }}
+        >
+          <View
+            style={[
+              styles.estadoBadge,
+              params.row.activo ? styles.estadoActivo : styles.estadoInactivo,
+            ]}
+          >
+            <Text
+              style={[
+                styles.estadoText,
+                { color: params.row.activo ? "#2e7d32" : "#c62828" },
+              ]}
+            >
+              {params.row.activo ? "Activo" : "Inactivo"}
+            </Text>
+          </View>
+        </View>
+      ),
+    },
+    {
+      field: "roles",
+      headerName: "Roles",
+      width: 130,
+      headerAlign: "center",
+      align: "center",
+      renderCell: (params) => (
+        <View
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+            width: "100%",
+          }}
+        >
+          <View style={styles.rolesContainer}>
+            {params.row.roles &&
+              params.row.roles.map((rol, index) => (
+                <View key={index} style={styles.rolBadge}>
+                  <Text style={styles.rolText}>{rol}</Text>
+                </View>
+              ))}
+          </View>
+        </View>
+      ),
+    },
+  ];
 
   return (
     <DashboardLayout
@@ -102,9 +174,21 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
                 onChangeText={setBusqueda}
                 placeholderTextColor="#999"
               />
+              {busqueda.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setBusqueda("")}
+                  style={styles.clearButton}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={20}
+                    color="#999"
+                  />
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* Botón actualizar a la derecha */}
+            {/* Botón actualizar */}
             <TouchableOpacity
               style={styles.refreshButton}
               onPress={cargarMozos}
@@ -123,6 +207,11 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* DataTable */}
+        {!loading && !error && (
+          <DataTable rows={mozosFiltrados} columns={columns} pageSize={10} />
+        )}
 
         {/* Loading */}
         {loading && (
@@ -147,73 +236,15 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Tabla de mozos */}
-        {!loading && !error && (
-          <View style={styles.tableContainer}>
-            {/* Header de la tabla */}
-            <View style={styles.tableHeader}>
-              <View style={styles.tableHeaderCell}>
-                <Text style={styles.tableHeaderText}>Usuario</Text>
-              </View>
-              <View style={styles.tableHeaderCell}>
-                <Text style={styles.tableHeaderText}>Estado</Text>
-              </View>
-              <View style={styles.tableHeaderCell}>
-                <Text style={styles.tableHeaderText}>Roles</Text>
-              </View>
-            </View>
-
-            {/* Filas de la tabla */}
-            <ScrollView style={styles.tableBody}>
-              {mozosFiltrados.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons
-                    name="account-tie"
-                    size={48}
-                    color="#ccc"
-                  />
-                  <Text style={styles.emptyStateText}>
-                    {busqueda
-                      ? "No se encontraron mozos"
-                      : "No hay mozos activos. Ve a 'Gestión de Usuarios' para asignar el rol Mozo"}
-                  </Text>
-                </View>
-              ) : (
-                mozosFiltrados.map((mozo) => (
-                  <View key={mozo.id} style={styles.tableRow}>
-                    <View style={styles.tableCell}>
-                      <Text style={styles.tableCellText}>
-                        {mozo.nombreUsuario}
-                      </Text>
-                    </View>
-                    <View style={styles.tableCell}>
-                      <View
-                        style={[
-                          styles.estadoBadge,
-                          mozo.activo
-                            ? styles.estadoActivo
-                            : styles.estadoInactivo,
-                        ]}
-                      >
-                        <Text style={styles.estadoText}>
-                          {mozo.activo ? "Activo" : "Inactivo"}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.tableCell}>
-                      <View style={styles.rolesContainer}>
-                        {mozo.roles &&
-                          mozo.roles.map((rol, index) => (
-                            <View key={index} style={styles.rolBadge}>
-                              <Text style={styles.rolText}>{rol}</Text>
-                            </View>
-                          ))}
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
+        {/* Empty state */}
+        {!loading && !error && mozosFiltrados.length === 0 && (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="account-tie" size={64} color="#ccc" />
+            <Text style={styles.emptyStateText}>
+              {busqueda
+                ? "No se encontraron mozos"
+                : "No hay mozos activos. Ve a 'Gestión de Usuarios' para asignar el rol Mozo"}
+            </Text>
           </View>
         )}
       </View>
@@ -294,13 +325,13 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 300,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
@@ -310,8 +341,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#1f1f1f",
+    color: "#333",
     outlineStyle: "none",
+  },
+  clearButton: {
+    marginLeft: 8,
   },
   addButton: {
     flexDirection: "row",
@@ -367,18 +401,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: "#fff",
   },
-  tableCell: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  tableCellAcciones: {
-    flex: 0.8,
-    alignItems: "center",
-  },
-  tableCellText: {
-    fontSize: 14,
-    color: "#3f3f3f",
-  },
   estadoBadge: {
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -386,56 +408,43 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   estadoActivo: {
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "#e8f5e9",
   },
   estadoInactivo: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#ffebee",
   },
   estadoText: {
     fontSize: 12,
     fontWeight: "600",
+    textAlign: "center",
   },
   rolesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 4,
   },
   rolBadge: {
-    backgroundColor: "#DBEAFE",
+    backgroundColor: "#e3f2fd",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
   },
   rolText: {
-    fontSize: 12,
-    color: "#1E40AF",
+    fontSize: 11,
+    color: "#1976d2",
     fontWeight: "500",
-  },
-  actionsContainer: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteButton: {
-    backgroundColor: "#E53935",
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyStateText: {
     fontSize: 16,
     color: "#999",
-    marginTop: 12,
+    marginTop: 20,
+    textAlign: "center",
   },
 });
