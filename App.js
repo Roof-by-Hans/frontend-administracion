@@ -10,7 +10,6 @@ import MesasScreen from "./src/screens/MesasScreen";
 import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
 import MozosScreen from "./src/screens/MozosScreen";
-import GestionUsuariosScreen from "./src/screens/GestionUsuariosScreen";
 import ProductosScreen from "./src/screens/ProductosScreen";
 import CajaScreen from "./src/screens/CajaScreen";
 import CategoriasScreen from "./src/screens/CategoriasScreen";
@@ -46,13 +45,6 @@ function AppContent() {
     case "mozos":
       return (
         <MozosScreen
-          onNavigate={handleNavigate}
-          currentScreen={currentScreen}
-        />
-      );
-    case "gestion-usuarios":
-      return (
-        <GestionUsuariosScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />

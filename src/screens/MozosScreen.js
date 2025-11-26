@@ -1,165 +1,190 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import MozoModal from "../components/MozoModal";
+import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
-import { getMozos, getMozosActivos } from "../services/mozoService";
 import { useAuth } from "../context/AuthContext";
 
+// Datos iniciales de mozos (vacío - se llenarán manualmente)
+const MOZOS_INICIALES = [];
+
+const STORAGE_KEY = "mozos_data";
+
 export default function MozosScreen({ onNavigate, currentScreen }) {
-  const { user, logout } = useAuth();
-  const displayName = user?.usuario || "Usuario";
   const [mozos, setMozos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [mozoEditando, setMozoEditando] = useState(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [mozoAEliminar, setMozoAEliminar] = useState(null);
 
-  // Cargar mozos al montar el componente
+  const { user, logout } = useAuth();
+  const userName = user?.usuario || "Usuario";
+
+  // Cargar mozos desde localStorage al montar el componente
   useEffect(() => {
+    const cargarMozos = () => {
+      try {
+        const mozosGuardados = localStorage.getItem(STORAGE_KEY);
+        if (mozosGuardados) {
+          setMozos(JSON.parse(mozosGuardados));
+        } else {
+          setMozos(MOZOS_INICIALES);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(MOZOS_INICIALES));
+        }
+      } catch (error) {
+        console.error("Error al cargar mozos:", error);
+        setMozos(MOZOS_INICIALES);
+      }
+    };
+
     cargarMozos();
   }, []);
 
-  const cargarMozos = async () => {
+  // Guardar mozos en localStorage cada vez que cambien
+  useEffect(() => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getMozosActivos(); // Solo mozos activos
-      setMozos(data);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al cargar mozos:", err);
-    } finally {
-      setLoading(false);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mozos));
+    } catch (error) {
+      console.error("Error al guardar mozos:", error);
     }
-  };
+  }, [mozos]);
 
-  // Filtrar mozos
+  // Filtrar mozos según la búsqueda manual
   const mozosFiltrados = mozos.filter((mozo) => {
-    const nombreUsuario = mozo.nombreUsuario?.toLowerCase() || "";
-    const nombre = mozo.nombre?.toLowerCase() || "";
-    const apellido = mozo.apellido?.toLowerCase() || "";
-    const busquedaLower = busqueda.toLowerCase();
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (!terminoBusqueda) return true;
 
+    const nombreCompleto = `${mozo.nombre} ${mozo.apellido}`.toLowerCase();
     return (
-      nombreUsuario.includes(busquedaLower) ||
-      nombre.includes(busquedaLower) ||
-      apellido.includes(busquedaLower)
+      nombreCompleto.includes(terminoBusqueda) ||
+      mozo.telefono.includes(terminoBusqueda) ||
+      mozo.turno.toLowerCase().includes(terminoBusqueda)
     );
   });
 
-  // Definir columnas para DataTable
+  // Definir columnas para el DataGrid
   const columns = [
     {
-      field: "nombreUsuario",
-      headerName: "Usuario",
-      width: 150,
-      headerAlign: "center",
-      align: "left",
-    },
-    {
-      field: "nombre",
-      headerName: "Nombre",
+      field: 'nombre',
+      headerName: 'Nombre',
       flex: 1,
       minWidth: 150,
-      headerAlign: "center",
-      align: "left",
     },
     {
-      field: "apellido",
-      headerName: "Apellido",
+      field: 'apellido',
+      headerName: 'Apellido',
       flex: 1,
       minWidth: 150,
-      headerAlign: "center",
-      align: "left",
     },
     {
-      field: "activo",
-      headerName: "Estado",
-      width: 130,
-      headerAlign: "center",
-      align: "center",
+      field: 'telefono',
+      headerName: 'Teléfono',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'turno',
+      headerName: 'Turno',
+      flex: 1,
+      minWidth: 120,
+    },
+    {
+      field: 'acciones',
+      headerName: 'Acciones',
+      minWidth: 150,
+      sortable: false,
+      filterable: false,
       renderCell: (params) => (
-        <View
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            width: "100%",
-          }}
-        >
-          <View
-            style={[
-              styles.estadoBadge,
-              params.row.activo ? styles.estadoActivo : styles.estadoInactivo,
-            ]}
+        <View style={styles.actionsContainer}>
+          <IconButton
+            onClick={() => handleEditarMozo(params.row)}
+            color="primary"
+            size="small"
+            title="Editar"
           >
-            <Text
-              style={[
-                styles.estadoText,
-                { color: params.row.activo ? "#2e7d32" : "#c62828" },
-              ]}
-            >
-              {params.row.activo ? "Activo" : "Inactivo"}
-            </Text>
-          </View>
-        </View>
-      ),
-    },
-    {
-      field: "roles",
-      headerName: "Roles",
-      width: 130,
-      headerAlign: "center",
-      align: "center",
-      renderCell: (params) => (
-        <View
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            width: "100%",
-          }}
-        >
-          <View style={styles.rolesContainer}>
-            {params.row.roles &&
-              params.row.roles.map((rol, index) => (
-                <View key={index} style={styles.rolBadge}>
-                  <Text style={styles.rolText}>{rol}</Text>
-                </View>
-              ))}
-          </View>
+            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+          </IconButton>
+          <IconButton
+            onClick={() => handleEliminarMozo(params.row.id)}
+            color="error"
+            size="small"
+            title="Eliminar"
+          >
+            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
+          </IconButton>
         </View>
       ),
     },
   ];
 
+  const handleAgregarMozo = () => {
+    setMozoEditando(null);
+    setModalVisible(true);
+  };
+
+  const handleEditarMozo = (mozo) => {
+    setMozoEditando(mozo);
+    setModalVisible(true);
+  };
+
+  // Función para abrir modal de confirmación de eliminación
+  const handleEliminarMozo = (mozoId) => {
+    setMozoAEliminar(mozoId);
+    setConfirmModalVisible(true);
+  };
+
+  // Función para confirmar la eliminación
+  const confirmarEliminacion = () => {
+    if (mozoAEliminar) {
+      setMozos(mozos.filter(m => m.id !== mozoAEliminar));
+      setConfirmModalVisible(false);
+      setMozoAEliminar(null);
+    }
+  };
+
+  // Función para cancelar la eliminación
+  const cancelarEliminacion = () => {
+    setConfirmModalVisible(false);
+    setMozoAEliminar(null);
+  };
+
+  const handleGuardarMozo = (mozoData) => {
+    if (mozoEditando) {
+      // Editar mozo existente
+      setMozos(mozos.map((m) => (m.id === mozoData.id ? mozoData : m)));
+    } else {
+      // Agregar nuevo mozo
+      const nuevoMozo = {
+        ...mozoData,
+        id: Math.max(...mozos.map(m => m.id), 0) + 1
+      };
+      setMozos([...mozos, nuevoMozo]);
+    }
+    setModalVisible(false);
+    setMozoEditando(null);
+  };
+
   return (
-    <DashboardLayout
-      userName={displayName}
-      onLogout={logout}
-      onNavigate={onNavigate}
+    <DashboardLayout 
+      onNavigate={onNavigate} 
       currentScreen={currentScreen}
+      userName={userName}
+      onLogout={logout}
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Mozos</Text>
+          <Text style={styles.title}>Administrar Mozos</Text>
         </View>
 
-        {/* Controles superiores */}
+        {/* Controles superiores: Buscador y Botón Agregar */}
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscar mozos */}
+            {/* Buscador */}
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -169,84 +194,52 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar por nombre de usuario..."
+                placeholder="Buscar mozos por nombre, apellido, teléfono o turno..."
+                placeholderTextColor="#999"
                 value={busqueda}
                 onChangeText={setBusqueda}
-                placeholderTextColor="#999"
               />
               {busqueda.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setBusqueda("")}
-                  style={styles.clearButton}
-                >
-                  <MaterialCommunityIcons
-                    name="close-circle"
-                    size={20}
-                    color="#999"
-                  />
+                <TouchableOpacity onPress={() => setBusqueda("")} style={styles.clearButton}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#999" />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Botón actualizar */}
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={cargarMozos}
-              disabled={loading}
-            >
-              <Text style={styles.refreshButtonText}>Actualizar</Text>
-              {loading ? (
-                <ActivityIndicator size="small" color="#4A90E2" />
-              ) : (
-                <MaterialCommunityIcons
-                  name="refresh"
-                  size={16}
-                  color="#4A90E2"
-                />
-              )}
+            {/* Botón Agregar */}
+            <TouchableOpacity style={styles.addButton} onPress={handleAgregarMozo}>
+              <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* DataTable */}
-        {!loading && !error && (
-          <DataTable rows={mozosFiltrados} columns={columns} pageSize={10} />
-        )}
+        {/* DataGrid con filtrado y ordenamiento nativo */}
+        <DataTable
+          rows={mozosFiltrados}
+          columns={columns}
+          pageSize={10}
+        />
 
-        {/* Loading */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4A90E2" />
-            <Text style={styles.loadingText}>Cargando mozos...</Text>
-          </View>
-        )}
+        {/* Modal para agregar/editar mozo */}
+        <MozoModal
+          visible={modalVisible}
+          mozo={mozoEditando}
+          onClose={() => {
+            setModalVisible(false);
+            setMozoEditando(null);
+          }}
+          onSave={handleGuardarMozo}
+        />
 
-        {/* Error */}
-        {error && !loading && (
-          <View style={styles.errorContainer}>
-            <MaterialCommunityIcons
-              name="alert-circle"
-              size={48}
-              color="#E53935"
-            />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={cargarMozos}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Empty state */}
-        {!loading && !error && mozosFiltrados.length === 0 && (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="account-tie" size={64} color="#ccc" />
-            <Text style={styles.emptyStateText}>
-              {busqueda
-                ? "No se encontraron mozos"
-                : "No hay mozos activos. Ve a 'Gestión de Usuarios' para asignar el rol Mozo"}
-            </Text>
-          </View>
-        )}
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          visible={confirmModalVisible}
+          title="Eliminar Mozo"
+          message="¿Estás seguro de que deseas eliminar este mozo? Esta acción no se puede deshacer."
+          onConfirm={confirmarEliminacion}
+          onCancel={cancelarEliminacion}
+        />
       </View>
     </DashboardLayout>
   );
@@ -256,76 +249,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    padding: 24,
+    padding: 20,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#1f1f1f",
-    flex: 1,
-  },
-  refreshButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 6,
-  },
-  refreshButtonText: {
-    color: "#4A90E2",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  errorText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#E53935",
-    textAlign: "center",
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#4A90E2",
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontWeight: "600",
+    fontWeight: "bold",
+    color: "#333",
   },
   controlsContainer: {
     marginBottom: 20,
   },
   controlsRow: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 12,
-    flexWrap: "wrap",
+    alignItems: "center",
   },
   searchContainer: {
     flex: 1,
-    minWidth: 300,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
@@ -350,101 +293,27 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    gap: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  tableContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#f8f8f8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  tableHeaderCell: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  tableHeaderCellAcciones: {
-    flex: 0.8,
-    alignItems: "center",
-  },
-  tableHeaderText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1f1f1f",
-  },
-  tableBody: {
-    flex: 1,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "#fff",
-  },
-  estadoBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  estadoActivo: {
-    backgroundColor: "#e8f5e9",
-  },
-  estadoInactivo: {
-    backgroundColor: "#ffebee",
-  },
-  estadoText: {
-    fontSize: 12,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  rolesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-  },
-  rolBadge: {
-    backgroundColor: "#e3f2fd",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  rolText: {
-    fontSize: 11,
-    color: "#1976d2",
-    fontWeight: "500",
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  emptyStateText: {
     fontSize: 16,
-    color: "#999",
-    marginTop: 20,
-    textAlign: "center",
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
 });
