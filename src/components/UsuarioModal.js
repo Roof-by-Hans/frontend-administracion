@@ -7,10 +7,10 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Alert from "@blazejkustra/react-native-alert";
 
 const ROLES_DISPONIBLES = ["Admin", "Mozo", "Emisor", "Cajero"];
 

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
   const [nombre, setNombre] = useState("");
@@ -183,7 +184,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== "granted") {
-        alert("Se necesitan permisos para acceder a la galería de fotos");
+        Alert.alert("Se necesitan permisos para acceder a la galería de fotos");
         return;
       }
 
@@ -200,7 +201,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
         setFotoPerfil(selectedImage);
       }
     } catch (error) {
-      alert("Error al seleccionar la imagen");
+      Alert.alert("Error al seleccionar la imagen");
     }
   };
 

@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  ActivityIndicator,
-  Alert as RNAlert,
+  ActivityIndicator
 } from "react-native";
 import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";

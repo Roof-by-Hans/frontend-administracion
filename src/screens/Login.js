@@ -7,9 +7,9 @@ import {
   StyleSheet,
   Image,
   useWindowDimensions,
-  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import Alert from "@blazejkustra/react-native-alert";
 import API_URL from "../config/api";
 
 export default function Login() {
@@ -52,7 +52,11 @@ export default function Login() {
         console.log("✅ Login exitoso");
         await login({ usuario, recordarme }, data.data.token);
       } else {
-        Alert.alert("Error", data.message || "Credenciales inválidas");
+        console.log("❌ Login fallido:", data.message);
+        Alert.alert(
+          "Credenciales inválidas",
+          data.message || "Usuario o contraseña incorrectos. Por favor, verifica tus datos e intenta nuevamente."
+        );
       }
     } catch (error) {
       console.error("❌ Error en login:", error);

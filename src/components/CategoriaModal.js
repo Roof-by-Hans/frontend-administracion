@@ -9,10 +9,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Alert from "@blazejkustra/react-native-alert";
 import * as categoriasService from '../services/categoriasService';
 
 export default function CategoriaModal({

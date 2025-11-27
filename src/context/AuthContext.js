@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import authService from "../services/authService";
+import Alert from "@blazejkustra/react-native-alert";
 
 const AuthContext = createContext();
 
@@ -45,6 +46,40 @@ export const AuthProvider = ({ children }) => {
 
     checkStoredSession();
   }, []);
+
+  // Verificar periódicamente si el token sigue existiendo en AsyncStorage
+  // Si fue eliminado por un 401, cerrar sesión
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("token");
+        const sessionExpired = await AsyncStorage.getItem("session_expired");
+        
+        if (!storedToken && isAuthenticated) {
+          console.log("🚪 Token eliminado - cerrando sesión");
+          
+          // Si hay un flag de sesión expirada, mostrar mensaje
+          if (sessionExpired === "true") {
+            Alert.alert(
+              "Sesión expirada",
+              "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+            );
+            await AsyncStorage.removeItem("session_expired");
+          }
+          
+          setUser(null);
+          setToken(null);
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        console.error("Error al verificar token:", err);
+      }
+    }, 1000); // Verificar cada segundo
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   // login: soporte dual para compatibilidad con código existente
   // - Si se llama como login(userData, token) -> guarda esa sesión

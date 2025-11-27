@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -21,6 +20,7 @@ import {
   actualizarUsuario,
   eliminarUsuario,
 } from "../services/usuarioService";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const [usuarios, setUsuarios] = useState([]);
