@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton, Avatar } from "@mui/material";
@@ -36,6 +36,23 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
+
+  // Debug: verificar que logout está disponible
+  useEffect(() => {
+    console.log("🔍 ClientesScreen - logout disponible:", typeof logout);
+    console.log("🔍 ClientesScreen - user:", user);
+  }, [logout, user]);
+
+  // Wrapper para debuggear logout
+  const handleLogout = () => {
+    console.log("🚪 ClientesScreen - Intentando cerrar sesión...");
+    console.log("🚪 ClientesScreen - logout function:", logout);
+    if (logout) {
+      logout();
+    } else {
+      console.error("❌ ClientesScreen - logout no está definido!");
+    }
+  };
 
   // Cargar clientes desde la API al montar el componente
   useEffect(() => {
@@ -454,7 +471,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       userName={userName}
       currentScreen={currentScreen}
       onNavigate={onNavigate}
-      onLogout={logout}
+      onLogout={handleLogout}
     >
       <View style={styles.container}>
         {/* Header */}
