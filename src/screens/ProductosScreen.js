@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image,
 } from "react-native";
@@ -17,6 +16,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 import * as productosService from "../services/productosService";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [productos, setProductos] = useState([]);

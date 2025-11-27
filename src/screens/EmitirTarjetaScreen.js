@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import cardService from "../services/cardService";
 import tarjetaService from "../services/tarjetaService";
 import clienteService from "../services/clienteService";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
   // Estados del formulario
@@ -87,7 +88,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
       }
     } catch (error) {
       console.error("Error al cargar datos iniciales:", error);
-      alert("Error al cargar los datos. Por favor, recarga la página.");
+      Alert.alert("Error", "Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
     }
@@ -120,19 +121,19 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
   const handleEmitir = async () => {
     // Validaciones
     if (!selectedClient) {
-      alert("Por favor selecciona un cliente");
+      Alert.alert("Error", "Por favor selecciona un cliente");
       return;
     }
 
     if (!subscriptionType) {
-      alert("Por favor selecciona un tipo de suscripción");
+      Alert.alert("Error", "Por favor selecciona un tipo de suscripción");
       return;
     }
 
     // Validar campos según el tipo de suscripción
     if (esTipoCredito()) {
       if (!nivelSuscripcion) {
-        alert("Por favor selecciona un nivel de suscripción");
+        Alert.alert("Error", "Por favor selecciona un nivel de suscripción");
         return;
       }
     } else if (esTipoPrepago()) {
@@ -140,7 +141,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
       if (saldoInicial && saldoInicial.trim() !== "") {
         const saldo = parseFloat(saldoInicial);
         if (isNaN(saldo) || saldo < 0) {
-          alert("El saldo debe ser un número mayor o igual a 0");
+          Alert.alert("Error", "El saldo debe ser un número mayor o igual a 0");
           return;
         }
       }
