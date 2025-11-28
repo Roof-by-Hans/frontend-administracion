@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
+  ActivityIndicator
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton, Avatar } from "@mui/material";
@@ -36,13 +36,6 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
-
-  // Estabilizar la referencia de logout con useCallback
-  const handleLogout = useCallback(() => {
-    if (logout && typeof logout === 'function') {
-      logout();
-    }
-  }, [logout]);
 
   // Cargar clientes desde la API al montar el componente
   useEffect(() => {
@@ -452,13 +445,13 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         Alert.alert("Error", mensaje);
       }
     } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout
       userName={userName}
-      currentScreen={currentScreen}
-      onNavigate={onNavigate}
-      onLogout={handleLogout}
-    > userName={userName}
       currentScreen={currentScreen}
       onNavigate={onNavigate}
       onLogout={logout}

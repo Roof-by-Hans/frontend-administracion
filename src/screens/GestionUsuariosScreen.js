@@ -32,7 +32,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
   // Cargar usuarios al montar el componente
@@ -220,6 +220,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
       onNavigate={onNavigate}
       currentScreen={currentScreen}
       userName={userName}
+      onLogout={logout}
     >
       <View style={styles.container}>
         {/* Header */}
