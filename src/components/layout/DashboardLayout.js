@@ -41,12 +41,6 @@ export default function DashboardLayout({
     [width]
   );
 
-  // Debug: verificar que onLogout llega correctamente
-  useEffect(() => {
-    console.log("🟡 DashboardLayout - onLogout recibido:", typeof onLogout);
-    console.log("🟡 DashboardLayout - onLogout function:", onLogout);
-  }, [onLogout]);
-
   const openMenu = useCallback(() => {
     setIsMenuVisible(true);
     animationValue.stopAnimation(() => {
@@ -116,16 +110,8 @@ export default function DashboardLayout({
   }, [closeMenu, isCompact, isMenuVisible]);
 
   const handleConfirmLogout = useCallback(() => {
-    console.log("🔵 DashboardLayout - handleConfirmLogout ejecutado");
-    console.log("🔵 DashboardLayout - onLogout:", onLogout);
-    console.log("🔵 DashboardLayout - typeof onLogout:", typeof onLogout);
     setShowLogoutPrompt(false);
-    if (onLogout) {
-      console.log("🔵 DashboardLayout - Ejecutando onLogout...");
-      onLogout();
-    } else {
-      console.error("❌ DashboardLayout - onLogout no está definido!");
-    }
+    onLogout?.();
   }, [onLogout]);
 
   const handleCancelLogout = useCallback(() => {
