@@ -110,9 +110,16 @@ export default function DashboardLayout({
   }, [closeMenu, isCompact, isMenuVisible]);
 
   const handleConfirmLogout = useCallback(() => {
+    console.log("🟢 handleConfirmLogout ejecutado");
+    console.log("🟢 onLogout:", onLogout);
+    console.log("🟢 typeof onLogout:", typeof onLogout);
     setShowLogoutPrompt(false);
-    if (onLogout && typeof onLogout === 'function') {
+    if (onLogout && typeof onLogout === "function") {
+      console.log("🟢 Ejecutando onLogout()...");
       onLogout();
+      console.log("🟢 onLogout() ejecutado");
+    } else {
+      console.error("❌ onLogout no es función o es undefined");
     }
   }, [onLogout]);
 
