@@ -111,7 +111,9 @@ export default function DashboardLayout({
 
   const handleConfirmLogout = useCallback(() => {
     setShowLogoutPrompt(false);
-    onLogout?.();
+    if (onLogout && typeof onLogout === 'function') {
+      onLogout();
+    }
   }, [onLogout]);
 
   const handleCancelLogout = useCallback(() => {
