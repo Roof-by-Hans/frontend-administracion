@@ -10,17 +10,6 @@ import {
   ScrollView,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAuth } from "../../context/AuthContext";
-
-/**
- * Verifica si el usuario tiene únicamente el rol "Mozo"
- * @param {Array} roles - Array de roles del usuario
- * @returns {boolean} - true si solo tiene rol Mozo, false en caso contrario
- */
-const isOnlyMozo = (roles) => {
-  if (!roles || !Array.isArray(roles) || roles.length === 0) return false;
-  return roles.length === 1 && roles[0] === "Mozo";
-};
 
 const mainMenuItems = [
   { icon: "table-furniture", label: "Gestionar Mesas", screen: "mesas" },
@@ -36,18 +25,8 @@ const mainMenuItems = [
     label: "Gestionar Categorías",
     screen: "categorias",
   },
-  { 
-    icon: "file-document-outline", 
-    label: "Facturas", 
-    screen: "facturas",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
-  },
-  { 
-    icon: "cash-register", 
-    label: "Caja", 
-    screen: "caja",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
-  },
+  { icon: "file-document-outline", label: "Facturas", screen: "facturas" },
+  { icon: "cash-register", label: "Caja", screen: "caja" },
 ];
 
 const secondaryMenuItems = [
@@ -55,26 +34,14 @@ const secondaryMenuItems = [
     icon: "card-text-outline",
     label: "Emitir Tarjeta",
     screen: "emitir-tarjeta",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
   },
-  { 
-    icon: "cash-plus", 
-    label: "Cargar Saldo", 
-    screen: "cargar-saldo",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
-  },
+  { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
   {
     icon: "account-cog-outline",
     label: "Gestión de Usuarios",
     screen: "gestion-usuarios",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
   },
-  { 
-    icon: "cog-outline", 
-    label: "Ajustes generales", 
-    screen: "ajustes",
-    restrictedForOnlyMozo: true // Ocultar para usuarios solo con rol Mozo
-  },
+  { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 
 const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
@@ -122,19 +89,6 @@ export default function Sidebar({
 }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
-  const { user } = useAuth();
-  
-  // Determinar si el usuario tiene únicamente el rol "Mozo"
-  const userIsOnlyMozo = user?.roles ? isOnlyMozo(user.roles) : false;
-  
-  // Filtrar ítems del menú según los roles del usuario
-  const filteredMainMenuItems = mainMenuItems.filter(
-    (item) => !(userIsOnlyMozo && item.restrictedForOnlyMozo)
-  );
-  
-  const filteredSecondaryMenuItems = secondaryMenuItems.filter(
-    (item) => !(userIsOnlyMozo && item.restrictedForOnlyMozo)
-  );
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
@@ -180,20 +134,18 @@ export default function Sidebar({
         >
           <MenuSection
             title="Menú principal"
-            items={filteredMainMenuItems}
+            items={mainMenuItems}
             compact={isCompact}
             onNavigate={onNavigate}
             currentScreen={currentScreen}
           />
-          {filteredSecondaryMenuItems.length > 0 && (
-            <MenuSection
-              title="Otras configuraciones"
-              items={filteredSecondaryMenuItems}
-              compact={isCompact}
-              onNavigate={onNavigate}
-              currentScreen={currentScreen}
-            />
-          )}
+          <MenuSection
+            title="Otras configuraciones"
+            items={secondaryMenuItems}
+            compact={isCompact}
+            onNavigate={onNavigate}
+            currentScreen={currentScreen}
+          />
         </View>
       </ScrollView>
 

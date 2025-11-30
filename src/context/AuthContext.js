@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import authService from "../services/authService";
 import Alert from "@blazejkustra/react-native-alert";
-import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext();
 
@@ -12,25 +11,6 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
-
-/**
- * Decodifica el JWT y extrae los datos del usuario incluyendo los roles
- * @param {string} token - Token JWT
- * @returns {object|null} - Objeto con los datos del usuario o null si hay error
- */
-const getUserDataFromToken = (token) => {
-  try {
-    const decoded = jwtDecode(token);
-    return {
-      id: decoded.id,
-      nombreUsuario: decoded.nombreUsuario,
-      roles: decoded.roles || [],
-    };
-  } catch (error) {
-    console.error("Error al decodificar token:", error);
-    return null;
-  }
 };
 
 export const AuthProvider = ({ children }) => {
@@ -45,18 +25,11 @@ export const AuthProvider = ({ children }) => {
     const checkStoredSession = async () => {
       try {
         const storedToken = await AsyncStorage.getItem("token");
-        if (storedToken) {
-          // Decodificar el token para obtener los datos del usuario incluyendo roles
-          const userData = getUserDataFromToken(storedToken);
-          if (userData) {
-            setToken(storedToken);
-            setUser(userData);
-            setIsAuthenticated(true);
-          } else {
-            // Token inválido, limpiar storage
-            await AsyncStorage.removeItem("token");
-            await AsyncStorage.removeItem("user");
-          }
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          setIsAuthenticated(true);
         }
       } catch (err) {
         console.error("Error al cargar sesión guardada:", err);
@@ -116,17 +89,12 @@ export const AuthProvider = ({ children }) => {
     if (typeof a === "object" && typeof b === "string") {
       const userData = a;
       const authToken = b;
-      
-      // Decodificar el token para obtener los roles
-      const userDataFromToken = getUserDataFromToken(authToken);
-      const completeUserData = userDataFromToken || userData;
-      
-      setUser(completeUserData);
+      setUser(userData);
       setToken(authToken);
       setIsAuthenticated(true);
       try {
         await AsyncStorage.setItem("token", authToken);
-        await AsyncStorage.setItem("user", JSON.stringify(completeUserData));
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
       } catch (err) {
         console.error("Error al guardar sesión en AsyncStorage:", err);
       }
@@ -142,23 +110,13 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await authService.login(nombreUsuario, contrasena);
       if (response && response.data) {
-        const { token: receivedToken } = response.data;
-        
-        // Decodificar el token para obtener los datos del usuario incluyendo roles
-        const userData = getUserDataFromToken(receivedToken);
-        
-        if (!userData) {
-          setError("Token inválido recibido del servidor");
-          setLoading(false);
-          return false;
-        }
-        
-        setUser(userData);
+        const { token: receivedToken, usuario } = response.data;
+        setUser(usuario);
         setToken(receivedToken);
         setIsAuthenticated(true);
         try {
           await AsyncStorage.setItem("token", receivedToken);
-          await AsyncStorage.setItem("user", JSON.stringify(userData));
+          await AsyncStorage.setItem("user", JSON.stringify(usuario));
           if (recordarme) {
             await AsyncStorage.setItem("recordarme", "true");
           }

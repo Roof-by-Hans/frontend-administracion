@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Roof by Hans",
-    "slug": "roof-by-hans",
+    "name": "frontend-administracion",
+    "slug": "frontend-administracion",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
