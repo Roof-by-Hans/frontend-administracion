@@ -21,10 +21,11 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { useAuth } from "../../context/AuthContext";
 
 export default function DashboardLayout({
   children,
-  userName,
+  // userName, // Ya no necesitamos recibirlo por props
   onLogout,
   onNavigate,
   currentScreen,
@@ -32,6 +33,10 @@ export default function DashboardLayout({
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
   const isTablet = width >= 900 && width < 1200;
+  const { user } = useAuth();
+  
+  // Obtener el nombre de usuario del contexto o usar "Usuario" por defecto
+  const displayUserName = user?.nombreUsuario || "Usuario";
   // const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
@@ -141,7 +146,7 @@ export default function DashboardLayout({
         )}
         <View style={styles.mainArea}>
           <Topbar
-            userName={userName}
+            userName={displayUserName}
             onLogout={handleLogoutRequest}
             showMenuButton={isCompact}
             onMenuPress={handleToggleMenu}

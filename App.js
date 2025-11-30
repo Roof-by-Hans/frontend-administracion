@@ -17,7 +17,7 @@ import CategoriasScreen from "./src/screens/CategoriasScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState("facturas"); // Pantalla inicial
+  const [currentScreen, setCurrentScreen] = useState("mesas"); // Pantalla inicial
 
   const handleNavigate = (screen) => {
     setCurrentScreen(screen);
