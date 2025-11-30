@@ -1,6 +1,13 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import React, { useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Topbar({
   userName = "Usuario",
@@ -10,6 +17,22 @@ export default function Topbar({
 }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 768;
+  const { token } = useAuth();
+
+  const displayUserName = useMemo(() => {
+    if (token) {
+      try {
+        const parts = token.split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          return payload.nombreUsuario || userName;
+        }
+      } catch (error) {
+        console.error("Error al decodificar el token JWT:", error);
+      }
+    }
+    return userName;
+  }, [token, userName]);
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
@@ -25,15 +48,22 @@ export default function Topbar({
             <MaterialCommunityIcons name="menu" size={24} color="#333" />
           </TouchableOpacity>
         )}
-        <Text style={[styles.greetingText, isCompact && styles.greetingTextCompact]} numberOfLines={1}>
-          ¡Hola <Text style={styles.userName}>{userName}</Text>!
+        <Text
+          style={[styles.greetingText, isCompact && styles.greetingTextCompact]}
+          numberOfLines={1}
+        >
+          ¡Hola <Text style={styles.userName}>{displayUserName}</Text>!
         </Text>
       </View>
 
       <View style={[styles.rightBlock, isCompact && styles.rightBlockCompact]}>
         {!isCompact && (
           <View style={styles.userActions}>
-            <MaterialCommunityIcons name="account-circle" size={28} color="#4a4a4a" />
+            <MaterialCommunityIcons
+              name="account-circle"
+              size={28}
+              color="#4a4a4a"
+            />
             <TouchableOpacity
               style={styles.logoutButton}
               activeOpacity={0.7}
@@ -54,8 +84,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  paddingHorizontal: 32,
-  paddingVertical: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#e1e1e1",
     backgroundColor: "#f5f5f5",
