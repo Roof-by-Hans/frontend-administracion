@@ -8,6 +8,7 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import Alert from "@blazejkustra/react-native-alert";
 import API_URL from "../config/api";
@@ -50,7 +51,11 @@ export default function Login() {
 
       if (response.ok && data.success) {
         console.log("✅ Login exitoso");
-        await login({ usuario, recordarme }, data.data.token);
+        console.log("👤 Datos del usuario:", data.data.usuario);
+        await login(data.data.usuario, data.data.token);
+        if (recordarme) {
+          await AsyncStorage.setItem("recordarme", "true");
+        }
       } else {
         console.log("❌ Login fallido:", data.message);
         Alert.alert(
