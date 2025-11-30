@@ -9,7 +9,13 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const [modalLimitesVisible, setModalLimitesVisible] = useState(false);
   
   const { user, logout } = useAuth();
-  const userName = user?.usuario || "Usuario";
+  const userName = user?.nombreUsuario || user?.usuario || "Usuario";
+  const isAdmin = user?.roles?.includes("Administrador") || user?.roles?.includes("Admin") || false;
+
+  // Debug: verificar datos del usuario
+  console.log("🔍 Usuario completo:", user);
+  console.log("🔍 Roles del usuario:", user?.roles);
+  console.log("🔍 Es admin?:", isAdmin);
 
   // Función para abrir modal de límites de subscripción
   const handleAbrirLimites = () => {
@@ -29,17 +35,19 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
 
         {/* Grid de opciones */}
         <View style={styles.gridContainer}>
-          {/* Card Financiero */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Financiero</Text>
-            <TouchableOpacity 
-              style={styles.optionButton}
-              onPress={handleAbrirLimites}
-            >
-              <MaterialCommunityIcons name="credit-card-outline" size={20} color="#333" />
-              <Text style={styles.optionText}>Editar límite subscripciones</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Card Financiero - Solo para administradores */}
+          {isAdmin && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Financiero</Text>
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={handleAbrirLimites}
+              >
+                <MaterialCommunityIcons name="credit-card-outline" size={20} color="#333" />
+                <Text style={styles.optionText}>Editar límite subscripciones</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Card vacío 1 - Para futuras opciones */}
           <View style={[styles.card, styles.cardEmpty]}>

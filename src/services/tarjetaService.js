@@ -120,6 +120,24 @@ const tarjetaService = {
       throw error;
     }
   },
+
+  /**
+   * Actualizar límite de crédito de un nivel de suscripción
+   * @param {number} idNivel - ID del nivel de suscripción
+   * @param {Object} datos - Datos a actualizar
+   * @param {string} datos.nombre - Nombre del nivel
+   * @param {number} datos.limite_credito - Nuevo límite de crédito
+   * @returns {Promise} Nivel de suscripción actualizado
+   */
+  actualizarNivelSuscripcion: async (idNivel, datos) => {
+    try {
+      const response = await api.put(`/niveles-suscripcion/${idNivel}`, datos);
+      return response.data;
+    } catch (error) {
+      console.error("Error al actualizar nivel de suscripción:", error.message);
+      throw error;
+    }
+  },
 };
 
 export default tarjetaService;
