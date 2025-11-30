@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -16,7 +22,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
-export default function DashboardLayout({ children, userName, onLogout, onNavigate, currentScreen }) {
+export default function DashboardLayout({
+  children,
+  userName,
+  onLogout,
+  onNavigate,
+  currentScreen,
+}) {
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
   const isTablet = width >= 900 && width < 1200;
@@ -24,7 +36,10 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const animationValue = useRef(new Animated.Value(0)).current;
-  const overlayWidth = useMemo(() => Math.min(Math.max(width * 0.75, 240), 320), [width]);
+  const overlayWidth = useMemo(
+    () => Math.min(Math.max(width * 0.75, 240), 320),
+    [width]
+  );
 
   const openMenu = useCallback(() => {
     setIsMenuVisible(true);
@@ -95,8 +110,17 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   }, [closeMenu, isCompact, isMenuVisible]);
 
   const handleConfirmLogout = useCallback(() => {
+    console.log("🟢 handleConfirmLogout ejecutado");
+    console.log("🟢 onLogout:", onLogout);
+    console.log("🟢 typeof onLogout:", typeof onLogout);
     setShowLogoutPrompt(false);
-    onLogout?.();
+    if (onLogout && typeof onLogout === "function") {
+      console.log("🟢 Ejecutando onLogout()...");
+      onLogout();
+      console.log("🟢 onLogout() ejecutado");
+    } else {
+      console.error("❌ onLogout no es función o es undefined");
+    }
   }, [onLogout]);
 
   const handleCancelLogout = useCallback(() => {
@@ -106,60 +130,79 @@ export default function DashboardLayout({ children, userName, onLogout, onNaviga
   return (
     <View style={[styles.safeArea]}>
       <View style={[styles.root, isCompact && styles.rootCompact]}>
-      {!isCompact && (
-        <View style={styles.sidebarWrapper}>
-          <Sidebar onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
-        </View>
-      )}
-      <View style={styles.mainArea}>
-        <Topbar
-          userName={userName}
-          onLogout={handleLogoutRequest}
-          showMenuButton={isCompact}
-          onMenuPress={handleToggleMenu}
-        />
-        <ScrollView
-          style={styles.scrollContainer}
-          showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={true}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={true}
-            nestedScrollEnabled={true}
-            contentContainerStyle={{ minWidth: '100%' }}
-          >
-            <View style={[styles.content, isTablet && styles.contentTablet, isCompact && styles.contentCompact]}>
-              {children}
-            </View>
-          </ScrollView>
-        </ScrollView>
-      </View>
-      {isCompact && isMenuVisible && (
-        <View style={styles.sidebarOverlay} pointerEvents="box-none">
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.overlayBackdrop, { opacity: backdropOpacity }]}
+        {!isCompact && (
+          <View style={styles.sidebarWrapper}>
+            <Sidebar
+              onLogout={handleLogoutRequest}
+              onNavigate={onNavigate}
+              currentScreen={currentScreen}
+            />
+          </View>
+        )}
+        <View style={styles.mainArea}>
+          <Topbar
+            userName={userName}
+            onLogout={handleLogoutRequest}
+            showMenuButton={isCompact}
+            onMenuPress={handleToggleMenu}
           />
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleCloseMenu} />
-          <Animated.View
-            style={[
-              styles.overlaySidebar,
-              {
-                width: overlayWidth,
-                transform: [{ translateX: sidebarTranslate }],
-              },
-            ]}
+          <ScrollView
+            style={styles.scrollContainer}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
           >
-            <Sidebar showCloseButton onClose={handleCloseMenu} onLogout={handleLogoutRequest} onNavigate={onNavigate} currentScreen={currentScreen} />
-          </Animated.View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              nestedScrollEnabled={true}
+              contentContainerStyle={{ minWidth: "100%" }}
+            >
+              <View
+                style={[
+                  styles.content,
+                  isTablet && styles.contentTablet,
+                  isCompact && styles.contentCompact,
+                ]}
+              >
+                {children}
+              </View>
+            </ScrollView>
+          </ScrollView>
         </View>
-      )}
-      <LogoutPrompt
-        visible={showLogoutPrompt}
-        onCancel={handleCancelLogout}
-        onConfirm={handleConfirmLogout}
-      />
+        {isCompact && isMenuVisible && (
+          <View style={styles.sidebarOverlay} pointerEvents="box-none">
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.overlayBackdrop, { opacity: backdropOpacity }]}
+            />
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={handleCloseMenu}
+            />
+            <Animated.View
+              style={[
+                styles.overlaySidebar,
+                {
+                  width: overlayWidth,
+                  transform: [{ translateX: sidebarTranslate }],
+                },
+              ]}
+            >
+              <Sidebar
+                showCloseButton
+                onClose={handleCloseMenu}
+                onLogout={handleLogoutRequest}
+                onNavigate={onNavigate}
+                currentScreen={currentScreen}
+              />
+            </Animated.View>
+          </View>
+        )}
+        <LogoutPrompt
+          visible={showLogoutPrompt}
+          onCancel={handleCancelLogout}
+          onConfirm={handleConfirmLogout}
+        />
       </View>
     </View>
   );
@@ -181,23 +224,43 @@ function LogoutPrompt({ visible, onCancel, onConfirm }) {
   }, [scaleValue, visible]);
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel}>
+    <Modal
+      transparent
+      animationType="fade"
+      visible={visible}
+      onRequestClose={onCancel}
+    >
       <View style={styles.alertBackdrop}>
-        <Animated.View style={[styles.alertCard, { transform: [{ scale: scaleValue }] }]}> 
+        <Animated.View
+          style={[styles.alertCard, { transform: [{ scale: scaleValue }] }]}
+        >
           <View style={styles.alertIconWrapper}>
-            <MaterialCommunityIcons name="account-circle" size={36} color="#4a4a4a" />
+            <MaterialCommunityIcons
+              name="account-circle"
+              size={36}
+              color="#4a4a4a"
+            />
           </View>
           <Text style={styles.alertTitle}>¿Cerrar sesión?</Text>
           <Text style={styles.alertMessage}>
-            Tu sesión se cerrará y tendrás que volver a iniciar sesión para acceder nuevamente.
+            Tu sesión se cerrará y tendrás que volver a iniciar sesión para
+            acceder nuevamente.
           </Text>
           <View style={styles.alertActions}>
-            <TouchableOpacity style={styles.alertSecondaryButton} onPress={onCancel} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.alertSecondaryButton}
+              onPress={onCancel}
+              activeOpacity={0.85}
+            >
               <Text style={styles.alertSecondaryText} numberOfLines={1}>
                 Cancelar
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.alertPrimaryButton} onPress={onConfirm} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.alertPrimaryButton}
+              onPress={onConfirm}
+              activeOpacity={0.85}
+            >
               <Text style={styles.alertPrimaryText} numberOfLines={1}>
                 Cerrar sesión
               </Text>
@@ -236,7 +299,7 @@ const styles = StyleSheet.create({
   },
   content: {
     minWidth: 800,
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 32,
     paddingVertical: 28,
     backgroundColor: "#f5f5f5",
