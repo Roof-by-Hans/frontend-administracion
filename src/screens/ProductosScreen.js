@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Image,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -8,6 +16,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 import * as productosService from "../services/productosService";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [productos, setProductos] = useState([]);
@@ -32,16 +41,16 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       setCargando(true);
       setError(null);
       const response = await productosService.getProductos();
-      
+
       if (response.success && response.data) {
         // Mapear los datos del backend al formato esperado por el frontend
-        const productosFormateados = response.data.map(producto => ({
+        const productosFormateados = response.data.map((producto) => ({
           id: producto.id,
           nombre: producto.nombre,
-          categoria: producto.categoria?.nombre || 'Sin categoría',
+          categoria: producto.categoria?.nombre || "Sin categoría",
           categoriaId: producto.idCategoria,
           precio: producto.precioUnitario,
-          descripcion: producto.descripcion || '',
+          descripcion: producto.descripcion || "",
           fotoPrincipal: producto.fotoPrincipal,
           fotoPrincipalUrl: producto.fotoPrincipalUrl,
         }));
@@ -71,13 +80,13 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   // Definir columnas para el DataGrid
   const columns = [
     {
-      field: 'id',
-      headerName: 'ID',
+      field: "id",
+      headerName: "ID",
       width: 80,
     },
     {
-      field: 'fotoPrincipalUrl',
-      headerName: 'Imagen',
+      field: "fotoPrincipalUrl",
+      headerName: "Imagen",
       width: 100,
       sortable: false,
       filterable: false,
@@ -98,35 +107,38 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       ),
     },
     {
-      field: 'nombre',
-      headerName: 'Nombre',
+      field: "nombre",
+      headerName: "Nombre",
       flex: 1,
       minWidth: 200,
     },
     {
-      field: 'categoria',
-      headerName: 'Categoría',
+      field: "categoria",
+      headerName: "Categoría",
       flex: 1,
       minWidth: 150,
     },
     {
-      field: 'precio',
-      headerName: 'Precio',
+      field: "precio",
+      headerName: "Precio",
       width: 120,
       valueFormatter: (params) => {
         const numero = Number(params);
-        return `$${numero.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `$${numero.toLocaleString("es-UY", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
       },
     },
     {
-      field: 'descripcion',
-      headerName: 'Descripción',
+      field: "descripcion",
+      headerName: "Descripción",
       flex: 1,
       minWidth: 200,
     },
     {
-      field: 'acciones',
-      headerName: 'Acciones',
+      field: "acciones",
+      headerName: "Acciones",
       minWidth: 150,
       sortable: false,
       filterable: false,
@@ -165,7 +177,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
 
   // Función para abrir modal de confirmación de eliminación
   const handleEliminarProducto = (productoId) => {
-    setProductoAEliminar(productoId);
+    setProductoAEliminar(producto);
     setConfirmVisible(true);
   };
 
@@ -175,15 +187,18 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       try {
         setCargando(true);
         await productosService.eliminarProducto(productoAEliminar);
-        
+
         // Actualizar la lista local
-        setProductos(productos.filter(p => p.id !== productoAEliminar));
+        setProductos(productos.filter((p) => p.id !== productoAEliminar));
         setConfirmVisible(false);
         setProductoAEliminar(null);
         Alert.alert("Éxito", "Producto eliminado correctamente.");
       } catch (error) {
         console.error("Error al eliminar producto:", error);
-        Alert.alert("Error", "No se pudo eliminar el producto. Por favor, intenta nuevamente.");
+        Alert.alert(
+          "Error",
+          "No se pudo eliminar el producto. Por favor, intenta nuevamente."
+        );
       } finally {
         setCargando(false);
       }
@@ -199,7 +214,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   const handleGuardarProducto = async (productoData) => {
     try {
       setCargando(true);
-      
+
       if (productoEditando) {
         // Editar producto existente
         const datosActualizacion = {
@@ -208,13 +223,13 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           id_categoria: productoData.categoriaId,
           descripcion: productoData.descripcion,
         };
-        
+
         const response = await productosService.actualizarProducto(
           productoData.id,
           datosActualizacion,
           productoData.imagen // Si hay una nueva imagen
         );
-        
+
         if (response.success) {
           // Recargar productos para obtener los datos actualizados
           await cargarProductos();
@@ -228,24 +243,26 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           id_categoria: productoData.categoriaId,
           descripcion: productoData.descripcion,
         };
-        
+
         const response = await productosService.crearProducto(
           datosNuevoProducto,
           productoData.imagen // Si hay imagen
         );
-        
+
         if (response.success) {
           // Recargar productos para obtener el nuevo producto
           await cargarProductos();
           Alert.alert("Éxito", "Producto creado correctamente.");
         }
       }
-      
+
       setModalVisible(false);
       setProductoEditando(null);
     } catch (error) {
       console.error("Error al guardar producto:", error);
-      const mensaje = error.response?.data?.message || "Error al guardar el producto. Por favor, intenta nuevamente.";
+      const mensaje =
+        error.response?.data?.message ||
+        "Error al guardar el producto. Por favor, intenta nuevamente.";
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
@@ -253,8 +270,8 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   };
 
   return (
-    <DashboardLayout 
-      onNavigate={onNavigate} 
+    <DashboardLayout
+      onNavigate={onNavigate}
       currentScreen={currentScreen}
       userName={userName}
       onLogout={logout}
@@ -268,9 +285,16 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         {/* Mostrar error si existe */}
         {error && (
           <View style={styles.errorContainer}>
-            <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={20}
+              color="#d32f2f"
+            />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={cargarProductos} style={styles.retryButton}>
+            <TouchableOpacity
+              onPress={cargarProductos}
+              style={styles.retryButton}
+            >
               <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
@@ -295,15 +319,22 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
                 onChangeText={setBusqueda}
               />
               {busqueda.length > 0 && (
-                <TouchableOpacity onPress={() => setBusqueda("")} style={styles.clearButton}>
-                  <MaterialCommunityIcons name="close-circle" size={20} color="#999" />
+                <TouchableOpacity
+                  onPress={() => setBusqueda("")}
+                  style={styles.clearButton}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={20}
+                    color="#999"
+                  />
                 </TouchableOpacity>
               )}
             </View>
 
             {/* Botón Agregar */}
-            <TouchableOpacity 
-              style={[styles.addButton, cargando && styles.addButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.addButton, cargando && styles.addButtonDisabled]}
               onPress={handleAgregarProducto}
               disabled={cargando}
             >
@@ -419,18 +450,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   actionsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
   },
   imageCell: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 4,
   },
   productImage: {
@@ -438,58 +469,58 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   noImageContainer: {
     width: 60,
     height: 60,
     borderRadius: 6,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 40,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffebee',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffebee",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#d32f2f',
+    borderLeftColor: "#d32f2f",
   },
   errorText: {
     flex: 1,
-    color: '#d32f2f',
+    color: "#d32f2f",
     fontSize: 14,
     marginLeft: 8,
   },
   retryButton: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: "#d32f2f",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
   },
   retryButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   addButtonDisabled: {
-    backgroundColor: '#a5d6a7',
+    backgroundColor: "#a5d6a7",
     opacity: 0.6,
   },
 });

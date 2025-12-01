@@ -7,86 +7,95 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-const STORAGE_KEY = "limites_subscripcion";
-
-// Límites por defecto
-const LIMITES_INICIALES = {
-  basica: 50,
-  premium: 100,
-  vip: 200,
-};
+import Alert from "@blazejkustra/react-native-alert";
+import tarjetaService from "../services/tarjetaService";
 
 export default function LimitesSubscripcionModal({ visible, onClose }) {
-  const [limites, setLimites] = useState(LIMITES_INICIALES);
-  const [errores, setErrores] = useState({
-    basica: "",
-    premium: "",
-    vip: "",
-  });
+  const [niveles, setNiveles] = useState([]);
+  const [limites, setLimites] = useState({});
+  const [errores, setErrores] = useState({});
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Cargar límites guardados al abrir el modal
+  // Cargar niveles desde la API al abrir el modal
   useEffect(() => {
     if (visible) {
-      try {
-        const limitesGuardados = localStorage.getItem(STORAGE_KEY);
-        if (limitesGuardados) {
-          setLimites(JSON.parse(limitesGuardados));
-        } else {
-          setLimites(LIMITES_INICIALES);
-        }
-        setErrores({ basica: "", premium: "", vip: "" });
-      } catch (error) {
-        console.error("Error al cargar límites:", error);
-        setLimites(LIMITES_INICIALES);
-      }
+      cargarNiveles();
     }
   }, [visible]);
 
+  const cargarNiveles = async () => {
+    setLoading(true);
+    try {
+      const response = await tarjetaService.getNivelesSuscripcion();
+      const nivelesData = response.data || [];
+      
+      setNiveles(nivelesData);
+      
+      // Inicializar límites con los valores actuales
+      const limitesIniciales = {};
+      const erroresIniciales = {};
+      
+      nivelesData.forEach(nivel => {
+        limitesIniciales[nivel.id] = nivel.limiteCredito.toString();
+        erroresIniciales[nivel.id] = "";
+      });
+      
+      setLimites(limitesIniciales);
+      setErrores(erroresIniciales);
+    } catch (error) {
+      console.error("Error al cargar niveles:", error);
+      Alert.alert(
+        "Error",
+        "No se pudieron cargar los niveles de suscripción. Intente nuevamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Validación en tiempo real
-  const handleLimiteChange = (tipo, texto) => {
-    setLimites(prev => ({ ...prev, [tipo]: texto }));
+  const handleLimiteChange = (idNivel, texto) => {
+    setLimites(prev => ({ ...prev, [idNivel]: texto }));
 
     if (texto.trim() === "") {
-      setErrores(prev => ({ ...prev, [tipo]: "El límite es obligatorio" }));
-    } else if (!/^\d+$/.test(texto)) {
-      setErrores(prev => ({ ...prev, [tipo]: "Solo se permiten números" }));
-    } else if (parseInt(texto) < 1) {
-      setErrores(prev => ({ ...prev, [tipo]: "El límite debe ser mayor a 0" }));
-    } else if (parseInt(texto) > 9999) {
-      setErrores(prev => ({ ...prev, [tipo]: "El límite no puede exceder 9999" }));
+      setErrores(prev => ({ ...prev, [idNivel]: "El límite es obligatorio" }));
+    } else if (!/^\d+(\.\d{0,2})?$/.test(texto)) {
+      setErrores(prev => ({ ...prev, [idNivel]: "Formato inválido" }));
+    } else if (parseFloat(texto) <= 0) {
+      setErrores(prev => ({ ...prev, [idNivel]: "El límite debe ser mayor a 0" }));
     } else {
-      setErrores(prev => ({ ...prev, [tipo]: "" }));
+      setErrores(prev => ({ ...prev, [idNivel]: "" }));
     }
   };
 
   // Validar y mostrar modal de confirmación
   const handleGuardar = () => {
-    const nuevosErrores = {
-      basica: "",
-      premium: "",
-      vip: "",
-    };
+    const nuevosErrores = {};
+    let hayErrores = false;
 
     // Validar cada campo
-    ["basica", "premium", "vip"].forEach(tipo => {
-      const valor = limites[tipo].toString();
+    niveles.forEach(nivel => {
+      const valor = limites[nivel.id]?.toString() || "";
       if (!valor.trim()) {
-        nuevosErrores[tipo] = "El límite es obligatorio";
-      } else if (!/^\d+$/.test(valor)) {
-        nuevosErrores[tipo] = "Solo se permiten números";
-      } else if (parseInt(valor) < 1) {
-        nuevosErrores[tipo] = "El límite debe ser mayor a 0";
-      } else if (parseInt(valor) > 9999) {
-        nuevosErrores[tipo] = "El límite no puede exceder 9999";
+        nuevosErrores[nivel.id] = "El límite es obligatorio";
+        hayErrores = true;
+      } else if (!/^\d+(\.\d{0,2})?$/.test(valor)) {
+        nuevosErrores[nivel.id] = "Formato inválido";
+        hayErrores = true;
+      } else if (parseFloat(valor) <= 0) {
+        nuevosErrores[nivel.id] = "El límite debe ser mayor a 0";
+        hayErrores = true;
       }
     });
 
     // Si hay errores, no continuar
-    if (nuevosErrores.basica || nuevosErrores.premium || nuevosErrores.vip) {
+    if (hayErrores) {
       setErrores(nuevosErrores);
       return;
     }
@@ -96,18 +105,32 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
   };
 
   // Confirmar y guardar cambios
-  const confirmarGuardado = () => {
+  const confirmarGuardado = async () => {
+    setSaving(true);
+    setConfirmModalVisible(false);
+    
     try {
-      const limitesAGuardar = {
-        basica: parseInt(limites.basica),
-        premium: parseInt(limites.premium),
-        vip: parseInt(limites.vip),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(limitesAGuardar));
-      setConfirmModalVisible(false);
-      onClose();
+      // Actualizar cada nivel en el backend
+      const promesas = niveles.map(nivel => {
+        const nuevoLimite = parseFloat(limites[nivel.id]);
+        return tarjetaService.actualizarNivelSuscripcion(nivel.id, {
+          nombre: nivel.nombre,
+          limite_credito: nuevoLimite,
+        });
+      });
+      
+      await Promise.all(promesas);
+      
+      // Mostrar modal de éxito
+      setSuccessModalVisible(true);
     } catch (error) {
       console.error("Error al guardar límites:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudieron guardar los cambios. Intente nuevamente."
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -117,6 +140,11 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
   };
 
   const handleCancelar = () => {
+    onClose();
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessModalVisible(false);
     onClose();
   };
 
@@ -143,73 +171,54 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
           {/* Body */}
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <Text style={styles.description}>
-              Define el límite de clientes permitidos para cada tipo de subscripción.
+              Define el límite de crédito para cada nivel de suscripción de tarjetas.
             </Text>
 
-            {/* Subscripción Básica */}
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <MaterialCommunityIcons name="account-outline" size={20} color="#666" />
-                <Text style={styles.label}>Subscripción Básica *</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#4CAF50" />
+                <Text style={styles.loadingText}>Cargando niveles...</Text>
               </View>
-              <TextInput
-                style={[styles.input, errores.basica && styles.inputError]}
-                value={limites.basica.toString()}
-                onChangeText={(text) => handleLimiteChange("basica", text)}
-                placeholder="Ej: 50"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-              />
-              {errores.basica ? (
-                <Text style={styles.errorText}>{errores.basica}</Text>
-              ) : null}
-            </View>
-
-            {/* Subscripción Premium */}
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <MaterialCommunityIcons name="star-outline" size={20} color="#666" />
-                <Text style={styles.label}>Subscripción Premium *</Text>
+            ) : niveles.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#999" />
+                <Text style={styles.emptyText}>No hay niveles de suscripción disponibles</Text>
               </View>
-              <TextInput
-                style={[styles.input, errores.premium && styles.inputError]}
-                value={limites.premium.toString()}
-                onChangeText={(text) => handleLimiteChange("premium", text)}
-                placeholder="Ej: 100"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-              />
-              {errores.premium ? (
-                <Text style={styles.errorText}>{errores.premium}</Text>
-              ) : null}
-            </View>
-
-            {/* Subscripción VIP */}
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <MaterialCommunityIcons name="crown-outline" size={20} color="#666" />
-                <Text style={styles.label}>Subscripción VIP *</Text>
-              </View>
-              <TextInput
-                style={[styles.input, errores.vip && styles.inputError]}
-                value={limites.vip.toString()}
-                onChangeText={(text) => handleLimiteChange("vip", text)}
-                placeholder="Ej: 200"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-              />
-              {errores.vip ? (
-                <Text style={styles.errorText}>{errores.vip}</Text>
-              ) : null}
-            </View>
+            ) : (
+              niveles.map((nivel) => (
+                <View key={nivel.id} style={styles.formGroup}>
+                  <View style={styles.labelContainer}>
+                    <MaterialCommunityIcons 
+                      name={getNivelIcon(nivel.nombre)} 
+                      size={20} 
+                      color="#666" 
+                    />
+                    <Text style={styles.label}>{nivel.nombre} *</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.input, errores[nivel.id] && styles.inputError]}
+                    value={limites[nivel.id] || ""}
+                    onChangeText={(text) => handleLimiteChange(nivel.id, text)}
+                    placeholder="Ej: 50000.00"
+                    placeholderTextColor="#999"
+                    keyboardType="decimal-pad"
+                  />
+                  {errores[nivel.id] ? (
+                    <Text style={styles.errorText}>{errores[nivel.id]}</Text>
+                  ) : null}
+                </View>
+              ))
+            )}
 
             {/* Información adicional */}
-            <View style={styles.infoContainer}>
-              <MaterialCommunityIcons name="information-outline" size={20} color="#2196F3" />
-              <Text style={styles.infoText}>
-                Los límites determinan la cantidad máxima de clientes que pueden tener cada tipo de subscripción.
-              </Text>
-            </View>
+            {niveles.length > 0 && (
+              <View style={styles.infoContainer}>
+                <MaterialCommunityIcons name="information-outline" size={20} color="#2196F3" />
+                <Text style={styles.infoText}>
+                  Los límites determinan el monto máximo que pueden consumir los clientes con tarjetas de crédito de cada nivel.
+                </Text>
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer con botones */}
@@ -217,15 +226,23 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
               onPress={handleCancelar}
+              disabled={saving}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
+              style={[styles.button, styles.saveButton, (loading || saving || niveles.length === 0) && styles.buttonDisabled]}
               onPress={handleGuardar}
+              disabled={loading || saving || niveles.length === 0}
             >
-              <MaterialCommunityIcons name="check" size={20} color="#fff" />
-              <Text style={styles.saveButtonText}>Guardar Cambios</Text>
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <MaterialCommunityIcons name="check" size={20} color="#fff" />
+              )}
+              <Text style={styles.saveButtonText}>
+                {saving ? "Guardando..." : "Guardar Cambios"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -249,18 +266,12 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
 
               {/* Resumen de cambios */}
               <View style={styles.resumenContainer}>
-                <View style={styles.resumenItem}>
-                  <Text style={styles.resumenLabel}>Básica:</Text>
-                  <Text style={styles.resumenValue}>{limites.basica} clientes</Text>
-                </View>
-                <View style={styles.resumenItem}>
-                  <Text style={styles.resumenLabel}>Premium:</Text>
-                  <Text style={styles.resumenValue}>{limites.premium} clientes</Text>
-                </View>
-                <View style={styles.resumenItem}>
-                  <Text style={styles.resumenLabel}>VIP:</Text>
-                  <Text style={styles.resumenValue}>{limites.vip} clientes</Text>
-                </View>
+                {niveles.map(nivel => (
+                  <View key={nivel.id} style={styles.resumenItem}>
+                    <Text style={styles.resumenLabel}>{nivel.nombre}:</Text>
+                    <Text style={styles.resumenValue}>${parseFloat(limites[nivel.id] || 0).toFixed(2)}</Text>
+                  </View>
+                ))}
               </View>
 
               {/* Botones */}
@@ -282,10 +293,48 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
             </View>
           </View>
         )}
+
+        {/* Modal de éxito */}
+        {successModalVisible && (
+          <View style={styles.confirmModalOverlay}>
+            <View style={styles.confirmModalContent}>
+              {/* Icono de éxito */}
+              <View style={styles.successIconContainer}>
+                <MaterialCommunityIcons name="check-circle" size={60} color="#4CAF50" />
+              </View>
+
+              {/* Título */}
+              <Text style={styles.confirmTitle}>¡Cambios guardados!</Text>
+
+              {/* Mensaje */}
+              <Text style={styles.confirmMessage}>
+                Los límites de suscripción se han actualizado correctamente.
+              </Text>
+
+              {/* Botón */}
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.confirmSaveButton, { flex: 'none', width: '100%' }]}
+                onPress={handleSuccessClose}
+              >
+                <Text style={styles.confirmSaveButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
 }
+
+// Función helper para obtener icono según el nombre del nivel
+const getNivelIcon = (nombreNivel) => {
+  const nombre = nombreNivel.toLowerCase();
+  if (nombre.includes('black') || nombre.includes('negro')) return 'crown';
+  if (nombre.includes('gold') || nombre.includes('oro')) return 'star';
+  if (nombre.includes('platinum') || nombre.includes('platino')) return 'diamond';
+  if (nombre.includes('silver') || nombre.includes('plata')) return 'circle-outline';
+  return 'credit-card-outline';
+};
 
 const styles = StyleSheet.create({
   modalOverlay: {
@@ -293,6 +342,30 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   modalContent: {
     backgroundColor: "#fff",
@@ -435,6 +508,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   confirmIconContainer: {
+    marginBottom: 20,
+  },
+  successIconContainer: {
     marginBottom: 20,
   },
   confirmTitle: {

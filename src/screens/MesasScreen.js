@@ -16,6 +16,7 @@ import facturasService from "../services/facturasService";
 import pedidosService from "../services/pedidosService";
 import { useMesasSocket } from "../hooks/useMesasSocket";
 import { usePedidosSocket } from "../hooks/usePedidosSocket";
+import Alert from "@blazejkustra/react-native-alert";
 
 // Fondo cuadriculado
 const GridBackground = ({ width, height }) => {

@@ -10,12 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import * as categoriasService from '../services/categoriasService';
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function ProductoModal({
   visible,

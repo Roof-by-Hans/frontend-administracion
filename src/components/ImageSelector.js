@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Image, TouchableOpacity, Text, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Image, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import Alert from "@blazejkustra/react-native-alert";
 
 /**
  * Componente reutilizable para seleccionar y previsualizar imágenes

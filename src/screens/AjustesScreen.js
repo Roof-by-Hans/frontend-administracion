@@ -14,8 +14,9 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const [guardandoFoto, setGuardandoFoto] = useState(false);
   
   const { user, logout, updateUser } = useAuth();
-  const userName = user?.usuario || user?.nombreUsuario || "Usuario";
+  const userName = user?.nombreUsuario || user?.usuario || "Usuario";
   const userPhoto = user?.fotoPerfilUrl || null;
+  const isAdmin = user?.roles?.includes("Administrador") || user?.roles?.includes("Admin") || false;
 
   // Función para abrir modal de límites de subscripción
   const handleAbrirLimites = () => {
@@ -223,17 +224,19 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
 
         {/* Grid de opciones */}
         <View style={styles.gridContainer}>
-          {/* Card Financiero */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Financiero</Text>
-            <TouchableOpacity 
-              style={styles.optionButton}
-              onPress={handleAbrirLimites}
-            >
-              <MaterialCommunityIcons name="credit-card-outline" size={20} color="#333" />
-              <Text style={styles.optionText}>Editar límite subscripciones</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Card Financiero - Solo para administradores */}
+          {isAdmin && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Financiero</Text>
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={handleAbrirLimites}
+              >
+                <MaterialCommunityIcons name="credit-card-outline" size={20} color="#333" />
+                <Text style={styles.optionText}>Editar límite subscripciones</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Card vacío 1 - Para futuras opciones */}
           <View style={[styles.card, styles.cardEmpty]}>

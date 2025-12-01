@@ -49,11 +49,15 @@ api.interceptors.response.use(
       // Si es 401, el token expiró o es inválido - limpiar sesión
       if (status === 401) {
         try {
+          console.log("🔒 Token JWT expirado o inválido - limpiando sesión");
           await AsyncStorage.removeItem("token");
           await AsyncStorage.removeItem("user");
-          // Nota: El AuthContext detectará esto y redirigirá al login
+          await AsyncStorage.removeItem("recordarme");
+          // Agregar un flag para que el AuthContext lo detecte inmediatamente
+          await AsyncStorage.setItem("session_expired", "true");
+          // El AuthContext detectará esto y redirigirá al login
         } catch (e) {
-          // Silenciar logs en producción
+          console.error("Error al limpiar AsyncStorage:", e);
         }
       }
     } else if (error.request) {

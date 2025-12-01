@@ -1,36 +1,76 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, useWindowDimensions, ActivityIndicator } from "react-native";
-import Alert from "@blazejkustra/react-native-alert";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  useWindowDimensions,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
+import Alert from "@blazejkustra/react-native-alert";
+import API_URL from "../config/api";
 
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [recordarme, setRecordarme] = useState(false);
-  const { login, loading, error, clearError } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 400;
 
   const handleLogin = async () => {
-    // Limpiar error previo
-    clearError();
-    
-    // Validar campos
-    if (!usuario.trim()) {
-      Alert.alert("Error", "Por favor ingrese su usuario");
+    console.log("🚀 handleLogin ejecutado");
+    if (!usuario.trim() || !contrasena.trim()) {
+      Alert.alert("Error", "Por favor complete todos los campos");
       return;
     }
-    
-    if (!contrasena.trim()) {
-      Alert.alert("Error", "Por favor ingrese su contraseña");
-      return;
-    }
-    
-    // Intentar login
-    const success = await login(usuario, contrasena, recordarme);
-    
-    if (!success && error) {
-      Alert.alert("Error de autenticación", error);
+
+    try {
+      setLoading(true);
+      console.log("🔐 Intentando login con:", usuario);
+      console.log("🌐 URL:", `${API_URL}/auth/login`);
+
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombreUsuario: usuario,
+          contrasena: contrasena,
+        }),
+      });
+
+      console.log("📡 Status:", response.status);
+      const data = await response.json();
+      console.log("📥 Respuesta del servidor:", data);
+
+      if (response.ok && data.success) {
+        console.log("✅ Login exitoso");
+        console.log("👤 Datos del usuario:", data.data.usuario);
+        await login(data.data.usuario, data.data.token);
+        if (recordarme) {
+          await AsyncStorage.setItem("recordarme", "true");
+        }
+      } else {
+        console.log("❌ Login fallido:", data.message);
+        Alert.alert(
+          "Credenciales inválidas",
+          data.message || "Usuario o contraseña incorrectos. Por favor, verifica tus datos e intenta nuevamente."
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error en login:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo conectar con el servidor: " + error.message
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,17 +79,12 @@ export default function Login() {
       <View style={styles.loginCard}>
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
-            <Image source={require('../../assets/hans-logo.png')} style={styles.logo} />
+            <Image
+              source={require("../../assets/hans-logo.png")}
+              style={styles.logo}
+            />
           </View>
         </View>
-
-        {/* Mostrar error si existe */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -58,7 +93,6 @@ export default function Login() {
             value={usuario}
             onChangeText={setUsuario}
             autoCapitalize="none"
-            editable={!loading}
           />
         </View>
 
@@ -71,40 +105,42 @@ export default function Login() {
             onChangeText={setContrasena}
             secureTextEntry={true}
             autoCapitalize="none"
-            editable={!loading}
           />
         </View>
 
-        <View style={[styles.optionsContainer, isSmallScreen && styles.optionsContainerStacked]}>
-          <TouchableOpacity 
-            style={[styles.checkboxContainer, isSmallScreen && styles.checkboxContainerStacked]}
+        <View
+          style={[
+            styles.optionsContainer,
+            isSmallScreen && styles.optionsContainerStacked,
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.checkboxContainer,
+              isSmallScreen && styles.checkboxContainerStacked,
+            ]}
             onPress={() => setRecordarme(!recordarme)}
-            disabled={loading}
           >
-            <View style={[styles.checkbox, recordarme && styles.checkboxSelected]}>
+            <View
+              style={[styles.checkbox, recordarme && styles.checkboxSelected]}
+            >
               {recordarme && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <Text style={styles.checkboxLabel}>Recordarme</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.forgotPasswordContainer, isSmallScreen && styles.forgotPasswordContainerStacked]}
-            disabled={loading}
+          <TouchableOpacity
+            style={[
+              styles.forgotPasswordContainer,
+              isSmallScreen && styles.forgotPasswordContainerStacked,
+            ]}
           >
             <Text style={styles.forgotPassword}>Recuperar contraseña</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.loginButtonText}>INGRESAR</Text>
-          )}
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>INGRESAR</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -138,11 +174,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 40,
   },
-  logoPlaceholder: {
-  },
+  logoPlaceholder: {},
   logo: {
     width: 120,
-    height: 120
+    height: 120,
   },
   inputContainer: {
     marginBottom: 20,
@@ -195,7 +230,7 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: "#666",
-    textDecoration: "none"
+    textDecoration: "none",
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
@@ -214,28 +249,10 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
   },
-  loginButtonDisabled: {
-    backgroundColor: "#999999",
-    opacity: 0.6,
-  },
   loginButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
     letterSpacing: 1,
   },
-  errorContainer: {
-    backgroundColor: "#ffebee",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#ef5350",
-  },
-  errorText: {
-    color: "#c62828",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  
 });

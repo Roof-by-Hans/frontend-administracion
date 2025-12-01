@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import authService from '../services/authService';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import authService from "../services/authService";
+import Alert from "@blazejkustra/react-native-alert";
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -15,155 +16,150 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Verificar si hay una sesión guardada al cargar
+  // Cargar sesión guardada (AsyncStorage)
   useEffect(() => {
     const checkStoredSession = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        const savedUser = await AsyncStorage.getItem('user');
-        
-        if (token && savedUser) {
-          setUser(JSON.parse(savedUser));
+        const storedToken = await AsyncStorage.getItem("token");
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         }
       } catch (err) {
-        console.error('Error al cargar sesión guardada:', err);
+        console.error("Error al cargar sesión guardada:", err);
         try {
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("user");
         } catch (e) {
-          console.error('Error al limpiar storage:', e);
+          console.error("Error al limpiar storage:", e);
         }
       } finally {
         setLoading(false);
       }
     };
-    
+
     checkStoredSession();
   }, []);
 
-  /**
-   * Iniciar sesión con credenciales
-   * @param {string} nombreUsuario - Nombre de usuario
-   * @param {string} contrasena - Contraseña
-   * @param {boolean} recordarme - Si se debe recordar la sesión
-   * @returns {Promise<boolean>} True si el login fue exitoso
-   */
-  const login = async (nombreUsuario, contrasena, recordarme = false) => {
+  // Verificar periódicamente si el token sigue existiendo en AsyncStorage
+  // Si fue eliminado por un 401, cerrar sesión
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("token");
+        const sessionExpired = await AsyncStorage.getItem("session_expired");
+        
+        if (!storedToken && isAuthenticated) {
+          console.log("🚪 Token eliminado - cerrando sesión");
+          
+          // Si hay un flag de sesión expirada, mostrar mensaje
+          if (sessionExpired === "true") {
+            Alert.alert(
+              "Sesión expirada",
+              "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+            );
+            await AsyncStorage.removeItem("session_expired");
+          }
+          
+          setUser(null);
+          setToken(null);
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        console.error("Error al verificar token:", err);
+      }
+    }, 1000); // Verificar cada segundo
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // login: soporte dual para compatibilidad con código existente
+  // - Si se llama como login(userData, token) -> guarda esa sesión
+  // - Si se llama como login(nombreUsuario, contrasena, recordarme) -> usa authService
+  const login = async (a, b, c = false) => {
+    // Caso 1: llamada desde el antiguo flujo: login(userData, token)
+    if (typeof a === "object" && typeof b === "string") {
+      const userData = a;
+      const authToken = b;
+      setUser(userData);
+      setToken(authToken);
+      setIsAuthenticated(true);
+      try {
+        await AsyncStorage.setItem("token", authToken);
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
+      } catch (err) {
+        console.error("Error al guardar sesión en AsyncStorage:", err);
+      }
+      return true;
+    }
+
+    // Caso 2: llamada con credenciales: login(nombreUsuario, contrasena, recordarme)
+    const nombreUsuario = a;
+    const contrasena = b;
+    const recordarme = c;
     try {
       setLoading(true);
       setError(null);
-      
-      // MODO DESARROLLO - Login sin backend
-      const DEV_MODE = true; // Cambiar a false para usar backend real
-      
-      if (DEV_MODE) {
-        // Simular delay de red
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Usuario de prueba
-        const mockUser = {
-          id: 1,
-          nombre: nombreUsuario || 'Usuario',
-          rol: 'administrador',
-          email: 'admin@example.com',
-        };
-        
-        const mockToken = 'dev-token-' + Date.now();
-        
-        // Guardar en AsyncStorage
-        try {
-          await AsyncStorage.setItem('token', mockToken);
-          await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-          
-          if (recordarme) {
-            await AsyncStorage.setItem('recordarme', 'true');
-          }
-        } catch (storageError) {
-          console.error('Error al guardar en AsyncStorage:', storageError);
-        }
-        
-        // Actualizar el estado
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        setLoading(false);
-        
-        return true;
-      }
-      
-      // Llamar al servicio de autenticación (cuando DEV_MODE = false)
       const response = await authService.login(nombreUsuario, contrasena);
-      
-      if (response.success && response.data) {
-        const { token, usuario } = response.data;
-        
-        // Guardar el token en AsyncStorage
-        try {
-          await AsyncStorage.setItem('token', token);
-          await AsyncStorage.setItem('user', JSON.stringify(usuario));
-          
-          // Opcional: guardar un flag de "recordarme" si lo necesitas
-          if (recordarme) {
-            await AsyncStorage.setItem('recordarme', 'true');
-          }
-        } catch (storageError) {
-          console.error('Error al guardar en AsyncStorage:', storageError);
-        }
-        
-        // Actualizar el estado
+      if (response && response.data) {
+        const { token: receivedToken, usuario } = response.data;
         setUser(usuario);
+        setToken(receivedToken);
         setIsAuthenticated(true);
+        try {
+          await AsyncStorage.setItem("token", receivedToken);
+          await AsyncStorage.setItem("user", JSON.stringify(usuario));
+          if (recordarme) {
+            await AsyncStorage.setItem("recordarme", "true");
+          }
+        } catch (storageErr) {
+          console.error("Error al guardar en AsyncStorage:", storageErr);
+        }
         setLoading(false);
-        
         return true;
       } else {
-        setError(response.message || 'Error al iniciar sesión');
+        setError(response?.message || "Error al iniciar sesión");
         setLoading(false);
         return false;
       }
     } catch (err) {
-      console.error('Error en login:', err);
-      
-      let errorMessage = 'Error al conectar con el servidor';
-      
+      console.error("Error en login:", err);
+      let errorMessage = "Error al conectar con el servidor";
       if (err.response) {
-        // El servidor respondió con un código de error
-        if (err.response.status === 401) {
-          errorMessage = 'Usuario o contraseña incorrectos';
-        } else if (err.response.status === 403) {
-          errorMessage = 'Usuario inactivo. Contacte al administrador.';
-        } else if (err.response.data && err.response.data.message) {
+        if (err.response.status === 401)
+          errorMessage = "Usuario o contraseña incorrectos";
+        else if (err.response.status === 403)
+          errorMessage = "Usuario inactivo. Contacte al administrador.";
+        else if (err.response.data?.message)
           errorMessage = err.response.data.message;
-        }
       } else if (err.request) {
-        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
+        errorMessage =
+          "No se pudo conectar con el servidor. Verifique su conexión.";
       }
-      
       setError(errorMessage);
       setLoading(false);
       return false;
     }
   };
 
-  /**
-   * Cerrar sesión
-   */
   const logout = async () => {
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
     try {
-      // Limpiar el almacenamiento con AsyncStorage
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('recordarme');
-      
-      // Limpiar el estado
-      setUser(null);
-      setIsAuthenticated(false);
-      setError(null);
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("user");
+      await AsyncStorage.removeItem("recordarme");
     } catch (err) {
-      console.error('Error al cerrar sesión:', err);
+      console.error("Error al limpiar AsyncStorage en logout:", err);
     }
   };
 
@@ -180,24 +176,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Limpiar el error
-   */
-  const clearError = () => {
-    setError(null);
-  };
-
   return (
-    <AuthContext.Provider value={{
-      isAuthenticated,
-      user,
-      loading,
-      error,
-      login,
-      logout,
-      updateUser,
-      clearError,
-    }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        token,
+        login,
+        logout,
+        updateUser,
+        loading,
+        error,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -5,8 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
-  Alert,
+  ActivityIndicator
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton, Avatar } from "@mui/material";
@@ -18,6 +17,7 @@ import SuccessModal from "../components/SuccessModal";
 import ConfirmTarjetaDesvinculacionModal from "../components/ConfirmTarjetaDesvinculacionModal";
 import { useAuth } from "../context/AuthContext";
 import clienteService from "../services/clientesService";
+import Alert from "@blazejkustra/react-native-alert";
 
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);

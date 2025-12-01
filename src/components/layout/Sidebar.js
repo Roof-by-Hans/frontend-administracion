@@ -36,6 +36,11 @@ const secondaryMenuItems = [
     screen: "emitir-tarjeta",
   },
   { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
+  {
+    icon: "account-cog-outline",
+    label: "Gestión de Usuarios",
+    screen: "gestion-usuarios",
+  },
   { icon: "cog-outline", label: "Ajustes generales", screen: "ajustes" },
 ];
 
@@ -51,7 +56,10 @@ const MenuSection = ({ title, items, compact, onNavigate, currentScreen }) => (
           currentScreen === item.screen && styles.menuItemActive,
         ]}
         android_ripple={{ color: "#e2e2e2" }}
-        onPress={() => onNavigate(item.screen)}
+        onPress={(e) => {
+          e.preventDefault();
+          onNavigate(item.screen);
+        }}
       >
         <MaterialCommunityIcons
           name={item.icon}
@@ -170,6 +178,11 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "#e1e1e1",
     flexDirection: "column",
+    ...(typeof window !== "undefined" && {
+      position: "sticky",
+      top: 0,
+      alignSelf: "flex-start",
+    }),
   },
   containerCompact: {
     width: "100%",
