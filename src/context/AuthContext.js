@@ -168,6 +168,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Actualizar información del usuario
+   * @param {Object} updatedUser - Datos actualizados del usuario
+   */
+  const updateUser = async (updatedUser) => {
+    try {
+      setUser(updatedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (err) {
+      console.error('Error al actualizar usuario:', err);
+    }
+  };
+
+  /**
    * Limpiar el error
    */
   const clearError = () => {
@@ -182,6 +195,7 @@ export const AuthProvider = ({ children }) => {
       error,
       login,
       logout,
+      updateUser,
       clearError,
     }}>
       {children}
