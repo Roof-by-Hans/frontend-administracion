@@ -138,6 +138,31 @@ const tarjetaService = {
       throw error;
     }
   },
+
+  /**
+   * Registrar pago de deuda de tarjeta crédito
+   * @param {number} idCliente - ID del cliente
+   * @param {number} monto - Monto a pagar
+   * @param {string} metodoPago - Método de pago
+   * @param {number} [idFactura] - ID de factura específica (opcional)
+   * @param {string} [observaciones] - Observaciones opcionales
+   */
+  pagarDeuda: async (idCliente, monto, metodoPago, idFactura = null, observaciones = "") => {
+    try {
+      const response = await api.post("/transacciones/pago", {
+        idCliente,
+        monto,
+        metodoPago,
+        idFactura,
+        observaciones,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error al pagar deuda:", error.message);
+      throw error;
+    }
+  },
 };
+
 
 export default tarjetaService;

@@ -121,7 +121,7 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
     );
   };
 
-  const handleCrearPedido = async () => {
+const handleCrearPedido = async () => {
     // Validaciones
     if (!clienteSeleccionado) {
       Alert.alert("Error", "Debe seleccionar un cliente");
@@ -131,6 +131,31 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
     if (productosSeleccionados.length === 0) {
       Alert.alert("Error", "Debe agregar al menos un producto");
       return;
+    }
+
+    // Validación de límites de crédito/prepago
+    const infoTarjeta = clienteSeleccionado.tarjeta;
+    if (infoTarjeta) {
+      const totalPedido = calcularTotal();
+      const tipo = infoTarjeta.tipoSuscripcion;
+      const saldo = infoTarjeta.saldoActual;
+      const limite = infoTarjeta.limiteCredito;
+
+      if (tipo === 'PREPAGA' && totalPedido > saldo) {
+        Alert.alert("Saldo Insuficiente", `El cliente solo dispone de $${saldo.toFixed(2)}.`);
+        return;
+      }
+
+      if (tipo === 'CREDITO') {
+        if (saldo > limite) {
+          Alert.alert("Límite Excedido", `El cliente ya debe $${saldo.toFixed(2)}, lo cual excede su límite de $${limite.toFixed(2)}. Debe saldar su deuda.`);
+          return;
+        }
+        if ((saldo + totalPedido) > limite) {
+          Alert.alert("Límite Excedido", `Este pedido de $${totalPedido.toFixed(2)} haría que el cliente exceda su límite de crédito disponible ($${(limite - saldo).toFixed(2)}).`);
+          return;
+        }
+      }
     }
 
     try {
@@ -263,19 +288,61 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
                 />
                 
                 {clienteSeleccionado ? (
-                  <View style={styles.clienteSeleccionado}>
-                    <View style={styles.clienteInfo}>
-                      <MaterialCommunityIcons name="account" size={24} color="#007AFF" />
-                      <View style={styles.clienteTexto}>
-                        <Text style={styles.clienteNombre}>
-                          {clienteSeleccionado.nombre} {clienteSeleccionado.apellido}
-                        </Text>
-                        <Text style={styles.clienteEmail}>{clienteSeleccionado.email}</Text>
+                  <View>
+                    <View style={styles.clienteSeleccionado}>
+                      <View style={styles.clienteInfo}>
+                        <MaterialCommunityIcons name="account" size={24} color="#007AFF" />
+                        <View style={styles.clienteTexto}>
+                          <Text style={styles.clienteNombre}>
+                            {clienteSeleccionado.nombre} {clienteSeleccionado.apellido}
+                          </Text>
+                          <Text style={styles.clienteEmail}>{clienteSeleccionado.email}</Text>
+                        </View>
                       </View>
+                      <TouchableOpacity onPress={() => setClienteSeleccionado(null)}>
+                        <MaterialCommunityIcons name="close-circle" size={24} color="#FF3B30" />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={() => setClienteSeleccionado(null)}>
-                      <MaterialCommunityIcons name="close-circle" size={24} color="#FF3B30" />
-                    </TouchableOpacity>
+                    
+                    {/* Información de Saldo/Crédito */}
+                    {clienteSeleccionado.tarjeta && (
+                      <View style={[
+                        styles.infoSaldo,
+                        clienteSeleccionado.tarjeta.tipoSuscripcion === 'CREDITO' && 
+                        clienteSeleccionado.tarjeta.saldoActual > clienteSeleccionado.tarjeta.limiteCredito && 
+                        styles.infoSaldoError
+                      ]}>
+                        <View style={styles.saldoRow}>
+                          <Text style={styles.saldoLabel}>
+                            {clienteSeleccionado.tarjeta.tipoSuscripcion === 'CREDITO' ? 'Deuda Actual:' : 'Saldo Disponible:'}
+                          </Text>
+                          <Text style={[
+                            styles.saldoValor,
+                            clienteSeleccionado.tarjeta.tipoSuscripcion === 'CREDITO' && 
+                            clienteSeleccionado.tarjeta.saldoActual > 0 && { color: '#FF3B30' }
+                          ]}>
+                            ${clienteSeleccionado.tarjeta.saldoActual.toFixed(2)}
+                          </Text>
+                        </View>
+                        {clienteSeleccionado.tarjeta.tipoSuscripcion === 'CREDITO' && (
+                          <View style={styles.saldoRow}>
+                            <Text style={styles.saldoLabel}>Límite de Crédito:</Text>
+                            <Text style={styles.saldoValor}>${clienteSeleccionado.tarjeta.limiteCredito.toFixed(2)}</Text>
+                          </View>
+                        )}
+                        {clienteSeleccionado.tarjeta.tipoSuscripcion === 'CREDITO' && (
+                          <View style={styles.saldoRow}>
+                            <Text style={styles.saldoLabel}>Disponible para consumir:</Text>
+                            <Text style={[
+                              styles.saldoValor,
+                              { color: Math.max(0, clienteSeleccionado.tarjeta.limiteCredito - clienteSeleccionado.tarjeta.saldoActual) > 0 ? '#34C759' : '#FF3B30' }
+                            ]}>
+                              ${Math.max(0, clienteSeleccionado.tarjeta.limiteCredito - clienteSeleccionado.tarjeta.saldoActual).toFixed(2)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
                 ) : (
                   <ScrollView style={styles.clientesList} nestedScrollEnabled>
@@ -389,7 +456,17 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
 
               {/* Total */}
               <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Total:</Text>
+                <View>
+                  <Text style={styles.totalLabel}>Total:</Text>
+                  {clienteSeleccionado?.tarjeta?.tipoSuscripcion === 'CREDITO' && (
+                    <Text style={[
+                      styles.alertaCredito,
+                      (clienteSeleccionado.tarjeta.saldoActual + calcularTotal()) > clienteSeleccionado.tarjeta.limiteCredito && styles.alertaCreditoError
+                    ]}>
+                      Nuevo Total Deuda: ${(clienteSeleccionado.tarjeta.saldoActual + calcularTotal()).toFixed(2)}
+                    </Text>
+                  )}
+                </View>
                 <Text style={styles.totalMonto}>${calcularTotal().toFixed(2)}</Text>
               </View>
             </ScrollView>
@@ -406,9 +483,24 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
+              style={[
+                styles.button, 
+                styles.buttonPrimary, 
+                (loading || loadingData || (
+                  clienteSeleccionado?.tarjeta?.tipoSuscripcion === 'CREDITO' && 
+                  (clienteSeleccionado.tarjeta.saldoActual + calcularTotal()) > clienteSeleccionado.tarjeta.limiteCredito
+                ) || (
+                  clienteSeleccionado?.tarjeta?.tipoSuscripcion === 'PREPAGA' && 
+                  calcularTotal() > clienteSeleccionado.tarjeta.saldoActual
+                )) && styles.buttonDisabled
+              ]}
               onPress={handleCrearPedido}
-              disabled={loading || loadingData}
+              disabled={
+                loading || 
+                loadingData || 
+                (clienteSeleccionado?.tarjeta?.tipoSuscripcion === 'CREDITO' && (clienteSeleccionado.tarjeta.saldoActual + calcularTotal()) > clienteSeleccionado.tarjeta.limiteCredito) ||
+                (clienteSeleccionado?.tarjeta?.tipoSuscripcion === 'PREPAGA' && calcularTotal() > clienteSeleccionado.tarjeta.saldoActual)
+              }
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
@@ -664,6 +756,41 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#007AFF",
+  },
+  infoSaldo: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  infoSaldoError: {
+    backgroundColor: '#FFF5F5',
+    borderColor: '#FFE3E3',
+  },
+  saldoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  saldoLabel: {
+    fontSize: 13,
+    color: '#666',
+  },
+  saldoValor: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+  },
+  alertaCredito: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  alertaCreditoError: {
+    color: '#FF3B30',
+    fontWeight: '600',
   },
   footer: {
     flexDirection: "row",

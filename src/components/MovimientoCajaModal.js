@@ -9,81 +9,100 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import mediosPagoService from "../services/mediosPagoService";
+
+const CONCEPTOS_INGRESO = [
+  "Ingreso de efectivo",
+  "Cobro de deuda externa",
+  "Ajuste de caja",
+  "Otro",
+];
+
+const CONCEPTOS_EGRESO = [
+  "Compra de insumos",
+  "Pago a proveedor",
+  "Retiro de efectivo",
+  "Pago de servicios",
+  "Devolución a cliente",
+  "Otro",
+];
+
+const capitalize = (str) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
 
 export default function MovimientoCajaModal({
   visible,
   onClose,
   onSave,
-  movimiento = null,
-  responsable = "Usuario",
+  loading,
 }) {
-  const [tipoTransaccion, setTipoTransaccion] = useState("Venta");
-  const [numeroFactura, setNumeroFactura] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [tipo, setTipo] = useState("Ingreso");
+  const [tipo, setTipo] = useState("INGRESO");
+  const [conceptoSeleccionado, setConceptoSeleccionado] = useState(CONCEPTOS_INGRESO[0]);
+  const [conceptoPersonalizado, setConceptoPersonalizado] = useState("");
   const [monto, setMonto] = useState("");
+  const [metodoPago, setMetodoPago] = useState("");
+  const [mediosPagoList, setMediosPagoList] = useState([]);
   
-  // Estados para los errores
   const [errores, setErrores] = useState({
-    tipoTransaccion: "",
-    descripcion: "",
+    concepto: "",
     monto: "",
   });
 
   useEffect(() => {
-    if (movimiento) {
-      // Modo edición (aunque en caja normalmente no se editan movimientos)
-      setTipoTransaccion(movimiento.tipoTransaccion || "Venta");
-      setNumeroFactura(movimiento.numeroFactura || "");
-      setDescripcion(movimiento.descripcion);
-      setTipo(movimiento.tipo);
-      setMonto(movimiento.monto.toString());
-    } else {
-      // Modo creación
+    if (visible) {
+      cargarMediosPago();
       limpiarCampos();
     }
-    // Limpiar errores al abrir/cerrar modal
-    setErrores({ tipoTransaccion: "", descripcion: "", monto: "" });
-  }, [movimiento, visible]);
+  }, [visible]);
+
+  const cargarMediosPago = async () => {
+    try {
+      const medios = await mediosPagoService.obtenerTodos();
+      setMediosPagoList(medios);
+      // Seleccionar el primero por defecto si no hay nada seleccionado
+      if (medios.length > 0 && !metodoPago) {
+        setMetodoPago(medios[0].nombre);
+      } else if (medios.length > 0) {
+        // Verificar que el seleccionado aun exista
+        const existe = medios.find(m => m.nombre === metodoPago);
+        if (!existe) setMetodoPago(medios[0].nombre);
+      }
+    } catch (error) {
+      console.error("Error al cargar medios de pago:", error);
+    }
+  };
+
+  // Actualizar lista de conceptos cuando cambia el tipo
+  useEffect(() => {
+    const conceptos = tipo === "INGRESO" ? CONCEPTOS_INGRESO : CONCEPTOS_EGRESO;
+    setConceptoSeleccionado(conceptos[0]);
+    setConceptoPersonalizado("");
+    setErrores((prev) => ({ ...prev, concepto: "" }));
+  }, [tipo]);
 
   const limpiarCampos = () => {
-    setTipoTransaccion("Venta");
-    setNumeroFactura("");
-    setDescripcion("");
-    setTipo("Ingreso");
+    setTipo("INGRESO");
+    setConceptoSeleccionado(CONCEPTOS_INGRESO[0]);
+    setConceptoPersonalizado("");
     setMonto("");
-  };
-
-  // Validación en tiempo real del tipo de transacción
-  const handleTipoTransaccionChange = (text) => {
-    setTipoTransaccion(text);
-    if (text.trim() === "") {
-      setErrores(prev => ({ ...prev, tipoTransaccion: "El tipo de transacción es obligatorio" }));
-    } else {
-      setErrores(prev => ({ ...prev, tipoTransaccion: "" }));
+    if (mediosPagoList.length > 0) {
+        setMetodoPago(mediosPagoList[0].nombre);
     }
+    setErrores({ concepto: "", monto: "" });
   };
 
-  // Validación en tiempo real de la descripción
-  const handleDescripcionChange = (text) => {
-    setDescripcion(text);
-    if (text.trim() === "") {
-      setErrores(prev => ({ ...prev, descripcion: "La descripción es obligatoria" }));
-    } else {
-      setErrores(prev => ({ ...prev, descripcion: "" }));
-    }
-  };
-
-  // Validación en tiempo real del monto
   const handleMontoChange = (text) => {
     setMonto(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, monto: "El monto es obligatorio" }));
     } else if (isNaN(parseFloat(text))) {
-      setErrores(prev => ({ ...prev, monto: "El monto debe ser un número válido" }));
+      setErrores(prev => ({ ...prev, monto: "Ingrese un número válido" }));
     } else if (parseFloat(text) <= 0) {
       setErrores(prev => ({ ...prev, monto: "El monto debe ser mayor a 0" }));
     } else {
@@ -91,64 +110,55 @@ export default function MovimientoCajaModal({
     }
   };
 
+  const handleConceptoPersonalizadoChange = (text) => {
+    setConceptoPersonalizado(text);
+    if (!text.trim()) {
+      setErrores(prev => ({ ...prev, concepto: "La descripción es obligatoria" }));
+    } else {
+      setErrores(prev => ({ ...prev, concepto: "" }));
+    }
+  };
+
   const handleGuardar = () => {
-    // Validar que no haya errores
-    const hayErrores = Object.values(errores).some(error => error !== "");
-    const camposVacios = !tipoTransaccion.trim() || !monto.trim();
+    const montoNum = parseFloat(monto);
+    let conceptoFinal = conceptoSeleccionado;
     
-    if (hayErrores || camposVacios) {
-      // Marcar todos los campos vacíos como error
-      if (!tipoTransaccion.trim()) setErrores(prev => ({ ...prev, tipoTransaccion: "El tipo de transacción es obligatorio" }));
-      if (!monto.trim()) setErrores(prev => ({ ...prev, monto: "El monto es obligatorio" }));
+    if (conceptoSeleccionado === "Otro") {
+      conceptoFinal = conceptoPersonalizado.trim();
+    }
+
+    if ((conceptoSeleccionado === "Otro" && !conceptoFinal) || isNaN(montoNum) || montoNum <= 0 || !metodoPago) {
+      if (conceptoSeleccionado === "Otro" && !conceptoFinal) {
+        setErrores(prev => ({ ...prev, concepto: "La descripción es obligatoria" }));
+      }
+      if (isNaN(montoNum) || montoNum <= 0) {
+        setErrores(prev => ({ ...prev, monto: "Monto inválido" }));
+      }
+      if (!metodoPago) {
+         // Podríamos mostrar un error general o un toast, pero por ahora validamos que no se envíe
+         console.warn("Falta seleccionar método de pago");
+      }
       return;
     }
 
-    const now = new Date();
-    const fecha = now.toLocaleDateString('es-UY', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }) + ' ' + now.toLocaleTimeString('es-UY', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-
-    // Construir la descripción completa
-    let descripcionCompleta = tipoTransaccion;
-    if (numeroFactura.trim()) {
-      descripcionCompleta += ` - Factura #${numeroFactura}`;
-    }
-    if (descripcion.trim()) {
-      descripcionCompleta += ` - ${descripcion.trim()}`;
-    }
-
     const movimientoData = {
-      id: movimiento ? movimiento.id : Date.now(),
-      tipoTransaccion: tipoTransaccion.trim(),
-      numeroFactura: numeroFactura.trim(),
-      descripcion: descripcionCompleta,
-      tipo: tipo,
-      monto: parseFloat(monto),
-      fecha: fecha,
-      responsable: responsable,
+      tipo, // INGRESO o EGRESO
+      monto: montoNum,
+      concepto: conceptoFinal,
+      metodoPago, // EFECTIVO o TARJETA
     };
 
     onSave(movimientoData);
-    limpiarCampos();
-    onClose();
   };
 
-  const handleCancelar = () => {
-    limpiarCampos();
-    onClose();
-  };
+  const conceptosDisponibles = tipo === "INGRESO" ? CONCEPTOS_INGRESO : CONCEPTOS_EGRESO;
 
   return (
     <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={handleCancelar}
+      onRequestClose={onClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -158,105 +168,48 @@ export default function MovimientoCajaModal({
           <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {movimiento ? "Editar Movimiento" : "Nuevo Movimiento"}
-              </Text>
-              <TouchableOpacity
-                onPress={handleCancelar}
-                style={styles.closeButton}
-              >
+              <View style={[styles.iconBadge, { backgroundColor: tipo === 'INGRESO' ? '#e8f5e9' : '#ffebee' }]}>
+                 <MaterialCommunityIcons 
+                    name={tipo === 'INGRESO' ? "arrow-down-bold" : "arrow-up-bold"} 
+                    size={24} 
+                    color={tipo === 'INGRESO' ? "#2e7d32" : "#c62828"} 
+                 />
+              </View>
+              <Text style={styles.modalTitle}>Nuevo Movimiento</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <MaterialCommunityIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
 
             {/* Form */}
-            <ScrollView
-              style={styles.modalBody}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              
+              {/* Selector Tipo */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Tipo de Transacción *</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={tipoTransaccion}
-                    onValueChange={(itemValue) => handleTipoTransaccionChange(itemValue)}
-                    style={styles.picker}
+                <Text style={styles.label}>Tipo de Movimiento</Text>
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity 
+                    style={[styles.segment, tipo === 'INGRESO' && styles.segmentActiveIngreso]}
+                    onPress={() => setTipo('INGRESO')}
                   >
-                    <Picker.Item label="Venta" value="Venta" />
-                    <Picker.Item label="Compra" value="Compra" />
-                    <Picker.Item label="Pago a Proveedor" value="Pago a Proveedor" />
-                    <Picker.Item label="Pago de Servicio" value="Pago de Servicio" />
-                    <Picker.Item label="Retiro de Efectivo" value="Retiro de Efectivo" />
-                    <Picker.Item label="Depósito" value="Depósito" />
-                    <Picker.Item label="Otro" value="Otro" />
-                  </Picker>
-                </View>
-                {errores.tipoTransaccion ? (
-                  <Text style={styles.errorText}>{errores.tipoTransaccion}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Número de Factura</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej: 1234"
-                  value={numeroFactura}
-                  onChangeText={setNumeroFactura}
-                  placeholderTextColor="#999"
-                  keyboardType="numeric"
-                />
-                <Text style={styles.helperText}>
-                  Opcional - Se agregará automáticamente a la descripción
-                </Text>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Descripción Adicional</Text>
-                <TextInput
-                  style={[styles.input, errores.descripcion && styles.inputError]}
-                  placeholder="Ej: Detalles adicionales del movimiento"
-                  value={descripcion}
-                  onChangeText={handleDescripcionChange}
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={2}
-                />
-                {errores.descripcion ? (
-                  <Text style={styles.errorText}>{errores.descripcion}</Text>
-                ) : (
-                  <Text style={styles.helperText}>
-                    Opcional - Información extra sobre el movimiento
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Tipo de Movimiento *</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={tipo}
-                    onValueChange={(itemValue) => setTipo(itemValue)}
-                    style={styles.picker}
+                    <Text style={[styles.segmentText, tipo === 'INGRESO' && styles.segmentTextActive]}>INGRESO</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.segment, tipo === 'EGRESO' && styles.segmentActiveEgreso]}
+                    onPress={() => setTipo('EGRESO')}
                   >
-                    <Picker.Item label="Ingreso" value="Ingreso" />
-                    <Picker.Item label="Egreso" value="Egreso" />
-                    <Picker.Item label="Apertura" value="Apertura" />
-                  </Picker>
+                    <Text style={[styles.segmentText, tipo === 'EGRESO' && styles.segmentTextActive]}>EGRESO</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.helperText}>
-                  {tipo === "Ingreso" && "💰 Se sumará al saldo actual"}
-                  {tipo === "Egreso" && "💸 Se restará del saldo actual"}
-                  {tipo === "Apertura" && "🔓 Movimiento de apertura de caja"}
-                </Text>
               </View>
 
+              {/* Monto */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Monto *</Text>
-                <View style={styles.montoContainer}>
-                  <Text style={styles.montoSymbol}>$</Text>
+                <Text style={styles.label}>Monto</Text>
+                <View style={[styles.inputContainer, errores.monto && styles.inputError]}>
+                  <Text style={styles.currencySymbol}>$</Text>
                   <TextInput
-                    style={[styles.montoInput, errores.monto && styles.inputError]}
+                    style={styles.input}
                     placeholder="0.00"
                     value={monto}
                     onChangeText={handleMontoChange}
@@ -264,34 +217,85 @@ export default function MovimientoCajaModal({
                     placeholderTextColor="#999"
                   />
                 </View>
-                {errores.monto ? (
-                  <Text style={styles.errorText}>{errores.monto}</Text>
-                ) : null}
+                {errores.monto ? <Text style={styles.errorText}>{errores.monto}</Text> : null}
               </View>
 
-              <View style={styles.infoBox}>
-                <MaterialCommunityIcons name="information" size={20} color="#1976d2" />
-                <Text style={styles.infoText}>
-                  El movimiento se registrará con fecha y hora actual. Responsable: {responsable}
-                </Text>
+              {/* Concepto (Picker) */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Concepto</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={conceptoSeleccionado}
+                    onValueChange={(itemValue) => setConceptoSeleccionado(itemValue)}
+                    style={styles.picker}
+                  >
+                    {conceptosDisponibles.map((c) => (
+                      <Picker.Item key={c} label={c} value={c} />
+                    ))}
+                  </Picker>
+                </View>
               </View>
+
+              {/* Concepto Personalizado (si es "Otro") */}
+              {conceptoSeleccionado === "Otro" && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Descripción</Text>
+                  <TextInput
+                    style={[styles.inputBox, errores.concepto && styles.inputError]}
+                    placeholder="Especifique el motivo..."
+                    value={conceptoPersonalizado}
+                    onChangeText={handleConceptoPersonalizadoChange}
+                    placeholderTextColor="#999"
+                  />
+                  {errores.concepto ? <Text style={styles.errorText}>{errores.concepto}</Text> : null}
+                </View>
+              )}
+
+              {/* Método de Pago */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Medio de Pago</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={metodoPago}
+                    onValueChange={(itemValue) => setMetodoPago(itemValue)}
+                    style={styles.picker}
+                  >
+                    {mediosPagoList.length === 0 ? (
+                       <Picker.Item label="Cargando..." value="" />
+                    ) : (
+                      mediosPagoList.map((medio) => (
+                        <Picker.Item 
+                          key={medio.id_medio_pago} 
+                          label={capitalize(medio.nombre)} 
+                          value={medio.nombre} 
+                        />
+                      ))
+                    )}
+                  </Picker>
+                </View>
+              </View>
+
             </ScrollView>
 
             {/* Footer */}
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={handleCancelar}
+                onPress={onClose}
+                disabled={loading}
               >
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.saveButton, { backgroundColor: tipo === 'INGRESO' ? "#2e7d32" : "#c62828" }]}
                 onPress={handleGuardar}
+                disabled={loading}
               >
-                <Text style={styles.saveButtonText}>
-                  {movimiento ? "Actualizar" : "Guardar"}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Guardar Movimiento</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -310,12 +314,11 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "90%",
-    maxWidth: 500,
+    maxWidth: 400,
   },
   modalContent: {
     backgroundColor: "#fff",
     borderRadius: 12,
-    maxHeight: "90%",
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -325,41 +328,109 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#f0f0f0",
+  },
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#1f1f1f",
+    flex: 1,
   },
   closeButton: {
     padding: 4,
   },
   modalBody: {
     padding: 20,
-    maxHeight: 400,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1f1f1f",
+    color: "#37474f",
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: "#f8f8f8",
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  segmentActiveIngreso: {
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2e7d32'
+  },
+  segmentActiveEgreso: {
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#c62828'
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#757575',
+  },
+  segmentTextActive: {
+    color: '#1f1f1f',
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#fff",
+  },
+  inputBox: {
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
+    color: "#1f1f1f",
+    outlineStyle: "none",
+  },
+  currencySymbol: {
+    fontSize: 18,
+    color: "#666",
+    marginRight: 8,
+    fontWeight: "600",
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
     color: "#1f1f1f",
     outlineStyle: "none",
   },
@@ -373,61 +444,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   pickerContainer: {
-    backgroundColor: "#f8f8f8",
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: 8,
+    backgroundColor: "#fff",
     overflow: "hidden",
   },
   picker: {
     height: 45,
     width: "100%",
     backgroundColor: "transparent",
-  },
-  helperText: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  montoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f8f8",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  montoSymbol: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#666",
-    marginRight: 8,
-  },
-  montoInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#1f1f1f",
-    outlineStyle: "none",
-    backgroundColor: "transparent",
     borderWidth: 0,
-  },
-  infoBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#e3f2fd",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-    gap: 8,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: "#1565c0",
-    lineHeight: 18,
   },
   modalFooter: {
     flexDirection: "row",
@@ -435,7 +462,8 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#f0f0f0",
+    backgroundColor: "#fafafa",
   },
   cancelButton: {
     paddingHorizontal: 20,
@@ -454,7 +482,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "#4CAF50",
   },
   saveButtonText: {
     fontSize: 14,

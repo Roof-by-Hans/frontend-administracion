@@ -37,6 +37,11 @@ const secondaryMenuItems = [
   },
   { icon: "cash-plus", label: "Cargar Saldo", screen: "cargar-saldo" },
   {
+    icon: "credit-card-minus-outline",
+    label: "Pagar Deuda",
+    screen: "pagar-deuda",
+  },
+  {
     icon: "account-cog-outline",
     label: "Gestión de Usuarios",
     screen: "gestion-usuarios",

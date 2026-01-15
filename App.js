@@ -6,6 +6,7 @@ import Login from "./src/screens/Login";
 import FacturasScreen from "./src/screens/FacturasScreen";
 import EmitirTarjetaScreen from "./src/screens/EmitirTarjetaScreen";
 import CargarSaldoScreen from "./src/screens/CargarSaldoScreen";
+import PagarDeudaScreen from "./src/screens/PagarDeudaScreen";
 import MesasScreen from "./src/screens/MesasScreen";
 import ClientesScreen from "./src/screens/ClientesScreen";
 import AjustesScreen from "./src/screens/AjustesScreen";
@@ -17,7 +18,7 @@ import CategoriasScreen from "./src/screens/CategoriasScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState("facturas"); // Pantalla inicial
+  const [currentScreen, setCurrentScreen] = useState("mesas"); // Pantalla inicial
 
   const handleNavigate = (screen) => {
     setCurrentScreen(screen);
@@ -88,6 +89,13 @@ function AppContent() {
     case "cargar-saldo":
       return (
         <CargarSaldoScreen
+          onNavigate={handleNavigate}
+          currentScreen={currentScreen}
+        />
+      );
+    case "pagar-deuda":
+      return (
+        <PagarDeudaScreen
           onNavigate={handleNavigate}
           currentScreen={currentScreen}
         />
