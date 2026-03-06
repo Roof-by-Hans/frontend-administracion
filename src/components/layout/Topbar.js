@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
+  Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
@@ -17,7 +18,8 @@ export default function Topbar({
 }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 768;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const userPhoto = user?.fotoPerfilUrl || null;
 
   const displayUserName = useMemo(() => {
     if (token) {
@@ -59,11 +61,18 @@ export default function Topbar({
       <View style={[styles.rightBlock, isCompact && styles.rightBlockCompact]}>
         {!isCompact && (
           <View style={styles.userActions}>
-            <MaterialCommunityIcons
-              name="account-circle"
-              size={28}
-              color="#4a4a4a"
-            />
+            {userPhoto ? (
+              <Image
+                source={{ uri: userPhoto }}
+                style={styles.userPhoto}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="account-circle"
+                size={28}
+                color="#4a4a4a"
+              />
+            )}
             <TouchableOpacity
               style={styles.logoutButton}
               activeOpacity={0.7}
@@ -165,6 +174,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
+  },
+  userPhoto: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f0f0f0",
+    borderWidth: 2,
+    borderColor: "#4CAF50",
   },
   menuButton: {
     padding: 12,

@@ -4,13 +4,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import LimitesSubscripcionModal from "../components/LimitesSubscripcionModal";
+import RecortarImagenModal from "../components/RecortarImagenModal";
 import { useAuth } from "../context/AuthContext";
 import usuarioService from "../services/usuarioService";
 import Alert from "@blazejkustra/react-native-alert";
 
 export default function AjustesScreen({ onNavigate, currentScreen }) {
   const [modalLimitesVisible, setModalLimitesVisible] = useState(false);
-  const [fotoPerfil, setFotoPerfil] = useState(null);
+  const [modalRecortarVisible, setModalRecortarVisible] = useState(false);
+  const [fotoTemporal, setFotoTemporal] = useState(null);
   const [guardandoFoto, setGuardandoFoto] = useState(false);
   
   const { user, logout, updateUser } = useAuth();
@@ -18,98 +20,193 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const userPhoto = user?.fotoPerfilUrl || null;
   const isAdmin = user?.roles?.includes("Administrador") || user?.roles?.includes("Admin") || false;
 
-  // Función para abrir modal de límites de subscripción
   const handleAbrirLimites = () => {
     setModalLimitesVisible(true);
   };
 
-  // Seleccionar foto de perfil
   const handleSeleccionarFoto = async () => {
     try {
-      // Solicitar permisos
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert("Permisos necesarios", "Se necesitan permisos para acceder a la galería de fotos");
-        return;
+      if (Platform.OS !== "web") {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permisos necesarios", "Se necesitan permisos para acceder a la galería de fotos");
+          return;
+        }
       }
 
-      // Abrir selector de imagen
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 1,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedImage = result.assets[0];
-        setFotoPerfil(selectedImage);
-        
-        // Guardar automáticamente
-        await handleGuardarFoto(selectedImage);
+        setFotoTemporal(result.assets[0]);
+        setModalRecortarVisible(true);
       }
     } catch (error) {
+      console.error("Error al seleccionar imagen:", error);
       Alert.alert("Error", "Error al seleccionar la imagen");
     }
   };
 
-  // Guardar foto de perfil
-  const handleGuardarFoto = async (imagen) => {
-    if (!user?.id && !user?.idUsuario) {
-      Alert.alert("Error", "No se pudo identificar el usuario");
+  const handleConfirmarRecorte = async (datosRecorte) => {
+    if (!fotoTemporal || !user?.id) {
+      Alert.alert("Error", "No se pudo identificar el usuario o la imagen");
       return;
     }
 
     try {
       setGuardandoFoto(true);
-
+      
+      console.log("Iniciando recorte de imagen...", datosRecorte);
+      
+      // Recortar la imagen usando canvas
+      const imagenRecortada = await recortarImagen(fotoTemporal.uri, datosRecorte);
+      
+      console.log("Imagen recortada exitosamente:", imagenRecortada);
+      
       const formData = new FormData();
 
-      // Agregar foto
       if (Platform.OS === "web") {
-        const response = await fetch(imagen.uri);
-        const blob = await response.blob();
-        formData.append("fotoPerfil", blob, "foto.jpg");
+        formData.append("fotoPerfil", imagenRecortada, "foto.jpg");
+        console.log("FormData creado para web");
       } else {
-        const fileUri = imagen.uri;
-        const filename = fileUri.split("/").pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : "image/jpeg";
-
+        const filename = `foto_${Date.now()}.jpg`;
         formData.append("fotoPerfil", {
-          uri: fileUri,
+          uri: imagenRecortada,
           name: filename,
-          type: type,
+          type: "image/jpeg",
         });
+        console.log("FormData creado para móvil");
       }
 
-      const userId = user.id || user.idUsuario;
-      const response = await usuarioService.actualizarUsuario(userId, formData);
+      console.log("Enviando foto al servidor...");
+      const response = await usuarioService.actualizarUsuario(user.id, formData);
+      console.log("Respuesta del servidor:", response);
 
       if (response.success && response.data) {
-        // Actualizar el contexto con la nueva foto
-        if (updateUser) {
-          updateUser(response.data);
-        }
-        
+        updateUser(response.data);
         Alert.alert("Éxito", "Foto de perfil actualizada correctamente");
-        setFotoPerfil(null); // Limpiar la foto temporal
+        setModalRecortarVisible(false);
+        setFotoTemporal(null);
+      } else {
+        console.error("Respuesta sin éxito:", response);
+        Alert.alert("Error", response.message || "Error al actualizar la foto de perfil");
       }
     } catch (error) {
-      console.error("Error al guardar foto:", error);
-      Alert.alert(
-        "Error",
-        error.response?.data?.message || "Error al actualizar la foto de perfil"
-      );
+      console.error("Error completo al guardar foto:", error);
+      console.error("Error stack:", error.stack);
+      console.error("Error response:", error.response);
+      
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || "Error al actualizar la foto de perfil";
+      
+      Alert.alert("Error", errorMessage);
     } finally {
       setGuardandoFoto(false);
     }
   };
 
-  // Eliminar foto de perfil
+  // Función para recortar la imagen usando canvas
+  const recortarImagen = async (imageSrc, cropData) => {
+    return new Promise((resolve, reject) => {
+      if (Platform.OS === "web") {
+        const img = document.createElement("img");
+        img.crossOrigin = "anonymous";
+        
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            const outputSize = 250;
+            canvas.width = outputSize;
+            canvas.height = outputSize;
+
+            // Limpiar el canvas
+            ctx.clearRect(0, 0, outputSize, outputSize);
+
+            // Crear clip circular
+            ctx.beginPath();
+            ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            // Calcular las dimensiones escaladas de la imagen
+            const scaledWidth = cropData.imageWidth * cropData.zoom;
+            const scaledHeight = cropData.imageHeight * cropData.zoom;
+
+            // Calcular la posición donde debe dibujarse la imagen
+            // Centrar la imagen en el círculo y aplicar el desplazamiento
+            const centerX = (cropData.circleSize - scaledWidth) / 2;
+            const centerY = (cropData.circleSize - scaledHeight) / 2;
+            
+            const drawX = centerX + cropData.position.x;
+            const drawY = centerY + cropData.position.y;
+
+            // Escalar todo al tamaño final de salida
+            const scale = outputSize / cropData.circleSize;
+
+            // Dibujar la imagen con el canvas completamente blanco de fondo
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, outputSize, outputSize);
+
+            // Redibujar el clip después del fillRect
+            ctx.beginPath();
+            ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            // Dibujar la imagen
+            ctx.drawImage(
+              img,
+              drawX * scale,
+              drawY * scale,
+              scaledWidth * scale,
+              scaledHeight * scale
+            );
+
+            // Convertir a blob
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  console.log("Blob creado exitosamente:", blob.size, "bytes");
+                  resolve(blob);
+                } else {
+                  reject(new Error("No se pudo crear el blob"));
+                }
+              },
+              "image/jpeg",
+              0.9
+            );
+          } catch (error) {
+            console.error("Error en el procesamiento del canvas:", error);
+            reject(error);
+          }
+        };
+        
+        img.onerror = (error) => {
+          console.error("Error al cargar la imagen:", error);
+          reject(new Error("Error al cargar la imagen"));
+        };
+        
+        img.src = imageSrc;
+      } else {
+        // En móvil, usar la imagen tal cual
+        resolve(imageSrc);
+      }
+    });
+  };
+
+  const handleCancelarRecorte = () => {
+    setModalRecortarVisible(false);
+    setFotoTemporal(null);
+  };
+
   const handleEliminarFoto = async () => {
-    if (!user?.id && !user?.idUsuario) {
+    if (!user?.id) {
       Alert.alert("Error", "No se pudo identificar el usuario");
       return;
     }
@@ -125,27 +222,18 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
           onPress: async () => {
             try {
               setGuardandoFoto(true);
-
               const formData = new FormData();
               formData.append("eliminarFotoPerfil", "true");
-
-              const userId = user.id || user.idUsuario;
-              const response = await usuarioService.actualizarUsuario(userId, formData);
+              const response = await usuarioService.actualizarUsuario(user.id, formData);
 
               if (response.success && response.data) {
-                if (updateUser) {
-                  updateUser(response.data);
-                }
-                
+                updateUser(response.data);
                 Alert.alert("Éxito", "Foto de perfil eliminada correctamente");
-                setFotoPerfil(null);
+                setFotoTemporal(null);
               }
             } catch (error) {
               console.error("Error al eliminar foto:", error);
-              Alert.alert(
-                "Error",
-                error.response?.data?.message || "Error al eliminar la foto de perfil"
-              );
+              Alert.alert("Error", error.response?.data?.message || "Error al eliminar la foto de perfil");
             } finally {
               setGuardandoFoto(false);
             }
@@ -170,11 +258,10 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         <View style={styles.perfilSection}>
           <Text style={styles.sectionTitle}>Mi Perfil</Text>
           <View style={styles.perfilCard}>
-            {/* Foto de Perfil */}
             <View style={styles.fotoContainer}>
-              {fotoPerfil || userPhoto ? (
+              {userPhoto ? (
                 <Image
-                  source={{ uri: fotoPerfil?.uri || userPhoto }}
+                  source={{ uri: userPhoto }}
                   style={styles.fotoPreview}
                 />
               ) : (
@@ -189,12 +276,10 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Información del Usuario */}
             <View style={styles.infoContainer}>
               <Text style={styles.nombreUsuario}>{userName}</Text>
-              <Text style={styles.rolUsuario}>{user?.rol || "Usuario"}</Text>
+              <Text style={styles.rolUsuario}>{user?.roles?.join(", ") || "Usuario"}</Text>
               
-              {/* Botones de Foto */}
               <View style={styles.fotoBotones}>
                 <TouchableOpacity
                   style={styles.botonCambiarFoto}
@@ -203,11 +288,11 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
                 >
                   <MaterialCommunityIcons name="camera" size={18} color="#fff" />
                   <Text style={styles.botonTexto}>
-                    {userPhoto || fotoPerfil ? "Cambiar foto" : "Agregar foto"}
+                    {userPhoto ? "Cambiar foto" : "Agregar foto"}
                   </Text>
                 </TouchableOpacity>
                 
-                {(userPhoto || fotoPerfil) && (
+                {userPhoto && (
                   <TouchableOpacity
                     style={styles.botonEliminarFoto}
                     onPress={handleEliminarFoto}
@@ -263,6 +348,14 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         <LimitesSubscripcionModal
           visible={modalLimitesVisible}
           onClose={() => setModalLimitesVisible(false)}
+        />
+
+        <RecortarImagenModal
+          visible={modalRecortarVisible}
+          onClose={handleCancelarRecorte}
+          onConfirm={handleConfirmarRecorte}
+          imageUri={fotoTemporal?.uri}
+          loading={guardandoFoto}
         />
       </View>
     </DashboardLayout>
@@ -366,6 +459,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f44336",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  botonGuardarFoto: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2196F3",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  botonCancelarFoto: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#757575",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
