@@ -177,7 +177,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
 
   // Función para abrir modal de confirmación de eliminación
   const handleEliminarProducto = (productoId) => {
-    setProductoAEliminar(producto);
+    setProductoAEliminar(productoId);
     setConfirmVisible(true);
   };
 
