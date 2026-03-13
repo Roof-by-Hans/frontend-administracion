@@ -44,8 +44,22 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     try {
       setCargando(true);
       setError(null);
-      const data = await getUsuarios();
-      setUsuarios(data);
+      const response = await getUsuarios();
+      const usuariosData = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+      const usuariosConId = usuariosData.map((usuario) => ({
+        ...usuario,
+        id:
+          usuario.id ||
+          usuario.idUsuario ||
+          Math.random().toString(36).substr(2, 9),
+      }));
+
+      setUsuarios(usuariosConId);
     } catch (err) {
       setError(err.message);
       console.error("Error al cargar usuarios:", err);
@@ -55,7 +69,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   };
 
   // Filtrar usuarios
-  const usuariosFiltrados = usuarios.filter((usuario) => {
+  const usuariosFiltrados = (Array.isArray(usuarios) ? usuarios : []).filter((usuario) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
 
