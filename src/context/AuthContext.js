@@ -163,6 +163,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Actualizar información del usuario
+   * @param {Object} updatedUser - Datos actualizados del usuario
+   */
+  const updateUser = async (updatedUser) => {
+    try {
+      setUser(updatedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (err) {
+      console.error('Error al actualizar usuario:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -171,6 +184,7 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         logout,
+        updateUser,
         loading,
         error,
       }}

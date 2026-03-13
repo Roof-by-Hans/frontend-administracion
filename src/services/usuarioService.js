@@ -1,173 +1,84 @@
-import API_URL from "../config/api";
+import api from "./api";
 
-// Obtener el token del almacenamiento
-const getToken = () => {
-  return localStorage.getItem("token");
-};
+const USUARIOS_ENDPOINT = "/usuarios";
 
-// Manejar token inválido
-const handleInvalidToken = (data) => {
-  // Solo redirigir si el token realmente expiró o es inválido
-  if (
-    data &&
-    (data.expired ||
-      data.message?.includes("Token") ||
-      data.message?.includes("token"))
-  ) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  }
-};
-
-// Obtener todos los usuarios
 export const getUsuarios = async () => {
-  try {
-    const token = getToken();
-    const response = await fetch(`${API_URL}/usuarios`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    if (response.status === 401) {
-      handleInvalidToken(data);
-      throw new Error(data.message || "Sesión expirada");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || "Error al obtener usuarios");
-    }
-
-    return data.data;
-  } catch (error) {
-    console.error("Error en getUsuarios:", error);
-    throw error;
-  }
+  const response = await api.get(USUARIOS_ENDPOINT);
+  return response.data;
 };
 
-// Obtener un usuario por ID
-export const getUsuarioById = async (id) => {
-  try {
-    const token = getToken();
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    if (response.status === 401) {
-      handleInvalidToken(data);
-      throw new Error(data.message || "Sesión expirada");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || "Error al obtener usuario");
-    }
-
-    return data.data;
-  } catch (error) {
-    console.error("Error en getUsuarioById:", error);
-    throw error;
-  }
+export const getUsuarioPorId = async (usuarioId) => {
+  const response = await api.get(`${USUARIOS_ENDPOINT}/${usuarioId}`);
+  return response.data;
 };
 
-// Crear un nuevo usuario
+export const actualizarUsuario = async (usuarioId, usuarioData) => {
+  const response = await api.put(`${USUARIOS_ENDPOINT}/${usuarioId}`, usuarioData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
 export const crearUsuario = async (usuarioData) => {
-  try {
-    const token = getToken();
-    const response = await fetch(`${API_URL}/usuarios`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(usuarioData),
-    });
-
-    const data = await response.json();
-
-    if (response.status === 401) {
-      handleInvalidToken(data);
-      throw new Error(data.message || "Sesión expirada");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || "Error al crear usuario");
-    }
-
-    return data.data;
-  } catch (error) {
-    console.error("Error en crearUsuario:", error);
-    throw error;
-  }
+  const response = await api.post(USUARIOS_ENDPOINT, usuarioData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
 };
 
-// Actualizar un usuario
-export const actualizarUsuario = async (id, usuarioData) => {
-  try {
-    const token = getToken();
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(usuarioData),
-    });
-
-    const data = await response.json();
-
-    if (response.status === 401) {
-      handleInvalidToken(data);
-      throw new Error(data.message || "Sesión expirada");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || "Error al actualizar usuario");
-    }
-
-    return data.data;
-  } catch (error) {
-    console.error("Error en actualizarUsuario:", error);
-    throw error;
-  }
+export const eliminarUsuario = async (usuarioId) => {
+  const response = await api.delete(`${USUARIOS_ENDPOINT}/${usuarioId}`);
+  return response.data;
 };
 
-// Eliminar un usuario
-export const eliminarUsuario = async (id) => {
-  try {
-    const token = getToken();
-    const response = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+/**
+ * Servicio para operaciones relacionadas con usuarios del sistema.
+ */
+const usuarioService = {
+  /**
+   * Obtener todos los usuarios.
+   * @returns {Promise} Axios response con la lista de usuarios.
+   */
+  getUsuarios: async () => {
+    return getUsuarios();
+  },
 
-    const data = await response.json();
+  /**
+   * Obtener un usuario por ID.
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @returns {Promise} Axios response con los datos del usuario.
+   */
+  getUsuarioPorId: async (usuarioId) => {
+    return getUsuarioPorId(usuarioId);
+  },
 
-    if (response.status === 401) {
-      handleInvalidToken(data);
-      throw new Error(data.message || "Sesión expirada");
-    }
+  /**
+   * Actualizar un usuario existente (incluyendo foto de perfil).
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @param {FormData} usuarioData Datos actualizados del usuario.
+   * @returns {Promise} Axios response con el usuario actualizado.
+   */
+  actualizarUsuario: async (usuarioId, usuarioData) => {
+    return actualizarUsuario(usuarioId, usuarioData);
+  },
 
-    if (!response.ok) {
-      throw new Error(data.message || "Error al eliminar usuario");
-    }
+  /**
+   * Crear un nuevo usuario.
+   * @param {FormData} usuarioData Datos del nuevo usuario.
+   * @returns {Promise} Axios response con el usuario creado.
+   */
+  crearUsuario: async (usuarioData) => {
+    return crearUsuario(usuarioData);
+  },
 
-    return data;
-  } catch (error) {
-    console.error("Error en eliminarUsuario:", error);
-    throw error;
-  }
+  /**
+   * Eliminar un usuario.
+   * @param {string|number} usuarioId Identificador del usuario a eliminar.
+   * @returns {Promise} Axios response de la operación.
+   */
+  eliminarUsuario: async (usuarioId) => {
+    return eliminarUsuario(usuarioId);
+  },
 };
+
+export default usuarioService;
