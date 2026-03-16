@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Paper } from '@mui/material';
+import { Box, Button, Menu, MenuItem, Paper } from '@mui/material';
+import {
+  buildFileName,
+  exportAsCsv,
+  exportAsExcel,
+  exportAsPdf,
+  prepareTableDataForExport,
+} from '../utils/tableExportUtils';
 
 /**
  * Componente de tabla reutilizable con Material-UI DataGrid
@@ -24,12 +31,84 @@ export default function DataTable({
   pageSize = 10,
   checkboxSelection = false,
   rowHeight = 80,
+  exportEnabled = true,
+  exportFileBaseName = 'tabla',
+  exportExcludeFields = ['acciones'],
   sx = {},
   ...props
 }) {
+  const [exportAnchorEl, setExportAnchorEl] = useState(null);
+  const isExportMenuOpen = Boolean(exportAnchorEl);
+
+  const { exportColumns, exportRows } = useMemo(() => {
+    return prepareTableDataForExport({
+      rows,
+      columns,
+      excludeFields: exportExcludeFields,
+    });
+  }, [rows, columns, exportExcludeFields]);
+
+  const closeExportMenu = () => setExportAnchorEl(null);
+
+  const openExportMenu = (event) => {
+    setExportAnchorEl(event.currentTarget);
+  };
+
+  const runExport = (type) => {
+    if (!exportRows.length || !exportColumns.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const fileName = buildFileName(exportFileBaseName);
+    const payload = {
+      rows: exportRows,
+      columns: exportColumns,
+      fileName,
+    };
+
+    if (type === 'csv') {
+      exportAsCsv(payload);
+    }
+
+    if (type === 'excel') {
+      exportAsExcel(payload);
+    }
+
+    if (type === 'pdf') {
+      exportAsPdf(payload);
+    }
+
+    closeExportMenu();
+  };
+
   return (
     <View style={styles.container}>
       <Paper sx={{ height: 600, width: '100%', ...sx }}>
+        {exportEnabled && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={openExportMenu}
+              aria-controls={isExportMenuOpen ? 'datatable-export-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={isExportMenuOpen ? 'true' : undefined}
+            >
+              Exportar
+            </Button>
+            <Menu
+              id="datatable-export-menu"
+              anchorEl={exportAnchorEl}
+              open={isExportMenuOpen}
+              onClose={closeExportMenu}
+            >
+              <MenuItem onClick={() => runExport('csv')}>CSV</MenuItem>
+              <MenuItem onClick={() => runExport('excel')}>Excel</MenuItem>
+              <MenuItem onClick={() => runExport('pdf')}>PDF</MenuItem>
+            </Menu>
+          </Box>
+        )}
         <DataGrid
           rows={rows}
           columns={columns}
