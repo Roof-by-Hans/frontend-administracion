@@ -10,13 +10,16 @@ import {
   ScrollView,
   Pressable,
 } from "react-native";
+import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton, Chip } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import facturasService from "../services/facturasService";
 import mesasService from "../services/mesasService";
+import transaccionesService from "../services/transaccionesService";
 
 export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [facturas, setFacturas] = useState([]);
@@ -29,13 +32,35 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [loadingDetalles, setLoadingDetalles] = useState(false);
   const [mesas, setMesas] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [modalReversionVisible, setModalReversionVisible] = useState(false);
+  const [facturaARevertir, setFacturaARevertir] = useState(null);
+  const [motivoReversion, setMotivoReversion] = useState("");
+  const [revirtiendoFactura, setRevirtiendoFactura] = useState(false);
 
   const { user, logout } = useAuth();
+  const { on, off, emit } = useSocket();
   const displayName = user?.usuario || "Usuario";
 
   useEffect(() => {
     cargarFacturas();
   }, []);
+
+  // Suscripción WebSocket: pago:revertido
+  useEffect(() => {
+    emit("join:pedidos");
+
+    const handlePagoRevertido = ({ data }) => {
+      setFacturas((prev) =>
+        prev.map((f) => (f.id === data.id ? { ...f, estado: "ANULADA" } : f))
+      );
+      setFacturaSeleccionada((prev) =>
+        prev && prev.id === data.id ? { ...prev, estado: "ANULADA" } : prev
+      );
+    };
+
+    on("pago:revertido", handlePagoRevertido);
+    return () => off("pago:revertido", handlePagoRevertido);
+  }, [on, off, emit]);
 
   const cargarFacturas = async () => {
     try {
@@ -79,6 +104,49 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       setDetallesFactura([]);
     } finally {
       setLoadingDetalles(false);
+    }
+  };
+
+  const handleAbrirReversion = (factura) => {
+    setFacturaARevertir(factura);
+    setMotivoReversion("");
+    setModalReversionVisible(true);
+  };
+
+  const handleConfirmarReversion = async () => {
+    if (!motivoReversion.trim()) {
+      Alert.alert("Error", "El motivo es obligatorio para revertir una factura.");
+      return;
+    }
+    setRevirtiendoFactura(true);
+    try {
+      const { warning } = await transaccionesService.revertirFactura(
+        facturaARevertir.id,
+        motivoReversion.trim()
+      );
+      setModalReversionVisible(false);
+      setFacturaARevertir(null);
+      if (warning === "PAGO_REVERTIDO_SIN_CAJA") {
+        Alert.alert(
+          "Atención",
+          `Factura #${facturaARevertir.id} revertida correctamente.\n\nNo había caja abierta. El egreso debe asentarse manualmente en la próxima apertura de caja.`
+        );
+      } else {
+        Alert.alert("Éxito", `Factura #${facturaARevertir.id} revertida correctamente.`);
+      }
+    } catch (error) {
+      const status = error?.response?.status;
+      const mensaje = error?.response?.data?.message;
+      if (status === 409) {
+        Alert.alert("Sin efecto", "Esta factura ya estaba anulada.");
+        setModalReversionVisible(false);
+      } else if (status === 401) {
+        Alert.alert("Sin permiso", "No tenés autorización para revertir pagos.");
+      } else {
+        Alert.alert("Error", mensaje ?? "No se pudo revertir la factura. Intentá de nuevo.");
+      }
+    } finally {
+      setRevirtiendoFactura(false);
     }
   };
 
@@ -166,18 +234,30 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       width: 130,
       renderCell: (params) => {
         const estado = params.row.estado;
-        const color = estado === "COBRADA" ? "success" : estado === "PENDIENTE" ? "warning" : "default";
-        const label = estado === "COBRADA" ? "Pagada" : estado === "PENDIENTE" ? "Pendiente" : estado;
-        
+        const color =
+          estado === "COBRADA"
+            ? "success"
+            : estado === "PENDIENTE"
+            ? "warning"
+            : "default";
+        const label =
+          estado === "COBRADA"
+            ? "Pagada"
+            : estado === "PENDIENTE"
+            ? "Pendiente"
+            : "Anulada";
+        const iconName =
+          estado === "COBRADA"
+            ? "check-circle"
+            : estado === "PENDIENTE"
+            ? "clock-outline"
+            : "cancel";
         return (
-          <Chip 
+          <Chip
             label={label}
             color={color}
             size="small"
-            icon={<MaterialCommunityIcons 
-              name={estado === "COBRADA" ? "check-circle" : "clock-outline"} 
-              size={16} 
-            />}
+            icon={<MaterialCommunityIcons name={iconName} size={16} />}
           />
         );
       },
@@ -198,6 +278,16 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           >
             <MaterialCommunityIcons name="eye" size={20} color="#1976d2" />
           </IconButton>
+          {(params.row.estado === "COBRADA" || params.row.estado === "PENDIENTE") && (
+            <IconButton
+              onClick={() => handleAbrirReversion(params.row)}
+              color="error"
+              size="small"
+              title="Revertir pago"
+            >
+              <MaterialCommunityIcons name="undo-variant" size={20} color="#d32f2f" />
+            </IconButton>
+          )}
         </View>
       ),
     },
@@ -298,6 +388,22 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                   Pendientes
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  filtroEstado === "ANULADA" && styles.filterButtonActiveAnulada,
+                ]}
+                onPress={() => setFiltroEstado("ANULADA")}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    filtroEstado === "ANULADA" && styles.filterButtonTextActive,
+                  ]}
+                >
+                  Anuladas
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -387,12 +493,16 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                         label={
                           facturaSeleccionada.estado === "COBRADA"
                             ? "Pagada"
-                            : "Pendiente"
+                            : facturaSeleccionada.estado === "PENDIENTE"
+                            ? "Pendiente"
+                            : "Anulada"
                         }
                         color={
                           facturaSeleccionada.estado === "COBRADA"
                             ? "success"
-                            : "warning"
+                            : facturaSeleccionada.estado === "PENDIENTE"
+                            ? "warning"
+                            : "default"
                         }
                         size="small"
                       />
@@ -491,8 +601,115 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                       ${parseFloat(facturaSeleccionada.total || 0).toFixed(2)}
                     </Text>
                   </View>
+
+                  {/* Acciones de reversión */}
+                  {(facturaSeleccionada.estado === "COBRADA" ||
+                    facturaSeleccionada.estado === "PENDIENTE") && (
+                    <TouchableOpacity
+                      style={styles.botonRevertir}
+                      onPress={() => {
+                        handleCerrarModal();
+                        setTimeout(() => handleAbrirReversion(facturaSeleccionada), 350);
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="undo-variant"
+                        size={18}
+                        color="#fff"
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={styles.botonRevertirTexto}>
+                        {facturaSeleccionada.estado === "COBRADA"
+                          ? "Revertir pago"
+                          : "Anular factura"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {facturaSeleccionada.estado === "ANULADA" && (
+                    <View style={styles.badgeAnulada}>
+                      <MaterialCommunityIcons
+                        name="cancel"
+                        size={14}
+                        color="#fff"
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={styles.badgeAnuladaTexto}>ANULADA</Text>
+                    </View>
+                  )}
                 </ScrollView>
               )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* Modal de reversión */}
+        <Modal
+          visible={modalReversionVisible}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => !revirtiendoFactura && setModalReversionVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => !revirtiendoFactura && setModalReversionVisible(false)}
+          >
+            <Pressable
+              style={[styles.modalContent, styles.modalReversionContent]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  Revertir factura #{facturaARevertir?.id}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setModalReversionVisible(false)}
+                  style={styles.closeButton}
+                  disabled={revirtiendoFactura}
+                >
+                  <MaterialCommunityIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.reversionWarning}>
+                ⚠️ Esta acción revertirá el pago y devolverá el saldo al cliente. No se puede deshacer.
+              </Text>
+
+              <Text style={styles.reversionLabel}>Motivo de la reversión *</Text>
+              <TextInput
+                style={styles.reversionInput}
+                placeholder="Ej: Cliente solicitó cancelación del pedido"
+                placeholderTextColor="#999"
+                value={motivoReversion}
+                onChangeText={setMotivoReversion}
+                multiline
+                numberOfLines={3}
+                editable={!revirtiendoFactura}
+              />
+
+              <View style={styles.reversionActions}>
+                <TouchableOpacity
+                  style={styles.botonCancelar}
+                  onPress={() => setModalReversionVisible(false)}
+                  disabled={revirtiendoFactura}
+                >
+                  <Text style={styles.botonCancelarTexto}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.botonConfirmarReversion,
+                    revirtiendoFactura && styles.botonDeshabilitado,
+                  ]}
+                  onPress={handleConfirmarReversion}
+                  disabled={revirtiendoFactura}
+                >
+                  {revirtiendoFactura ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.botonRevertirTexto}>Confirmar reversión</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </Pressable>
           </Pressable>
         </Modal>
@@ -749,5 +966,99 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#2E7D32",
+  },
+  botonRevertir: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DC2626",
+    borderRadius: 8,
+    paddingVertical: 14,
+    marginTop: 20,
+  },
+  botonRevertirTexto: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  badgeAnulada: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#6B7280",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 16,
+  },
+  badgeAnuladaTexto: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  modalReversionContent: {
+    maxWidth: 480,
+  },
+  reversionWarning: {
+    backgroundColor: "#FEF3C7",
+    borderLeftWidth: 4,
+    borderLeftColor: "#F59E0B",
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 13,
+    color: "#78350F",
+    lineHeight: 20,
+  },
+  reversionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  reversionInput: {
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: "#333",
+    minHeight: 80,
+    textAlignVertical: "top",
+    backgroundColor: "#fafafa",
+    marginBottom: 20,
+    outlineStyle: "none",
+  },
+  reversionActions: {
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "flex-end",
+  },
+  botonCancelar: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  botonCancelarTexto: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  botonConfirmarReversion: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#DC2626",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  botonDeshabilitado: {
+    opacity: 0.5,
+  },
+  filterButtonActiveAnulada: {
+    backgroundColor: "#6B7280",
+    borderColor: "#6B7280",
   },
 });
