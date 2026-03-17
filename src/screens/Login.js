@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,20 +7,35 @@ import {
   StyleSheet,
   Image,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import Alert from "@blazejkustra/react-native-alert";
 import API_URL from "../config/api";
+import OlvidarContraseñaModal from "../components/OlvidarContraseñaModal";
+import RestablecerContraseñaScreen from "./RestablecerContraseñaScreen";
 
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [recordarme, setRecordarme] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [modalOlvidarVisible, setModalOlvidarVisible] = useState(false);
+  const [resetToken, setResetToken] = useState(null);
   const { login } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 400;
+
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      if (token) {
+        setResetToken(token);
+      }
+    }
+  }, []);
 
   const handleLogin = async () => {
     console.log("🚀 handleLogin ejecutado");
@@ -73,6 +88,20 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  if (resetToken) {
+    return (
+      <RestablecerContraseñaScreen
+        tokenDirecto={resetToken}
+        onVolver={() => {
+          setResetToken(null);
+          if (Platform.OS === "web" && typeof window !== "undefined") {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -134,6 +163,7 @@ export default function Login() {
               styles.forgotPasswordContainer,
               isSmallScreen && styles.forgotPasswordContainerStacked,
             ]}
+            onPress={() => setModalOlvidarVisible(true)}
           >
             <Text style={styles.forgotPassword}>Recuperar contraseña</Text>
           </TouchableOpacity>
@@ -142,6 +172,12 @@ export default function Login() {
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>INGRESAR</Text>
         </TouchableOpacity>
+
+        {/* Modal de recuperación de contraseña */}
+        <OlvidarContraseñaModal
+          visible={modalOlvidarVisible}
+          onClose={() => setModalOlvidarVisible(false)}
+        />
       </View>
     </View>
   );

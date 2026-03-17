@@ -12,7 +12,12 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Alert from "@blazejkustra/react-native-alert";
 
-const ROLES_DISPONIBLES = ["Admin", "Mozo", "Emisor", "Cajero"];
+const ROLES_DISPONIBLES = [
+  { label: "Admin", value: "Administrador" },
+  { label: "Mozo", value: "Mozo" },
+  { label: "Emisor", value: "Emisor" },
+  { label: "Cajero", value: "Cajero" },
+];
 
 export default function UsuarioModal({
   visible,
@@ -23,6 +28,7 @@ export default function UsuarioModal({
 }) {
   const [formData, setFormData] = useState({
     nombreUsuario: "",
+    email: "",
     contrasena: "",
     confirmarContrasena: "",
     activo: true,
@@ -35,6 +41,7 @@ export default function UsuarioModal({
     if (usuario) {
       setFormData({
         nombreUsuario: usuario.nombreUsuario || "",
+        email: usuario.email || "",
         contrasena: "",
         confirmarContrasena: "",
         activo: usuario.activo !== undefined ? usuario.activo : true,
@@ -43,6 +50,7 @@ export default function UsuarioModal({
     } else {
       setFormData({
         nombreUsuario: "",
+        email: "",
         contrasena: "",
         confirmarContrasena: "",
         activo: true,
@@ -67,22 +75,27 @@ export default function UsuarioModal({
       return;
     }
 
-    if (!isEdit) {
-      if (!formData.contrasena) {
-        Alert.alert("Error", "La contraseña es obligatoria");
-        return;
-      }
-      if (formData.contrasena !== formData.confirmarContrasena) {
-        Alert.alert("Error", "Las contraseñas no coinciden");
-        return;
-      }
-    } else {
-      if (
-        formData.contrasena &&
-        formData.contrasena !== formData.confirmarContrasena
-      ) {
-        Alert.alert("Error", "Las contraseñas no coinciden");
-        return;
+    const es_admin_target = isEdit ? usuario?.roles?.includes("Administrador") : false;
+    const puede_cambiar_contrasena = !isEdit || es_admin_target;
+
+    if (puede_cambiar_contrasena) {
+      if (!isEdit) {
+        if (!formData.contrasena) {
+          Alert.alert("Error", "La contraseña es obligatoria");
+          return;
+        }
+        if (formData.contrasena !== formData.confirmarContrasena) {
+          Alert.alert("Error", "Las contraseñas no coinciden");
+          return;
+        }
+      } else {
+        if (
+          formData.contrasena &&
+          formData.contrasena !== formData.confirmarContrasena
+        ) {
+          Alert.alert("Error", "Las contraseñas no coinciden");
+          return;
+        }
       }
     }
 
@@ -97,6 +110,18 @@ export default function UsuarioModal({
       activo: formData.activo,
       roles: formData.roles,
     };
+
+    // Validar y agregar email si se proporcionó
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        Alert.alert("Error", "El formato del email es inválido");
+        return;
+      }
+      dataToSend.email = formData.email.trim();
+    } else {
+      dataToSend.email = null;
+    }
 
     // Solo incluir contraseña si se proporcionó
     if (formData.contrasena) {
@@ -140,14 +165,38 @@ export default function UsuarioModal({
               />
             </View>
 
+            {/* Email de recuperación */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email de recuperación</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.email}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, email: text }))
+                }
+                placeholder="usuario@email.com (opcional)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <Text style={styles.labelHint}>
+                Necesario para recuperar contraseña
+              </Text>
+            </View>
+
             {/* Contraseña */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>
                 Contraseña {!isEdit && "*"}
-                {isEdit && " (dejar vacío para no cambiar)"}
+                {isEdit && 
+                  (usuario?.roles?.includes("Administrador") 
+                    ? " (dejar vacío para no cambiar)" 
+                    : " - Los no-administradores cambian contraseña desde Ajustes")}
               </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  isEdit && usuario?.roles?.length > 0 && !usuario?.roles?.includes("Administrador") && styles.inputDisabled
+                ]}
                 value={formData.contrasena}
                 onChangeText={(text) =>
                   setFormData((prev) => ({ ...prev, contrasena: text }))
@@ -155,6 +204,7 @@ export default function UsuarioModal({
                 placeholder="Ingrese contraseña"
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!isEdit || usuario?.roles?.includes("Administrador")}
               />
             </View>
 
@@ -164,7 +214,10 @@ export default function UsuarioModal({
                 Confirmar Contraseña {!isEdit && "*"}
               </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  isEdit && usuario?.roles?.length > 0 && !usuario?.roles?.includes("Administrador") && styles.inputDisabled
+                ]}
                 value={formData.confirmarContrasena}
                 onChangeText={(text) =>
                   setFormData((prev) => ({
@@ -175,6 +228,7 @@ export default function UsuarioModal({
                 placeholder="Confirme la contraseña"
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!isEdit || usuario?.roles?.includes("Administrador")}
               />
             </View>
 
@@ -227,30 +281,30 @@ export default function UsuarioModal({
               <View style={styles.rolesContainer}>
                 {ROLES_DISPONIBLES.map((rol) => (
                   <TouchableOpacity
-                    key={rol}
+                    key={rol.value}
                     style={[
                       styles.roleChip,
-                      formData.roles.includes(rol) && styles.roleChipSelected,
+                      formData.roles.includes(rol.value) && styles.roleChipSelected,
                     ]}
-                    onPress={() => handleRolToggle(rol)}
+                    onPress={() => handleRolToggle(rol.value)}
                   >
                     <MaterialCommunityIcons
                       name={
-                        formData.roles.includes(rol)
+                        formData.roles.includes(rol.value)
                           ? "checkbox-marked"
                           : "checkbox-blank-outline"
                       }
                       size={20}
-                      color={formData.roles.includes(rol) ? "#4A90E2" : "#999"}
+                      color={formData.roles.includes(rol.value) ? "#4A90E2" : "#999"}
                     />
                     <Text
                       style={[
                         styles.roleChipText,
-                        formData.roles.includes(rol) &&
+                        formData.roles.includes(rol.value) &&
                           styles.roleChipTextSelected,
                       ]}
                     >
-                      {rol}
+                      {rol.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -329,6 +383,11 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 8,
   },
+  labelHint: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 4,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -336,6 +395,11 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     color: "#333",
+  },
+  inputDisabled: {
+    backgroundColor: "#f5f5f5",
+    color: "#999",
+    borderColor: "#e0e0e0",
   },
   switchContainer: {
     flexDirection: "row",

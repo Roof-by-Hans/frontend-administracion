@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Platform, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Platform, ActivityIndicator, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -14,11 +14,53 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const [modalRecortarVisible, setModalRecortarVisible] = useState(false);
   const [fotoTemporal, setFotoTemporal] = useState(null);
   const [guardandoFoto, setGuardandoFoto] = useState(false);
-  
+  const [email, setEmail] = useState("");
+  const [guardandoEmail, setGuardandoEmail] = useState(false);
+
   const { user, logout, updateUser } = useAuth();
   const userName = user?.nombreUsuario || user?.usuario || "Usuario";
   const userPhoto = user?.fotoPerfilUrl || null;
   const isAdmin = user?.roles?.includes("Administrador") || user?.roles?.includes("Admin") || false;
+
+  // Cargar el email del usuario al entrar
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user?.email]);
+
+  const handleGuardarEmail = async () => {
+
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        Alert.alert("Error", "El formato del email es inválido");
+        return;
+      }
+    }
+
+    if (!user?.id) {
+      Alert.alert("Error", "No se pudo identificar el usuario");
+      return;
+    }
+
+    try {
+      setGuardandoEmail(true);
+      const response = await usuarioService.actualizarMiEmail(email.trim());
+
+      if (response.success && response.data) {
+        updateUser(response.data);
+        Alert.alert("Éxito", "Email actualizado correctamente");
+      } else {
+        Alert.alert("Error", response.message || "No se pudo actualizar el email");
+      }
+    } catch (error) {
+      console.error("Error al guardar email:", error);
+      Alert.alert("Error", error.response?.data?.message || "Error al actualizar el email");
+    } finally {
+      setGuardandoEmail(false);
+    }
+  };
 
   const handleAbrirLimites = () => {
     setModalLimitesVisible(true);
@@ -303,6 +345,40 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* Email para recuperación de contraseña */}
+              <View style={styles.emailContainer}>
+                <Text style={styles.emailLabel}>
+                  Email{" "}
+                  <Text style={styles.emailHint}>(para recuperar contraseña)</Text>
+                </Text>
+                <View style={styles.emailFila}>
+                  <TextInput
+                    style={styles.emailInput}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="correo@ejemplo.com"
+                    placeholderTextColor="#aaa"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                     editable={!guardandoEmail}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.botonGuardarEmail,
+                      guardandoEmail && styles.botonDeshabilitado,
+                    ]}
+                    onPress={handleGuardarEmail}
+                    disabled={guardandoEmail}
+                  >
+                    {guardandoEmail ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.botonTexto}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -441,6 +517,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginBottom: 15,
+  },
+  emailContainer: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  emailLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  emailHint: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#999",
+  },
+  emailFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  emailInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: "#333",
+    backgroundColor: "#fafafa",
+  },
+  botonGuardarEmail: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  botonDeshabilitado: {
+    opacity: 0.7,
   },
   fotoBotones: {
     flexDirection: "row",

@@ -62,6 +62,13 @@ const usuarioService = {
     return actualizarUsuario(usuarioId, usuarioData);
   },
 
+  actualizarMiEmail: async (email) => {
+    const response = await api.put(`${USUARIOS_ENDPOINT}/me/email`, {
+      email: email ?? "",
+    });
+    return response.data;
+  },
+
   /**
    * Crear un nuevo usuario.
    * @param {FormData} usuarioData Datos del nuevo usuario.
