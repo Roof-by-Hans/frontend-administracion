@@ -14,13 +14,10 @@ import UsuarioModal from "../components/UsuarioModal";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
-import {
-  getUsuarios,
-  crearUsuario,
-  actualizarUsuario,
-  eliminarUsuario,
-} from "../services/usuarioService";
+import usuarioService from "../services/usuarioService";
 import Alert from "@blazejkustra/react-native-alert";
+
+const { getUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } = usuarioService;
 
 export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -44,11 +41,11 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     try {
       setCargando(true);
       setError(null);
-      const response = await getUsuarios();
-      const usuariosData = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-        ? response.data
+      const data = await getUsuarios();
+      const usuariosData = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
         : [];
 
       const usuariosConId = usuariosData.map((usuario) => ({
@@ -205,13 +202,23 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     try {
       setCargando(true);
 
+      const formData = new FormData();
+      formData.append("nombreUsuario", datosUsuario.nombreUsuario);
+      formData.append("activo", datosUsuario.activo ? "true" : "false");
+      if (datosUsuario.contrasena) {
+        formData.append("contrasena", datosUsuario.contrasena);
+      }
+      if (datosUsuario.roles) {
+        datosUsuario.roles.forEach((rol) => formData.append("roles[]", rol));
+      }
+      // Email: enviar siempre (puede ser null para borrarlo)
+      formData.append("email", datosUsuario.email ?? "");
+
       if (usuarioEditando) {
-        // Actualizar usuario existente
-        await actualizarUsuario(usuarioEditando.id, datosUsuario);
+        await actualizarUsuario(usuarioEditando.id, formData);
         Alert.alert("Éxito", "Usuario actualizado correctamente");
       } else {
-        // Crear nuevo usuario
-        await crearUsuario(datosUsuario);
+        await crearUsuario(formData);
         Alert.alert("Éxito", "Usuario creado correctamente");
       }
 
