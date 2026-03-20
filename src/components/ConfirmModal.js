@@ -13,17 +13,20 @@ export default function ConfirmModal({
   title, 
   message, 
   onConfirm, 
-  onClose, 
+  onClose,
+  onCancel,
   confirmText = "Eliminar",
   confirmIcon = "delete",
   confirmColor = "#f44336"
 }) {
+  const handleClose = onClose || onCancel;
+
   return (
     <Modal
       visible={visible}
       animationType="fade"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -42,7 +45,7 @@ export default function ConfirmModal({
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
-              onPress={onClose}
+              onPress={handleClose}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>

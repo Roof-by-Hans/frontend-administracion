@@ -161,7 +161,7 @@ export default function UsuarioModal({
                 }
                 placeholder="Ingrese nombre de usuario"
                 autoCapitalize="none"
-                editable={!isEdit} // No permitir editar el username
+                editable
               />
             </View>
 
