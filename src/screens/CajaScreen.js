@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
+import Alert from "@blazejkustra/react-native-alert";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import DataTable from "../components/DataTable";
 import MovimientoCajaModal from "../components/MovimientoCajaModal";
@@ -79,7 +80,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
       setModalAperturaVisible(false);
       await cargarDatos(); // Recargar todo
     } catch (error) {
-      alert(error.message || "Error al abrir la caja");
+      Alert.alert("Error", error.message || "Error al abrir la caja");
     } finally {
       setActionLoading(false);
     }
@@ -98,11 +99,11 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
       if (diferencia !== 0) {
         mensaje += `\n\nDiferencia detectada: $${diferencia > 0 ? '+' : ''}${diferencia}`;
       }
-      alert(mensaje);
+      Alert.alert("Éxito", mensaje);
 
       await cargarDatos(); // Recargar para mostrar estado "CERRADA"
     } catch (error) {
-      alert(error.message || "Error al cerrar la caja");
+      Alert.alert("Error", error.message || "Error al cerrar la caja");
     } finally {
       setActionLoading(false);
     }
@@ -115,7 +116,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
       setModalMovimientoVisible(false);
       await cargarDatos(); // Recargar movimientos y saldos
     } catch (error) {
-      alert(error.message || "Error al registrar movimiento");
+      Alert.alert("Error", error.message || "Error al registrar movimiento");
     } finally {
       setActionLoading(false);
     }
