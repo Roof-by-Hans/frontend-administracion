@@ -67,6 +67,41 @@ const authService = {
       throw error;
     }
   },
+
+  /**
+   * Solicitar recuperación de contraseña
+   * @param {string} nombreUsuario - Nombre de usuario
+   * @param {string} email - Email del usuario
+   * @returns {Promise}
+   */
+  olvidarContrasena: async (nombreUsuario, email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { nombreUsuario, email });
+      return response.data;
+    } catch (error) {
+      console.error('Error al solicitar recuperación:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Restablecer contraseña con token
+   * @param {string} token - Token de reset
+   * @param {string} contrasenaNueva - Nueva contraseña
+   * @returns {Promise}
+   */
+  restablecerContrasena: async (token, contrasenaNueva) => {
+    try {
+      const response = await api.post('/auth/reset-password', {
+        token,
+        contrasenaNueva,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al restablecer contraseña:', error.message);
+      throw error;
+    }
+  },
 };
 
 export default authService;

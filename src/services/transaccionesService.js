@@ -59,6 +59,26 @@ const transaccionesService = {
       throw error;
     }
   },
+
+  /**
+   * Revertir una factura COBRADA o PENDIENTE (rollback de pago)
+   * @param {number} idFactura - ID de la factura a revertir
+   * @param {string} motivo - Motivo de la reversión (requerido para auditoría)
+   * @returns {Promise<{data: object, warning: string|null, message: string}>}
+   */
+  async revertirFactura(idFactura, motivo) {
+    try {
+      const response = await api.post(`/transacciones/revertir/${idFactura}`, { motivo });
+      return {
+        data: response.data.data,
+        warning: response.data.data?.warning ?? null,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('Error al revertir factura:', error);
+      throw error;
+    }
+  },
 };
 
 export default transaccionesService;
