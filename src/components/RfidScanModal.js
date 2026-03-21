@@ -30,9 +30,7 @@ export default function RfidScanModal({
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible && status === "scanning") {
-      // Animación de pulso para el ícono
-      Animated.loop(
+    if (visible && status === "scanning") {      Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.2,
@@ -47,10 +45,7 @@ export default function RfidScanModal({
             useNativeDriver: true,
           }),
         ])
-      ).start();
-
-      // Animación de rotación para las ondas
-      Animated.loop(
+      ).start();      Animated.loop(
         Animated.timing(rotateAnim, {
           toValue: 1,
           duration: 2000,
@@ -58,9 +53,7 @@ export default function RfidScanModal({
           useNativeDriver: true,
         })
       ).start();
-    } else if (visible && (status === "success" || status === "error")) {
-      // Animación de aparición para el ícono de éxito/error
-      Animated.spring(scaleAnim, {
+    } else if (visible && (status === "success" || status === "error")) {      Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
@@ -78,8 +71,7 @@ export default function RfidScanModal({
     outputRange: ["0deg", "360deg"],
   });
 
-  // Configuración según el estado
-  const getConfig = () => {
+    const getConfig = () => {
     switch (status) {
       case "success":
         return {
@@ -154,7 +146,7 @@ export default function RfidScanModal({
                 </Animated.View>
               </View>
 
-              {/* Título */}
+               */}
               <Text style={styles.title}>{config.title}</Text>
 
               {/* Mensaje */}
@@ -183,13 +175,13 @@ export default function RfidScanModal({
                 />
               </Animated.View>
 
-              {/* Título */}
+               */}
               <Text style={styles.title}>{config.title}</Text>
 
               {/* Mensaje */}
               <Text style={styles.message}>{config.message}</Text>
 
-              {/* Botón de cerrar */}
+               de cerrar */}
               {config.showButton && (
                 <TouchableOpacity
                   style={[

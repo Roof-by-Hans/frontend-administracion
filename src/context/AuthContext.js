@@ -20,8 +20,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar sesión guardada (AsyncStorage)
-  useEffect(() => {
+    useEffect(() => {
     const checkStoredSession = async () => {
       try {
         const storedToken = await AsyncStorage.getItem("token");
@@ -45,11 +44,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkStoredSession();
-  }, []);
-
-  // Verificar periódicamente si el token sigue existiendo en AsyncStorage
-  // Si fue eliminado por un 401, cerrar sesión
-  useEffect(() => {
+  }, []);  useEffect(() => {
     if (!isAuthenticated) return;
 
     const interval = setInterval(async () => {
@@ -57,11 +52,7 @@ export const AuthProvider = ({ children }) => {
         const storedToken = await AsyncStorage.getItem("token");
         const sessionExpired = await AsyncStorage.getItem("session_expired");
         
-        if (!storedToken && isAuthenticated) {
-          console.log("🚪 Token eliminado - cerrando sesión");
-          
-          // Si hay un flag de sesión expirada, mostrar mensaje
-          if (sessionExpired === "true") {
+        if (!storedToken && isAuthenticated) {          if (sessionExpired === "true") {
             Alert.alert(
               "Sesión expirada",
               "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
@@ -76,17 +67,9 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Error al verificar token:", err);
       }
-    }, 1000); // Verificar cada segundo
-
+    }, 1000); 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  // login: soporte dual para compatibilidad con código existente
-  // - Si se llama como login(userData, token) -> guarda esa sesión
-  // - Si se llama como login(nombreUsuario, contrasena, recordarme) -> usa authService
-  const login = async (a, b, c = false) => {
-    // Caso 1: llamada desde el antiguo flujo: login(userData, token)
-    if (typeof a === "object" && typeof b === "string") {
+  }, [isAuthenticated]);  const login = async (a, b, c = false) => {    if (typeof a === "object" && typeof b === "string") {
       const userData = a;
       const authToken = b;
       setUser(userData);
@@ -99,10 +82,7 @@ export const AuthProvider = ({ children }) => {
         console.error("Error al guardar sesión en AsyncStorage:", err);
       }
       return true;
-    }
-
-    // Caso 2: llamada con credenciales: login(nombreUsuario, contrasena, recordarme)
-    const nombreUsuario = a;
+    }    const nombreUsuario = a;
     const contrasena = b;
     const recordarme = c;
     try {

@@ -1,12 +1,8 @@
 import axios from "axios";
 
-// Configura la URL del servicio de tarjetas desde las variables de entorno
 const CARD_SERVICE_URL =
   process.env.EXPO_PUBLIC_CARD_SERVICE_URL || "http://localhost:3500/api";
-const RFID_TIMEOUT = Number(process.env.EXPO_PUBLIC_RFID_TIMEOUT) || 10000;
-
-// Crea una instancia de axios para el servicio de tarjetas
-const cardApi = axios.create({
+const RFID_TIMEOUT = Number(process.env.EXPO_PUBLIC_RFID_TIMEOUT) || 10000;const cardApi = axios.create({
   baseURL: CARD_SERVICE_URL,
   headers: {
     "Content-Type": "application/json",

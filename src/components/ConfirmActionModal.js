@@ -164,9 +164,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#666",
   },
-  confirmButton: {
-    // backgroundColor set via prop
-  },
+  confirmButton: {  },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: "600",

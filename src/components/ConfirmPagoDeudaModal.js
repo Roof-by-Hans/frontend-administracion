@@ -32,7 +32,7 @@ export default function ConfirmPagoDeudaModal({
             />
           </View>
 
-          {/* Título */}
+           */}
           <Text style={styles.title}>Confirmar pago de deuda</Text>
 
           {/* Cliente */}
@@ -63,7 +63,7 @@ export default function ConfirmPagoDeudaModal({
               </Text>
             </View>
 
-            {/* Método de pago */}
+             de pago */}
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>
@@ -86,7 +86,7 @@ export default function ConfirmPagoDeudaModal({
             ¿Estás seguro de que deseas registrar este pago?
           </Text>
 
-          {/* Botones */}
+          {/* es */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

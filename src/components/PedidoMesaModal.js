@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { getProductos } from "../services/productosService";
+import { getProductosHabilitados } from "../services/productosService";
 import clientesService from "../services/clientesService";
 import pedidosService from "../services/pedidosService";
 
@@ -30,24 +30,20 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [busquedaProducto, setBusquedaProducto] = useState("");
 
-  // Cargar datos iniciales
-  useEffect(() => {
+    useEffect(() => {
     if (visible) {
       cargarDatos();
     }
   }, [visible]);
 
-  // Cargar datos del pedido en edición cuando estén listos los clientes
-  useEffect(() => {
+    useEffect(() => {
     if (visible && pedidoEnEdicion && clientes.length > 0) {
-      console.log('📝 Cargando pedido en edición:', pedidoEnEdicion);
       const cliente = clientes.find(c => c.id === pedidoEnEdicion.idCliente);
       setClienteSeleccionado(cliente || null);
       setProductosSeleccionados(pedidoEnEdicion.productos || []);
       setObservaciones(pedidoEnEdicion.observaciones || "");
     } else if (visible && !pedidoEnEdicion) {
-      // Limpiar formulario si no hay pedido en edición
-      setClienteSeleccionado(null);
+            setClienteSeleccionado(null);
       setProductosSeleccionados([]);
       setObservaciones("");
     }
@@ -58,7 +54,7 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
       setLoadingData(true);
       const [clientesData, productosData] = await Promise.all([
         clientesService.getClientes(),
-        getProductos(),
+        getProductosHabilitados(),
       ]);
 
       setClientes(clientesData.data || clientesData || []);
@@ -121,9 +117,7 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
     );
   };
 
-const handleCrearPedido = async () => {
-    // Validaciones
-    if (!clienteSeleccionado) {
+const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
       Alert.alert("Error", "Debe seleccionar un cliente");
       return;
     }
@@ -131,10 +125,7 @@ const handleCrearPedido = async () => {
     if (productosSeleccionados.length === 0) {
       Alert.alert("Error", "Debe agregar al menos un producto");
       return;
-    }
-
-    // Validación de límites de crédito/prepago
-    const infoTarjeta = clienteSeleccionado.tarjeta;
+    }    const infoTarjeta = clienteSeleccionado.tarjeta;
     if (infoTarjeta) {
       const totalPedido = calcularTotal();
       const tipo = infoTarjeta.tipoSuscripcion;
@@ -173,27 +164,18 @@ const handleCrearPedido = async () => {
         observaciones: observaciones.trim() || undefined,
       };
 
-      // Agregar idMesa o idGrupo según corresponda
-      if (grupo) {
+            if (grupo) {
         datos.idGrupo = grupo.id;
         datos.nombreGrupo = grupo.nombre;
-        console.log('🔵 Creando pedido para GRUPO:', grupo.id);
       } else if (mesa) {
         datos.idMesa = mesa.idMesa || mesa.id;
         datos.numeroMesa = mesa.numero;
-        console.log('🔵 Creando pedido para MESA:', datos.idMesa);
-      }
-
-      console.log('🔵 Datos del pedido:', datos);
-
-      // Si es edición, eliminar el pedido viejo primero
-      if (pedidoEnEdicion) {
+      }      if (pedidoEnEdicion) {
         const clave = grupo ? `grupo-${grupo.id}` : `mesa-${datos.idMesa}`;
         await pedidosService.eliminarPedido(pedidoEnEdicion.id, clave);
       }
 
-      // Guardar pedido temporalmente (NO genera factura aún)
-      const pedido = await pedidosService.crearPedido(datos);
+            const pedido = await pedidosService.crearPedido(datos);
 
       Alert.alert(
         pedidoEnEdicion ? "Pedido actualizado" : "Pedido agregado",
@@ -472,7 +454,7 @@ const handleCrearPedido = async () => {
             </ScrollView>
           )}
 
-          {/* Footer con Botones */}
+          {/* Footer con es */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.button, styles.buttonSecondary]}

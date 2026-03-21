@@ -31,6 +31,11 @@ export const eliminarUsuario = async (usuarioId) => {
   return response.data;
 };
 
+export const toggleUsuario = async (usuarioId) => {
+  const response = await api.patch(`${USUARIOS_ENDPOINT}/${usuarioId}/toggle`);
+  return response.data;
+};
+
 /**
  * Servicio para operaciones relacionadas con usuarios del sistema.
  */
@@ -85,6 +90,15 @@ const usuarioService = {
    */
   eliminarUsuario: async (usuarioId) => {
     return eliminarUsuario(usuarioId);
+  },
+
+  /**
+   * Toggle el estado activo de un usuario.
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @returns {Promise} Axios response con el nuevo estado.
+   */
+  toggleUsuario: async (usuarioId) => {
+    return toggleUsuario(usuarioId);
   },
 };
 

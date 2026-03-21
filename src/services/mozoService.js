@@ -1,14 +1,8 @@
 import API_URL from "../config/api";
 
-// Obtener el token del almacenamiento
 const getToken = () => {
   return localStorage.getItem("token");
-};
-
-// Manejar token inválido
-const handleInvalidToken = (data) => {
-  // Solo redirigir si el token realmente expiró o es inválido
-  if (
+};const handleInvalidToken = (data) => {  if (
     data &&
     (data.expired ||
       data.message?.includes("Token") ||
@@ -20,7 +14,6 @@ const handleInvalidToken = (data) => {
   }
 };
 
-// Obtener todos los mozos
 export const getMozos = async () => {
   try {
     const token = getToken();
@@ -50,7 +43,6 @@ export const getMozos = async () => {
   }
 };
 
-// Obtener solo mozos activos
 export const getMozosActivos = async () => {
   try {
     const token = getToken();
@@ -80,7 +72,6 @@ export const getMozosActivos = async () => {
   }
 };
 
-// Obtener un mozo por ID
 export const getMozoById = async (id) => {
   try {
     const token = getToken();

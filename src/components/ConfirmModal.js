@@ -35,13 +35,13 @@ export default function ConfirmModal({
             <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#f44336" />
           </View>
 
-          {/* Título */}
+           */}
           <Text style={styles.title}>{title}</Text>
 
           {/* Mensaje */}
           <Text style={styles.message}>{message}</Text>
 
-          {/* Botones */}
+          {/* es */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

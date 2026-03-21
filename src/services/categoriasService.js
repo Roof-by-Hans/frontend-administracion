@@ -85,6 +85,21 @@ export const eliminarCategoria = async (id) => {
 };
 
 /**
+ * Toggle el estado de habilitación de una categoría
+ * @param {number} id - ID de la categoría
+ * @returns {Promise} Nuevo estado de la categoría
+ */
+export const toggleCategoria = async (id) => {
+  try {
+    const response = await api.patch(`/categorias-producto/${id}/toggle`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al toggle categoría ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Convierte la estructura jerárquica de categorías a una lista plana
  * Útil para selectores y dropdowns
  * @param {Array} categorias - Array de categorías jerárquicas
@@ -108,14 +123,12 @@ export const aplanarCategorias = (categorias, nivel = 0) => {
   });
   
   return resultado;
-};
-
-// Exportar todas las funciones como default también
-export default {
+};export default {
   getCategorias,
   getCategoriaPorId,
   crearCategoria,
   actualizarCategoria,
   eliminarCategoria,
+  toggleCategoria,
   aplanarCategorias,
 };

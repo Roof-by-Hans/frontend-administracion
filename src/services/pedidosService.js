@@ -10,9 +10,7 @@ const pedidosService = {
    * @param {number} idMesa - ID de la mesa
    * @returns {Promise<Array>} - Lista de pedidos activos
    */
-  async getPedidosMesa(idMesa) {
-    // Usar almacenamiento local directamente
-    return this.getPedidosLocal(`mesa-${idMesa}`);
+  async getPedidosMesa(idMesa) {    return this.getPedidosLocal(`mesa-${idMesa}`);
   },
 
   /**
@@ -20,9 +18,7 @@ const pedidosService = {
    * @param {number} idGrupo - ID del grupo
    * @returns {Promise<Array>} - Lista de pedidos activos
    */
-  async getPedidosGrupo(idGrupo) {
-    // Usar almacenamiento local directamente
-    return this.getPedidosLocal(`grupo-${idGrupo}`);
+  async getPedidosGrupo(idGrupo) {    return this.getPedidosLocal(`grupo-${idGrupo}`);
   },
 
   /**
@@ -36,21 +32,10 @@ const pedidosService = {
       id: `pedido-${Date.now()}`,
       fecha: new Date().toISOString(),
       estado: 'pendiente',
-    };
-
-    // Determinar clave (mesa o grupo)
-    const clave = pedido.idMesa ? `mesa-${pedido.idMesa}` : `grupo-${pedido.idGrupo}`;
+    };    const clave = pedido.idMesa ? `mesa-${pedido.idMesa}` : `grupo-${pedido.idGrupo}`;
+        await this.guardarPedidoLocal(clave, pedidoConId);
     
-    console.log('🔵 Creando pedido con clave:', clave);
-    console.log('🔵 Pedido:', pedidoConId);
-    
-    // Guardar localmente
-    await this.guardarPedidoLocal(clave, pedidoConId);
-    
-    // Verificar que se guardó
-    const verificar = this.getPedidosLocal(clave);
-    console.log('🔵 Pedidos guardados en', clave, ':', verificar.length);
-    
+        const verificar = this.getPedidosLocal(clave);
     return pedidoConId;
   },
 
@@ -92,7 +77,6 @@ const pedidosService = {
     const key = `pedidos-${clave}`;
     const data = localStorage.getItem(key);
     const pedidos = data ? JSON.parse(data) : [];
-    console.log('🔵 getPedidosLocal:', key, '→', pedidos.length, 'pedidos');
     return pedidos;
   },
 
@@ -111,7 +95,6 @@ const pedidosService = {
     const pedidos = this.getPedidosLocal(clave);
     pedidos.push(pedido);
     localStorage.setItem(key, JSON.stringify(pedidos));
-    console.log('✅ Pedido guardado en', key, '- Total:', pedidos.length);
   },
 
   /**
@@ -140,30 +123,22 @@ const pedidosService = {
       return 0;
     }
 
-    let pedidosATransferir = [];
-    
-    // Recolectar pedidos de todas las mesas
-    for (const mesaId of mesasIds) {
+    let pedidosATransferir = [];    for (const mesaId of mesasIds) {
       const claveMesa = `mesa-${mesaId}`;
       const pedidosMesa = this.getPedidosLocal(claveMesa);
       
       if (pedidosMesa.length > 0) {
-        console.log(`📋 Transfiriendo ${pedidosMesa.length} pedido(s) de mesa ${mesaId}`);
         pedidosATransferir = [...pedidosATransferir, ...pedidosMesa];
       }
     }
     
     if (pedidosATransferir.length > 0) {
-      // Guardar todos los pedidos en el grupo
-      const claveGrupo = `grupo-${grupoId}`;
+            const claveGrupo = `grupo-${grupoId}`;
       localStorage.setItem(`pedidos-${claveGrupo}`, JSON.stringify(pedidosATransferir));
-      console.log(`✅ ${pedidosATransferir.length} pedido(s) transferidos a ${claveGrupo}`);
       
-      // Limpiar pedidos de las mesas individuales
-      for (const mesaId of mesasIds) {
+            for (const mesaId of mesasIds) {
         const claveMesa = `mesa-${mesaId}`;
         this.limpiarPedidos(claveMesa);
-        console.log(`🧹 Pedidos limpiados de ${claveMesa}`);
       }
     }
     

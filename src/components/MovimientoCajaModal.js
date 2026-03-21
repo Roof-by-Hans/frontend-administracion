@@ -64,13 +64,10 @@ export default function MovimientoCajaModal({
   const cargarMediosPago = async () => {
     try {
       const medios = await mediosPagoService.obtenerTodos();
-      setMediosPagoList(medios);
-      // Seleccionar el primero por defecto si no hay nada seleccionado
-      if (medios.length > 0 && !metodoPago) {
+      setMediosPagoList(medios);      if (medios.length > 0 && !metodoPago) {
         setMetodoPago(medios[0].nombre);
       } else if (medios.length > 0) {
-        // Verificar que el seleccionado aun exista
-        const existe = medios.find(m => m.nombre === metodoPago);
+                const existe = medios.find(m => m.nombre === metodoPago);
         if (!existe) setMetodoPago(medios[0].nombre);
       }
     } catch (error) {
@@ -78,8 +75,7 @@ export default function MovimientoCajaModal({
     }
   };
 
-  // Actualizar lista de conceptos cuando cambia el tipo
-  useEffect(() => {
+    useEffect(() => {
     const conceptos = tipo === "INGRESO" ? CONCEPTOS_INGRESO : CONCEPTOS_EGRESO;
     setConceptoSeleccionado(conceptos[0]);
     setConceptoPersonalizado("");
@@ -134,9 +130,7 @@ export default function MovimientoCajaModal({
       if (isNaN(montoNum) || montoNum <= 0) {
         setErrores(prev => ({ ...prev, monto: "Monto inválido" }));
       }
-      if (!metodoPago) {
-         // Podríamos mostrar un error general o un toast, pero por ahora validamos que no se envíe
-         console.warn("Falta seleccionar método de pago");
+      if (!metodoPago) {         console.warn("Falta seleccionar método de pago");
       }
       return;
     }
@@ -251,7 +245,7 @@ export default function MovimientoCajaModal({
                 </View>
               )}
 
-              {/* Método de Pago */}
+               de Pago */}
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Medio de Pago</Text>
                 <View style={styles.pickerContainer}>

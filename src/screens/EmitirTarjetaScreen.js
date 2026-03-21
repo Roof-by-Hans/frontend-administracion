@@ -20,30 +20,16 @@ import tarjetaService from "../services/tarjetaService";
 import clienteService from "../services/clienteService";
 import Alert from "@blazejkustra/react-native-alert";
 
-export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
-  // Estados del formulario
-  const [selectedClient, setSelectedClient] = useState("");
+export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  const [selectedClient, setSelectedClient] = useState("");
   const [subscriptionType, setSubscriptionType] = useState("");
   const [nivelSuscripcion, setNivelSuscripcion] = useState("");
-  const [saldoInicial, setSaldoInicial] = useState("");
-
-  // Estados de datos del backend
-  const [clientes, setClientes] = useState([]);
+  const [saldoInicial, setSaldoInicial] = useState("");  const [clientes, setClientes] = useState([]);
   const [tiposSuscripcion, setTiposSuscripcion] = useState([]);
-  const [nivelesSuscripcion, setNivelesSuscripcion] = useState([]);
-
-  // Estados de UI
-  const [loading, setLoading] = useState(true);
+  const [nivelesSuscripcion, setNivelesSuscripcion] = useState([]);  const [loading, setLoading] = useState(true);
   const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");
-
-  // Estados para el modal de confirmación de desvinculación
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [conflictoInfo, setConflictoInfo] = useState(null);
-  const [datosEmisionPendiente, setDatosEmisionPendiente] = useState(null);
-
-  // Estados para el modal de éxito
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [datosEmisionPendiente, setDatosEmisionPendiente] = useState(null);  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const { user, logout } = useAuth();
@@ -52,8 +38,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
   const isCompact = width < 768;
   const isMedium = width >= 768 && width < 1024;
 
-  // Cargar datos del backend al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarDatosIniciales();
   }, []);
 
@@ -61,8 +46,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
     try {
       setLoading(true);
 
-      // Cargar clientes, tipos y niveles de suscripción en paralelo
-      const [clientesRes, tiposRes, nivelesRes] = await Promise.all([
+            const [clientesRes, tiposRes, nivelesRes] = await Promise.all([
         clienteService.getClientes(),
         tarjetaService.getTiposSuscripcion(),
         tarjetaService.getNivelesSuscripcion(),
@@ -70,12 +54,8 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesRes.data || []);
       setTiposSuscripcion(tiposRes.data || []);
-      setNivelesSuscripcion(nivelesRes.data || []);
-
-      // Establecer valores por defecto
-      if (tiposRes.data && tiposRes.data.length > 0) {
-        // Buscar el tipo CREDITO por defecto
-        const tipoCredito = tiposRes.data.find((t) => t.nombre === "CREDITO");
+      setNivelesSuscripcion(nivelesRes.data || []);      if (tiposRes.data && tiposRes.data.length > 0) {
+                const tipoCredito = tiposRes.data.find((t) => t.nombre === "CREDITO");
         if (tipoCredito) {
           setSubscriptionType(tipoCredito.id.toString());
         } else {
@@ -102,13 +82,11 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
       : "NOMBRE APELLIDO";
   };
 
-  // Obtener el tipo de suscripción seleccionado
-  const getTipoSuscripcionSeleccionado = () => {
+    const getTipoSuscripcionSeleccionado = () => {
     return tiposSuscripcion.find((t) => t.id === parseInt(subscriptionType));
   };
 
-  // Verificar si el tipo seleccionado es CREDITO o PREPAGA
-  const esTipoCredito = () => {
+    const esTipoCredito = () => {
     const tipo = getTipoSuscripcionSeleccionado();
     return tipo?.nombre === "CREDITO";
   };
@@ -118,9 +96,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
     return tipo?.nombre === "PREPAGA";
   };
 
-  const handleEmitir = async () => {
-    // Validaciones
-    if (!selectedClient) {
+  const handleEmitir = async () => {    if (!selectedClient) {
       Alert.alert("Error", "Por favor selecciona un cliente");
       return;
     }
@@ -130,89 +106,47 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
       return;
     }
 
-    // Validar campos según el tipo de suscripción
-    if (esTipoCredito()) {
+        if (esTipoCredito()) {
       if (!nivelSuscripcion) {
         Alert.alert("Error", "Por favor selecciona un nivel de suscripción");
         return;
       }
-    } else if (esTipoPrepago()) {
-      // Saldo inicial es opcional para prepago
-      if (saldoInicial && saldoInicial.trim() !== "") {
+    } else if (esTipoPrepago()) {      if (saldoInicial && saldoInicial.trim() !== "") {
         const saldo = parseFloat(saldoInicial);
         if (isNaN(saldo) || saldo < 0) {
           Alert.alert("Error", "El saldo debe ser un número mayor o igual a 0");
           return;
         }
       }
-    }
-
-    // Iniciar escaneo
-    setScanStatus("scanning");
+    }    setScanStatus("scanning");
     setErrorMessage("");
 
     try {
-      // Llamar al endpoint de escaneo RFID
-      const response = await cardService.scanRFID();
-
-      console.log("📡 Respuesta del servicio RFID:", response);
-      console.log("🆔 UID de la tarjeta:", response.uid);
-
-      // Preparar datos para asociar la tarjeta
-      const datosEmision = {
+            const response = await cardService.scanRFID();      const datosEmision = {
         rfidUid: response.uid,
         idCliente: parseInt(selectedClient),
         idTipoSuscripcion: parseInt(subscriptionType),
       };
 
-      // Agregar campos específicos según el tipo
-      if (esTipoCredito()) {
+            if (esTipoCredito()) {
         datosEmision.idNivelSuscripcion = parseInt(nivelSuscripcion);
-      } else if (esTipoPrepago()) {
-        // Solo agregar saldoInicial si se proporcionó
-        if (saldoInicial && saldoInicial.trim() !== "") {
+      } else if (esTipoPrepago()) {        if (saldoInicial && saldoInicial.trim() !== "") {
           datosEmision.saldoInicial = parseFloat(saldoInicial);
         }
-      }
+      }      await procesarEmision(datosEmision);
 
-      console.log("📤 Datos de emisión:", datosEmision);
-
-      // Intentar asociar la tarjeta al cliente (primer intento sin forzar)
-      await procesarEmision(datosEmision);
-
-      // Cerrar modal de escaneo después del éxito
-      setScanStatus("");
+            setScanStatus("");
     } catch (error) {
       console.error("❌ Error en el proceso de emisión:", error);
 
-      // Verificar si es un error 409 (conflicto)
-      if (error.response?.status === 409) {
-        const errorData = error.response.data;
-
-        console.log("📦 Error 409 - Datos completos:", errorData);
-        console.log("📦 errorData.data:", errorData.data);
-        console.log(
-          "📦 errorData.data.clienteActual:",
-          errorData.data?.clienteActual
-        );
-
-        // Preparar información del conflicto
-        const conflicto = {
+            if (error.response?.status === 409) {
+        const errorData = error.response.data;        const conflicto = {
           clienteActual: errorData.data?.clienteActual || null,
           tarjetaActual: errorData.data?.tarjetaActual || null,
           esMismoCliente: errorData.data?.esMismoCliente || false,
-        };
-
-        console.log("🔍 Conflicto preparado:", conflicto);
-        console.log("🔍 Cliente actual en conflicto:", conflicto.clienteActual);
-
-        // Extraer rfidUid del request original que falló
-        const datosOriginales = error.config?.data
+        };        const datosOriginales = error.config?.data
           ? JSON.parse(error.config.data)
-          : null;
-
-        // Preparar datos para la emisión pendiente
-        const datosEmision = {
+          : null;        const datosEmision = {
           rfidUid: datosOriginales?.rfidUid,
           idCliente: parseInt(selectedClient),
           idTipoSuscripcion: parseInt(subscriptionType),
@@ -228,14 +162,10 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
           datosEmision.saldoInicial = parseFloat(saldoInicial);
         }
 
-        // Guardar información y mostrar modal de confirmación
-        setConflictoInfo(conflicto);
+                setConflictoInfo(conflicto);
         setDatosEmisionPendiente(datosEmision);
-        setScanStatus(""); // Cerrar el modal de escaneo
-        setShowConfirmModal(true);
-      } else {
-        // Otro tipo de error - mostrar modal de error
-        setErrorMessage(
+        setScanStatus("");         setShowConfirmModal(true);
+      } else {        setErrorMessage(
           error.response?.data?.message ||
             error.message ||
             "Error al procesar la tarjeta"
@@ -245,47 +175,30 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Función auxiliar para procesar la emisión
-  const procesarEmision = async (datosEmision) => {
+    const procesarEmision = async (datosEmision) => {
     try {
       const resultado = await tarjetaService.asociarTarjetaCliente(
         datosEmision
-      );
-
-      console.log("✅ Tarjeta asociada exitosamente:", resultado);
-
-      // Éxito - mostrar modal de éxito
-      const clienteNombre = getClientName();
+      );      const clienteNombre = getClientName();
       setSuccessMessage(`Tarjeta emitida exitosamente para ${clienteNombre}`);
       setShowSuccessModal(true);
 
-      // Limpiar formulario
-      setSelectedClient("");
-      setSaldoInicial("");
-      // Mantener los valores por defecto de tipo y nivel
-    } catch (error) {
-      // Propagar el error para manejarlo en handleEmitir
-      throw error;
+            setSelectedClient("");
+      setSaldoInicial("");    } catch (error) {      throw error;
     }
-  };
-
-  // Manejar confirmación de desvinculación
-  const handleConfirmarDesvinculacion = async () => {
+  };  const handleConfirmarDesvinculacion = async () => {
     if (!datosEmisionPendiente) return;
 
     setShowConfirmModal(false);
 
-    try {
-      // Reintentar con forzarDesvinculacion = true
-      const datosConForzar = {
+    try {      const datosConForzar = {
         ...datosEmisionPendiente,
         forzarDesvinculacion: true,
       };
 
       await procesarEmision(datosConForzar);
 
-      // Limpiar estados del conflicto
-      setConflictoInfo(null);
+            setConflictoInfo(null);
       setDatosEmisionPendiente(null);
     } catch (error) {
       console.error("❌ Error al forzar desvinculación:", error);
@@ -297,14 +210,10 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
       );
       setScanStatus("error");
 
-      // Limpiar estados del conflicto
-      setConflictoInfo(null);
+            setConflictoInfo(null);
       setDatosEmisionPendiente(null);
     }
-  };
-
-  // Manejar cancelación de desvinculación
-  const handleCancelarDesvinculacion = () => {
+  };  const handleCancelarDesvinculacion = () => {
     setShowConfirmModal(false);
     setConflictoInfo(null);
     setDatosEmisionPendiente(null);
@@ -320,8 +229,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
     setSuccessMessage("");
   };
 
-  // Mostrar loading mientras carga los datos
-  if (loading) {
+    if (loading) {
     return (
       <DashboardLayout
         userName={displayName}
@@ -447,7 +355,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
               </View>
             )}
 
-            {/* Botón Emitir */}
+             Emitir */}
             <TouchableOpacity
               style={[
                 styles.submitButton,

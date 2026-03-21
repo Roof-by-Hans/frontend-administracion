@@ -46,16 +46,11 @@ export function useCRUD({
   autoLoad = true,
   showAlerts = true,
 }) {
-  // Estado principal
   const [entities, setEntities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Estado del modal de edición/creación
   const [modalVisible, setModalVisible] = useState(false);
   const [editingEntity, setEditingEntity] = useState(null);
-
-  // Estado del modal de confirmación de eliminación
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [entityToDelete, setEntityToDelete] = useState(null);
 
@@ -69,16 +64,13 @@ export function useCRUD({
 
       const response = await fetchFn();
 
-      // Obtener datos de la respuesta (puede variar según la API)
-      let data = response;
+            let data = response;
       if (response?.data) {
         data = response.data;
       }
       if (response?.success && response?.data) {
         data = response.data;
       }
-
-      // Aplicar transformación si se proporciona
       if (transformData && typeof transformData === "function") {
         data = transformData(data);
       }
@@ -100,8 +92,7 @@ export function useCRUD({
     }
   }, [fetchFn, entityName, transformData, showAlerts]);
 
-  // Cargar al montar si autoLoad está activo
-  useEffect(() => {
+    useEffect(() => {
     if (autoLoad) {
       loadEntities();
     }
@@ -151,8 +142,7 @@ export function useCRUD({
       setLoading(true);
       await deleteFn(entityToDelete);
 
-      // Actualizar la lista local
-      setEntities((prev) => prev.filter((e) => e.id !== entityToDelete));
+            setEntities((prev) => prev.filter((e) => e.id !== entityToDelete));
 
       if (showAlerts) {
         Alert.alert("Éxito", `${entityName} eliminado correctamente.`);
@@ -224,32 +214,25 @@ export function useCRUD({
   }, []);
 
   return {
-    // Estado
-    entities,
+        entities,
     loading,
     error,
 
-    // Modal de edición/creación
-    modalVisible,
+        modalVisible,
     setModalVisible,
     editingEntity,
     setEditingEntity,
     closeModal,
 
-    // Modal de confirmación
-    confirmModalVisible,
+        confirmModalVisible,
     setConfirmModalVisible,
     entityToDelete,
-
-    // Acciones principales
     loadEntities,
     handleAdd,
     handleEdit,
     handleDelete,
     cancelDelete,
     confirmDelete,
-
-    // Helpers para actualizar estado
     setEntities,
     updateEntities,
     addEntity,

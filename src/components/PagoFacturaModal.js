@@ -29,35 +29,23 @@ export default function PagoFacturaModal({
   grupo,
   onPagoExitoso,
 }) {
-  const [loading, setLoading] = useState(false);
-  
-  // Estados para el flujo de pago con tarjeta
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error', 'success'
+  const [loading, setLoading] = useState(false);  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error', 'success'
   const [errorMessage, setErrorMessage] = useState("");
-  const [clienteData, setClienteData] = useState(null);
-  
-  // Estados para modales internos
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  // Calcular total de todos los pedidos
-  const totalPedidos = useMemo(() => {
+  const [clienteData, setClienteData] = useState(null);  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");  const totalPedidos = useMemo(() => {
     return pedidosService.calcularTotal(pedidos);
   }, [pedidos]);
 
-  // Obtener primer cliente de los pedidos
-  const primerClienteId = pedidos[0]?.idCliente;
+    const primerClienteId = pedidos[0]?.idCliente;
 
-  // Resetear estados al abrir/cerrar
-  useEffect(() => {
+    useEffect(() => {
     if (visible) {
       setScanStatus("");
       setErrorMessage("");
       setClienteData(null);
       setShowSuccessModal(false);
       
-      // Cargar datos del cliente si existe
-      if (primerClienteId) {
+            if (primerClienteId) {
         cargarDatosCliente(primerClienteId);
       }
     }
@@ -66,7 +54,6 @@ export default function PagoFacturaModal({
   const cargarDatosCliente = async (id) => {
     try {
       const cliente = await clienteService.getClientePorId(id);
-      console.log("👤 Datos del cliente cargados:", cliente);
       setClienteData(cliente);
     } catch (error) {
       console.error("Error al cargar cliente:", error);
@@ -74,19 +61,12 @@ export default function PagoFacturaModal({
     }
   };
 
-  const handleIniciarCobro = () => {
-    // Validaciones básicas
-    if (!pedidos || pedidos.length === 0) {
+  const handleIniciarCobro = () => {    if (!pedidos || pedidos.length === 0) {
       setErrorMessage("No hay pedidos para cobrar");
       return;
-    }
-
-    // Si hay un cliente asociado, ir directo al escaneo de tarjeta
-    if (primerClienteId && clienteData) {
+    }    if (primerClienteId && clienteData) {
       iniciarEscaneoTarjeta();
-    } else {
-      // Si es un pedido anónimo (sin cliente), proceder al pago directo
-      procesarPago();
+    } else {      procesarPago();
     }
   };
 
@@ -96,18 +76,8 @@ export default function PagoFacturaModal({
     setScanStatus("scanning");
     setErrorMessage("");
 
-    try {
-      // 1. Escanear tarjeta
-      const response = await cardService.scanRFID();
-      const uidEscaneado = response.uid;
-      console.log("📡 Tarjeta escaneada - UID:", uidEscaneado);
-      
-      // 2. Verificar a qué cliente pertenece esta tarjeta usando el backend
-      const verificacion = await tarjetaService.verificarUid(uidEscaneado);
-      console.log("🔍 Verificación de tarjeta:", verificacion);
-      
-      // 3. Validar que la tarjeta pertenezca al cliente del pedido
-      // verificacion.data debería contener información sobre el cliente asociado
+    try {      const response = await cardService.scanRFID();
+      const uidEscaneado = response.uid;      const verificacion = await tarjetaService.verificarUid(uidEscaneado);
       const clienteIdTarjeta = verificacion.data?.cliente?.id || verificacion.data?.idCliente;
       
       if (!clienteIdTarjeta) {
@@ -117,11 +87,7 @@ export default function PagoFacturaModal({
       if (clienteIdTarjeta !== primerClienteId) {
         const nombreClienteTarjeta = verificacion.data?.cliente?.nombre || "otro cliente";
         throw new Error(`La tarjeta pertenece a ${nombreClienteTarjeta}, no al cliente del pedido.`);
-      }
-      
-      // 4. Si coincide, procesar el pago
-      console.log("✅ Tarjeta validada correctamente para el cliente");
-      setScanStatus("success");
+      }      setScanStatus("success");
       setTimeout(() => {
         setScanStatus("");
         procesarPago();
@@ -136,10 +102,7 @@ export default function PagoFacturaModal({
 
   const procesarPago = async () => {
     try {
-      setLoading(true);
-
-      // Paso 1: Consolidar todos los productos de todos los pedidos
-      const todosLosProductos = [];
+      setLoading(true);      const todosLosProductos = [];
       let observaciones = [];
 
       pedidos.forEach(pedido => {
@@ -147,10 +110,7 @@ export default function PagoFacturaModal({
           const producto = {
             idProducto: prod.idProducto,
             cantidad: prod.cantidad,
-          };
-          
-          // Solo incluir precioUnitario si está definido
-          if (prod.precioUnitario !== undefined && prod.precioUnitario !== null) {
+          };          if (prod.precioUnitario !== undefined && prod.precioUnitario !== null) {
             producto.precioUnitario = prod.precioUnitario;
           }
           
@@ -160,38 +120,25 @@ export default function PagoFacturaModal({
         if (pedido.observaciones) {
           observaciones.push(pedido.observaciones);
         }
-      });
-
-      // Paso 2: Crear consumo (genera la factura automáticamente en el backend)
-      const datosConsumo = {
+      });      const datosConsumo = {
         idCliente: primerClienteId || 1, // Cliente genérico si no hay cliente guardado
         productos: todosLosProductos,
-      };
-      
-      // Solo agregar observaciones si hay alguna
-      if (observaciones.length > 0) {
+      };      if (observaciones.length > 0) {
         datosConsumo.observaciones = observaciones.join(' | ');
       }
 
-      // Agregar idMesa o idGrupo
-      if (grupo) {
+            if (grupo) {
         datosConsumo.idGrupo = grupo.id;
       } else if (mesa) {
         datosConsumo.idMesa = mesa.idMesa || mesa.id;
       }
 
-      console.log('🔵 Datos enviados a registrarConsumo:', JSON.stringify(datosConsumo, null, 2));
 
       const respuestaConsumo = await transaccionesService.registrarConsumo(datosConsumo);
       const facturaGenerada = respuestaConsumo.data || respuestaConsumo;
-
-      console.log('🔵 Factura generada:', facturaGenerada);
-
       setSuccessMessage(`Factura #${facturaGenerada.factura.id} cobrada: $${totalPedidos.toFixed(2)}`);
       setShowSuccessModal(true);
       
-      // Notificar éxito al padre después de cerrar el modal de éxito
-      // (Se maneja en handleCloseSuccessModal)
       
     } catch (error) {
       console.error("Error al procesar pago:", error);
@@ -210,8 +157,6 @@ export default function PagoFacturaModal({
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    // Notificar al componente padre que el pago fue exitoso
-    // Pasamos un objeto factura simulado o real si lo tenemos guardado
     onPagoExitoso?.({}); 
     onClose();
   };

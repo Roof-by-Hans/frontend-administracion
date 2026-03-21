@@ -23,10 +23,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const offsetRef = useRef({ x: 0, y: 0 });
   const positionRef = useRef({ x: 0, y: 0 });
-  const hasInitialized = useRef(false);
-
-  // Mantener positionRef sincronizado con position
-  useEffect(() => {
+  const hasInitialized = useRef(false);  useEffect(() => {
     positionRef.current = position;
   }, [position]);
 
@@ -39,9 +36,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
       Image.getSize(
         imageUri,
         (width, height) => {
-          setImageDimensions({ width, height });
-          // Calcular zoom mínimo para llenar el círculo
-          const scaleToFill = Math.max(CIRCLE_SIZE / width, CIRCLE_SIZE / height);
+          setImageDimensions({ width, height });          const scaleToFill = Math.max(CIRCLE_SIZE / width, CIRCLE_SIZE / height);
           setMinZoom(scaleToFill);
           setZoom(scaleToFill);
           hasInitialized.current = true;
@@ -55,8 +50,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
       );
     }
     
-    // Resetear cuando se cierra el modal
-    if (!visible) {
+        if (!visible) {
       hasInitialized.current = false;
     }
   }, [visible, imageUri]);
@@ -67,9 +61,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
     PanResponder.create({
       onStartShouldSetPanResponder: () => !loading,
       onMoveShouldSetPanResponder: () => !loading,
-      onPanResponderGrant: () => {
-        // Capturar la posición actual al inicio del gesto
-        offsetRef.current = { x: positionRef.current.x, y: positionRef.current.y };
+      onPanResponderGrant: () => {        offsetRef.current = { x: positionRef.current.x, y: positionRef.current.y };
       },
       onPanResponderMove: (_, gestureState) => {
         const newX = Math.max(-maxOffset, Math.min(maxOffset, offsetRef.current.x + gestureState.dx));
@@ -127,7 +119,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
             </TouchableOpacity>
           </View>
 
-          {/* Área de recorte */}
+           de recorte */}
           <View style={styles.previewContainer}>
             <View style={styles.circleClip}>
               <View
@@ -174,7 +166,7 @@ export default function RecortarImagenModal({ visible, onClose, onConfirm, image
             <MaterialCommunityIcons name="magnify-plus" size={24} color="#666" />
           </View>
 
-          {/* Botones */}
+          {/* es */}
           <View style={styles.botonesContainer}>
             <TouchableOpacity
               style={[styles.boton, styles.botonSecundario]}

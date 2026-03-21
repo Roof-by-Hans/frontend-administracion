@@ -33,9 +33,7 @@ const authService = {
       const response = await api.post('/auth/logout');
       return response.data;
     } catch (error) {
-      console.error('Error en logout:', error.message);
-      // No lanzar error, el logout local se hará de todas formas
-      return null;
+      console.error('Error en logout:', error.message);      return null;
     }
   },
 

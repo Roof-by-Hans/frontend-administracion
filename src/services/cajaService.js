@@ -1,8 +1,7 @@
 import api from "./api";
 
 const cajaService = {
-  // Abrir una nueva caja diaria
-  abrirCaja: async (montoInicial = 0) => {
+    abrirCaja: async (montoInicial = 0) => {
     try {
       const response = await api.post("/caja-diaria/abrir", {
         monto_inicial: montoInicial,
@@ -13,10 +12,8 @@ const cajaService = {
     }
   },
 
-  // Cerrar la caja diaria actual
-  cerrarCaja: async (datosCierre) => {
-    // datosCierre debe contener: montoFinalReportado, observacion, conteoEfectivo, conteoTarjetas, subtotalesPorMedio
-    try {
+    cerrarCaja: async (datosCierre) => {
+        try {
       const response = await api.post("/caja-diaria/cerrar", datosCierre);
       return response.data.data;
     } catch (error) {
@@ -24,8 +21,7 @@ const cajaService = {
     }
   },
 
-  // Obtener la caja diaria actual
-  obtenerCajaActual: async () => {
+    obtenerCajaActual: async () => {
     try {
       const response = await api.get("/caja-diaria/actual");
       return response.data.data;
@@ -34,8 +30,7 @@ const cajaService = {
     }
   },
 
-  // Obtener historial de cajas
-  obtenerHistorial: async (params = {}) => {
+    obtenerHistorial: async (params = {}) => {
     try {
       const response = await api.get("/caja-diaria/historial", { params });
       return response.data.data;
@@ -44,8 +39,7 @@ const cajaService = {
     }
   },
 
-  // Obtener detalle de una caja específica
-  obtenerDetalleCaja: async (id) => {
+    obtenerDetalleCaja: async (id) => {
     try {
       const response = await api.get(`/caja-diaria/${id}`);
       return response.data.data;
@@ -54,8 +48,7 @@ const cajaService = {
     }
   },
 
-  // Obtener movimientos de una caja específica
-  obtenerMovimientos: async (id, params = {}) => {
+    obtenerMovimientos: async (id, params = {}) => {
     try {
       const response = await api.get(`/caja-diaria/${id}/movimientos`, {
         params,
@@ -66,20 +59,15 @@ const cajaService = {
     }
   },
 
-  // Obtener auditoría de una caja
-  obtenerAuditoria: async (id) => {
+    obtenerAuditoria: async (id) => {
     try {
       const response = await api.get(`/caja-diaria/${id}/auditoria`);
       return response.data.data;
     } catch (error) {
       throw error.response?.data || error;
     }
-  },
-
-  // Registrar un movimiento manual (INGRESO/EGRESO)
-  registrarMovimientoManual: async (datosMovimiento) => {
-    // datosMovimiento: { tipo, monto, concepto, metodoPago }
-    try {
+  },  registrarMovimientoManual: async (datosMovimiento) => {
+        try {
       const response = await api.post(
         "/caja-diaria/movimiento-manual",
         datosMovimiento

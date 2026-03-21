@@ -22,8 +22,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar mozos al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarMozos();
   }, []);
 
@@ -41,8 +40,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Filtrar mozos
-  const mozosFiltrados = mozos.filter((mozo) => {
+    const mozosFiltrados = mozos.filter((mozo) => {
     const nombreUsuario = mozo.nombreUsuario?.toLowerCase() || "";
     const nombre = mozo.nombre?.toLowerCase() || "";
     const apellido = mozo.apellido?.toLowerCase() || "";
@@ -53,10 +51,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       nombre.includes(busquedaLower) ||
       apellido.includes(busquedaLower)
     );
-  });
-
-  // Definir columnas para DataTable
-  const columns = [
+  });  const columns = [
     {
       field: "nombreUsuario",
       headerName: "Usuario",
@@ -188,7 +183,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón actualizar */}
+             actualizar */}
             <TouchableOpacity
               style={styles.refreshButton}
               onPress={cargarMozos}

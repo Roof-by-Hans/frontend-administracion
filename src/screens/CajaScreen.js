@@ -11,24 +11,15 @@ import CierreCajaModal from "../components/CierreCajaModal";
 import { useAuth } from "../context/AuthContext";
 import cajaService from "../services/cajaService";
 
-export default function CajaScreen({ onNavigate, currentScreen }) {
-  // Estado de la Caja
-  const [loading, setLoading] = useState(true);
+export default function CajaScreen({ onNavigate, currentScreen }) {  const [loading, setLoading] = useState(true);
   const [cajaActual, setCajaActual] = useState(null); // Objeto caja del backend
-  const [movimientos, setMovimientos] = useState([]);
-  
-  // Totales calculados
-  const [totales, setTotales] = useState({
+  const [movimientos, setMovimientos] = useState([]);  const [totales, setTotales] = useState({
     ingresos: 0,
     egresos: 0,
     saldo: 0,
-  });
-
-  // Filtros y UI
-  const [busqueda, setBusqueda] = useState("");
+  });  const [busqueda, setBusqueda] = useState("");
   
-  // Modales
-  const [modalMovimientoVisible, setModalMovimientoVisible] = useState(false);
+    const [modalMovimientoVisible, setModalMovimientoVisible] = useState(false);
   const [modalAperturaVisible, setModalAperturaVisible] = useState(false);
   const [modalCierreVisible, setModalCierreVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -36,20 +27,17 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar datos iniciales
-  const cargarDatos = useCallback(async () => {
+    const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
       const data = await cajaService.obtenerCajaActual();
       setCajaActual(data);
 
       if (data && data.estado === "ABIERTA") {
-        // Cargar movimientos recientes
-        const movs = await cajaService.obtenerMovimientos(data.id);
+                const movs = await cajaService.obtenerMovimientos(data.id);
         setMovimientos(movs || []);
         
-        // Actualizar totales desde la respuesta del backend (data.totales)
-        if (data.totales) {
+                if (data.totales) {
             setTotales({
                 ingresos: parseFloat(data.totales.ingresos || 0),
                 egresos: parseFloat(data.totales.egresos || 0),
@@ -61,19 +49,14 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
         setTotales({ ingresos: 0, egresos: 0, saldo: 0 });
       }
     } catch (error) {
-      console.error("Error al cargar caja:", error);
-      // Podríamos mostrar un toast de error aquí
-    } finally {
+      console.error("Error al cargar caja:", error);    } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, [cargarDatos]);
-
-  // Manejadores de Acciones
-  const handleAbrirCaja = async (montoInicial) => {
+  }, [cargarDatos]);  const handleAbrirCaja = async (montoInicial) => {
     try {
       setActionLoading(true);
       await cajaService.abrirCaja(montoInicial);
@@ -93,8 +76,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
       
       setModalCierreVisible(false);
       
-      // Mostrar resumen de auditoría (opcional)
-      const diferencia = resultado.auditoria?.diferencia || 0;
+            const diferencia = resultado.auditoria?.diferencia || 0;
       let mensaje = "Caja cerrada correctamente.";
       if (diferencia !== 0) {
         mensaje += `\n\nDiferencia detectada: $${diferencia > 0 ? '+' : ''}${diferencia}`;
@@ -120,10 +102,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
     } finally {
       setActionLoading(false);
     }
-  };
-
-  // Definir columnas para DataGrid
-  const columns = [
+  };  const columns = [
     {
       field: 'concepto', // Backend devuelve 'concepto'
       headerName: 'Descripción',
@@ -178,10 +157,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
       renderCell: (params) => {
         const row = params.row;
         const tipo = row.tipo?.toUpperCase();
-        const esEgreso = tipo === 'EGRESO';
-        
-        // Colores
-        let color = '#333';
+        const esEgreso = tipo === 'EGRESO';        let color = '#333';
         if (tipo === 'INGRESO' || tipo === 'APERTURA') color = '#2e7d32';
         if (esEgreso) color = '#c62828';
         if (tipo === 'AJUSTE') color = '#ef6c00';
@@ -214,8 +190,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
     },
   ];
 
-  // Filtrar movimientos según búsqueda
-  const movimientosFiltrados = movimientos.filter(mov =>
+    const movimientosFiltrados = movimientos.filter(mov =>
     mov.concepto?.toLowerCase().includes(busqueda.toLowerCase()) ||
     mov.tipo?.toLowerCase().includes(busqueda.toLowerCase())
   );
@@ -322,7 +297,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Sección de Movimientos Recientes */}
+         de Movimientos Recientes */}
         {cajaAbierta ? (
             <View style={styles.movimientosSection}>
             <View style={styles.movimientosHeader}>

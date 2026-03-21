@@ -32,7 +32,7 @@ export default function ConfirmCargarSaldoModal({
             />
           </View>
 
-          {/* Título */}
+           */}
           <Text style={styles.title}>Confirmar carga de saldo</Text>
 
           {/* Cliente */}
@@ -63,7 +63,7 @@ export default function ConfirmCargarSaldoModal({
               </Text>
             </View>
 
-            {/* Método de pago */}
+             de pago */}
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>
@@ -86,7 +86,7 @@ export default function ConfirmCargarSaldoModal({
             ¿Estás seguro de que deseas cargar este saldo?
           </Text>
 
-          {/* Botones */}
+          {/* es */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

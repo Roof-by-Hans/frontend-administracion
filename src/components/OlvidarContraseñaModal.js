@@ -128,7 +128,7 @@ export default function OlvidarContraseñaModal({ visible, onClose }) {
                   {cargando ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.textoBoton}>Enviar instrucciones</Text>
+                    <Text style={styles.texto}>Enviar instrucciones</Text>
                   )}
                 </TouchableOpacity>
 
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   botonDeshabilitado: {
     opacity: 0.7,
   },
-  textoBoton: {
+  texto: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",

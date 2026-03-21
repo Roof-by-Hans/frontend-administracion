@@ -25,15 +25,11 @@ export default function CategoriaModal({
   const [categoriasPlanas, setCategoriasPlanas] = useState([]);
   const [cargandoCategorias, setCargandoCategorias] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [categoriaPadreId, setCategoriaPadreId] = useState("");
-  
-  // Estados para los errores
-  const [errores, setErrores] = useState({
+  const [categoriaPadreId, setCategoriaPadreId] = useState("");  const [errores, setErrores] = useState({
     nombre: "",
   });
 
-  // Cargar categorías al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     if (visible) {
       cargarCategorias();
     }
@@ -45,20 +41,11 @@ export default function CategoriaModal({
       const response = await categoriasService.getCategorias();
       
       if (response.success && response.data) {
-        setCategorias(response.data);
-        // Convertir la estructura jerárquica a lista plana para el selector
-        const planas = categoriasService.aplanarCategorias(response.data);
-        
-        // Si estamos editando, filtrar la categoría actual y sus hijos para evitar ciclos
-        if (categoria) {
-          // Helper function to collect all descendant IDs of a category
-          function collectDescendantIds(catId, categoriasTree) {
+        setCategorias(response.data);        const planas = categoriasService.aplanarCategorias(response.data);        if (categoria) {          function collectDescendantIds(catId, categoriasTree) {
             let ids = [];
             const findAndCollect = (nodes) => {
               for (const node of nodes) {
-                if (node.id === catId) {
-                  // Collect all descendants recursively
-                  const collect = (children) => {
+                if (node.id === catId) {                  const collect = (children) => {
                     for (const child of children) {
                       ids.push(child.id);
                       if (child.children && child.children.length > 0) {
@@ -79,9 +66,7 @@ export default function CategoriaModal({
             return ids;
           }
           const descendantIds = collectDescendantIds(categoria.id, response.data);
-          const filtradas = planas.filter(cat => {
-            // No permitir que sea su propio padre ni uno de sus descendientes
-            if (cat.id === categoria.id) return false;
+          const filtradas = planas.filter(cat => {            if (cat.id === categoria.id) return false;
             if (descendantIds.includes(cat.id)) return false;
             return true;
           });
@@ -99,25 +84,17 @@ export default function CategoriaModal({
   };
 
   useEffect(() => {
-    if (categoria) {
-      // Modo edición
-      setNombre(categoria.nombre);
+    if (categoria) {      setNombre(categoria.nombre);
       setCategoriaPadreId(categoria.idCatPadre?.toString() || "");
-    } else {
-      // Modo creación
-      limpiarCampos();
+    } else {      limpiarCampos();
     }
-    // Limpiar errores al abrir/cerrar modal
-    setErrores({ nombre: "" });
+        setErrores({ nombre: "" });
   }, [categoria, visible]);
 
   const limpiarCampos = () => {
     setNombre("");
     setCategoriaPadreId("");
-  };
-
-  // Validación en tiempo real del nombre
-  const handleNombreChange = (text) => {
+  };  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
@@ -127,13 +104,10 @@ export default function CategoriaModal({
   };
 
   const handleGuardar = () => {
-    // Validar que no haya errores
-    const hayErrores = Object.values(errores).some(error => error !== "");
+        const hayErrores = Object.values(errores).some(error => error !== "");
     const camposVacios = !nombre.trim();
     
-    if (hayErrores || camposVacios) {
-      // Marcar todos los campos vacíos como error
-      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
+    if (hayErrores || camposVacios) {      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
       return;
     }
 

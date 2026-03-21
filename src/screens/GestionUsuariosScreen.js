@@ -11,29 +11,25 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import UsuarioModal from "../components/UsuarioModal";
-import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 import usuarioService from "../services/usuarioService";
 import Alert from "@blazejkustra/react-native-alert";
 
-const { getUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } = usuarioService;
+const { getUsuarios, crearUsuario, actualizarUsuario, toggleUsuario } = usuarioService;
 
 export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const [usuarios, setUsuarios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [usuarioAEliminar, setUsuarioAEliminar] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar usuarios al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarUsuarios();
   }, []);
 
@@ -65,29 +61,23 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Filtrar usuarios
-  const usuariosFiltrados = (Array.isArray(usuarios) ? usuarios : []).filter((usuario) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();
-    if (!terminoBusqueda) return true;
+    const usuariosFiltrados = (Array.isArray(usuarios) ? usuarios : []).filter((usuario) => {
+    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+      const nombreUsuario = usuario.nombreUsuario?.toLowerCase() || "";
+      const roles = usuario.roles?.join(" ").toLowerCase() || "";
+      if (!nombreUsuario.includes(terminoBusqueda) && !roles.includes(terminoBusqueda)) {
+        return false;
+      }
+    }
 
-    const nombreUsuario = usuario.nombreUsuario?.toLowerCase() || "";
-    const roles = usuario.roles?.join(" ").toLowerCase() || "";
-    return (
-      nombreUsuario.includes(terminoBusqueda) || roles.includes(terminoBusqueda)
-    );
-  });
-
-  // Preparar datos para la tabla
-  const usuariosParaTabla = usuariosFiltrados.map((usuario) => ({
+    return true;
+  });  const usuariosParaTabla = usuariosFiltrados.map((usuario) => ({
     id: usuario.id,
     nombreUsuario: usuario.nombreUsuario,
     roles: usuario.roles?.join(", ") || "Sin roles",
-    activo: usuario.activo ? "Activo" : "Inactivo",
     rolesArray: usuario.roles || [],
     activoBool: usuario.activo,
   }));
-
-  // Definir columnas para el DataGrid
   const columns = [
     {
       field: "id",
@@ -107,95 +97,80 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
       minWidth: 200,
     },
     {
-      field: "activo",
+      field: "estado",
       headerName: "Estado",
-      width: 120,
-      renderCell: (params) => (
-        <View
-          style={[
-            styles.estadoBadge,
-            params.row.activoBool ? styles.estadoActivo : styles.estadoInactivo,
-          ]}
-        >
-          <Text style={styles.textoEstado}>{params.value}</Text>
-        </View>
-      ),
+      width: 100,
+      sortable: true,
+      renderCell: (params) => {
+        const activo = params.row.activoBool;
+        return (
+          <TouchableOpacity
+            onPress={() => handleToggleUsuario(params.row)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: activo ? "#e8f5e9" : "#ffebee",
+              borderWidth: 1,
+              borderColor: activo ? "#4CAF50" : "#f44336",
+            }}
+          >
+            <Text style={{
+              color: activo ? "#2e7d32" : "#c62828",
+              fontSize: 12,
+              fontWeight: "600",
+            }}>
+              {activo ? "Activo" : "Inactivo"}
+            </Text>
+          </TouchableOpacity>
+        );
+      },
     },
     {
       field: "acciones",
       headerName: "Acciones",
-      minWidth: 150,
+      width: 80,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <View style={styles.actionsContainer}>
-          <IconButton
-            onClick={() => handleEditarUsuario(params.row)}
-            color="primary"
-            size="small"
-            title="Editar"
-          >
-            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
-          </IconButton>
-          <IconButton
-            onClick={() => handleEliminarUsuario(params.row.id)}
-            color="error"
-            size="small"
-            title="Eliminar"
-          >
-            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
-          </IconButton>
-        </View>
+        <IconButton
+          onClick={() => handleEditarUsuario(params.row)}
+          color="primary"
+          size="small"
+          title="Editar"
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+        </IconButton>
       ),
     },
   ];
+
+    const handleToggleUsuario = async (usuarioRow) => {
+    try {
+      setCargando(true);
+      const response = await toggleUsuario(usuarioRow.id);      await cargarUsuarios();
+      
+      const nuevoEstado = response.data?.activo === 1 ? "habilitado" : "deshabilitado";
+      Alert.alert("Éxito", `Usuario ${nuevoEstado} correctamente.`);
+    } catch (error) {
+      console.error("Error al togglear usuario:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo cambiar el estado del usuario."
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
 
   const handleAgregarUsuario = () => {
     setUsuarioEditando(null);
     setModalVisible(true);
   };
 
-  const handleEditarUsuario = (usuario) => {
-    // Encontrar el usuario completo con sus roles y estado activo
-    const usuarioCompleto = usuarios.find((u) => u.id === usuario.id);
+  const handleEditarUsuario = (usuario) => {    const usuarioCompleto = usuarios.find((u) => u.id === usuario.id);
     setUsuarioEditando(usuarioCompleto || usuario);
     setModalVisible(true);
-  };
-
-  // Función para abrir modal de confirmación de eliminación
-  const handleEliminarUsuario = (usuarioId) => {
-    setUsuarioAEliminar(usuarioId);
-    setConfirmModalVisible(true);
-  };
-
-  // Función para confirmar la eliminación
-  const confirmarEliminacion = async () => {
-    if (usuarioAEliminar) {
-      try {
-        setCargando(true);
-        await eliminarUsuario(usuarioAEliminar);
-
-        // Recargar usuarios
-        await cargarUsuarios();
-        setConfirmModalVisible(false);
-        setUsuarioAEliminar(null);
-        Alert.alert("Éxito", "Usuario eliminado correctamente.");
-      } catch (error) {
-        console.error("Error al eliminar usuario:", error);
-        Alert.alert(
-          "Error",
-          error.message || "No se pudo eliminar el usuario."
-        );
-      } finally {
-        setCargando(false);
-      }
-    }
-  };
-
-  // Función para cancelar la eliminación
-  const cancelarEliminacion = () => {
-    setConfirmModalVisible(false);
-    setUsuarioAEliminar(null);
   };
 
   const handleGuardarUsuario = async (datosUsuario) => {
@@ -210,9 +185,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
       }
       if (datosUsuario.roles) {
         datosUsuario.roles.forEach((rol) => formData.append("roles[]", rol));
-      }
-      // Email: enviar siempre (puede ser null para borrarlo)
-      formData.append("email", datosUsuario.email ?? "");
+      }      formData.append("email", datosUsuario.email ?? "");
 
       if (usuarioEditando) {
         await actualizarUsuario(usuarioEditando.id, formData);
@@ -299,7 +272,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón Agregar */}
+             Agregar */}
             <TouchableOpacity
               style={[styles.addButton, cargando && styles.addButtonDisabled]}
               onPress={handleAgregarUsuario}
@@ -338,15 +311,6 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
             setUsuarioEditando(null);
           }}
           onSave={handleGuardarUsuario}
-        />
-
-        {/* Modal de confirmación para eliminar */}
-        <ConfirmModal
-          visible={confirmModalVisible}
-          title="Eliminar Usuario"
-          message="¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer."
-          onConfirm={confirmarEliminacion}
-          onCancel={cancelarEliminacion}
         />
       </View>
     </DashboardLayout>

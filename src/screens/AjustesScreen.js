@@ -22,8 +22,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
   const userPhoto = user?.fotoPerfilUrl || null;
   const isAdmin = user?.roles?.includes("Administrador") || user?.roles?.includes("Admin") || false;
 
-  // Cargar el email del usuario al entrar
-  useEffect(() => {
+    useEffect(() => {
     if (user?.email) {
       setEmail(user.email);
     }
@@ -99,20 +98,11 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
     }
 
     try {
-      setGuardandoFoto(true);
-      
-      console.log("Iniciando recorte de imagen...", datosRecorte);
-      
-      // Recortar la imagen usando canvas
-      const imagenRecortada = await recortarImagen(fotoTemporal.uri, datosRecorte);
-      
-      console.log("Imagen recortada exitosamente:", imagenRecortada);
-      
+      setGuardandoFoto(true);      const imagenRecortada = await recortarImagen(fotoTemporal.uri, datosRecorte);
       const formData = new FormData();
 
       if (Platform.OS === "web") {
         formData.append("fotoPerfil", imagenRecortada, "foto.jpg");
-        console.log("FormData creado para web");
       } else {
         const filename = `foto_${Date.now()}.jpg`;
         formData.append("fotoPerfil", {
@@ -120,13 +110,8 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
           name: filename,
           type: "image/jpeg",
         });
-        console.log("FormData creado para móvil");
       }
-
-      console.log("Enviando foto al servidor...");
       const response = await usuarioService.actualizarUsuario(user.id, formData);
-      console.log("Respuesta del servidor:", response);
-
       if (response.success && response.data) {
         updateUser(response.data);
         Alert.alert("Éxito", "Foto de perfil actualizada correctamente");
@@ -151,8 +136,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Función para recortar la imagen usando canvas
-  const recortarImagen = async (imageSrc, cropData) => {
+    const recortarImagen = async (imageSrc, cropData) => {
     return new Promise((resolve, reject) => {
       if (Platform.OS === "web") {
         const img = document.createElement("img");
@@ -167,54 +151,31 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
             canvas.width = outputSize;
             canvas.height = outputSize;
 
-            // Limpiar el canvas
-            ctx.clearRect(0, 0, outputSize, outputSize);
+                        ctx.clearRect(0, 0, outputSize, outputSize);
 
-            // Crear clip circular
-            ctx.beginPath();
+                        ctx.beginPath();
             ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
             ctx.closePath();
-            ctx.clip();
-
-            // Calcular las dimensiones escaladas de la imagen
-            const scaledWidth = cropData.imageWidth * cropData.zoom;
+            ctx.clip();            const scaledWidth = cropData.imageWidth * cropData.zoom;
             const scaledHeight = cropData.imageHeight * cropData.zoom;
 
-            // Calcular la posición donde debe dibujarse la imagen
-            // Centrar la imagen en el círculo y aplicar el desplazamiento
             const centerX = (cropData.circleSize - scaledWidth) / 2;
             const centerY = (cropData.circleSize - scaledHeight) / 2;
             
             const drawX = centerX + cropData.position.x;
-            const drawY = centerY + cropData.position.y;
-
-            // Escalar todo al tamaño final de salida
-            const scale = outputSize / cropData.circleSize;
-
-            // Dibujar la imagen con el canvas completamente blanco de fondo
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, outputSize, outputSize);
-
-            // Redibujar el clip después del fillRect
-            ctx.beginPath();
+            const drawY = centerY + cropData.position.y;            const scale = outputSize / cropData.circleSize;            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, outputSize, outputSize);            ctx.beginPath();
             ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
             ctx.closePath();
-            ctx.clip();
-
-            // Dibujar la imagen
-            ctx.drawImage(
+            ctx.clip();            ctx.drawImage(
               img,
               drawX * scale,
               drawY * scale,
               scaledWidth * scale,
               scaledHeight * scale
-            );
-
-            // Convertir a blob
-            canvas.toBlob(
+            );            canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  console.log("Blob creado exitosamente:", blob.size, "bytes");
                   resolve(blob);
                 } else {
                   reject(new Error("No se pudo crear el blob"));
@@ -235,9 +196,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         };
         
         img.src = imageSrc;
-      } else {
-        // En móvil, usar la imagen tal cual
-        resolve(imageSrc);
+      } else {        resolve(imageSrc);
       }
     });
   };
@@ -296,7 +255,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         {/* Header */}
         <Text style={styles.title}>Ajustes Generales</Text>
 
-        {/* Sección Perfil de Usuario */}
+         Perfil de Usuario */}
         <View style={styles.perfilSection}>
           <Text style={styles.sectionTitle}>Mi Perfil</Text>
           <View style={styles.perfilCard}>
@@ -322,7 +281,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
               <Text style={styles.nombreUsuario}>{userName}</Text>
               <Text style={styles.rolUsuario}>{user?.roles?.join(", ") || "Usuario"}</Text>
               
-              <View style={styles.fotoBotones}>
+              <View style={styles.fotoes}>
                 <TouchableOpacity
                   style={styles.botonCambiarFoto}
                   onPress={handleSeleccionarFoto}
@@ -559,7 +518,7 @@ const styles = StyleSheet.create({
   botonDeshabilitado: {
     opacity: 0.7,
   },
-  fotoBotones: {
+  fotoes: {
     flexDirection: "row",
     gap: 10,
   },

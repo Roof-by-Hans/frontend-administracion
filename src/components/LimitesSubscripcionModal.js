@@ -22,8 +22,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Cargar niveles desde la API al abrir el modal
-  useEffect(() => {
+    useEffect(() => {
     if (visible) {
       cargarNiveles();
     }
@@ -35,10 +34,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
       const response = await tarjetaService.getNivelesSuscripcion();
       const nivelesData = response.data || [];
       
-      setNiveles(nivelesData);
-      
-      // Inicializar límites con los valores actuales
-      const limitesIniciales = {};
+      setNiveles(nivelesData);      const limitesIniciales = {};
       const erroresIniciales = {};
       
       nivelesData.forEach(nivel => {
@@ -57,10 +53,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Validación en tiempo real
-  const handleLimiteChange = (idNivel, texto) => {
+  };  const handleLimiteChange = (idNivel, texto) => {
     setLimites(prev => ({ ...prev, [idNivel]: texto }));
 
     if (texto.trim() === "") {
@@ -74,13 +67,11 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     }
   };
 
-  // Validar y mostrar modal de confirmación
-  const handleGuardar = () => {
+    const handleGuardar = () => {
     const nuevosErrores = {};
     let hayErrores = false;
 
-    // Validar cada campo
-    niveles.forEach(nivel => {
+        niveles.forEach(nivel => {
       const valor = limites[nivel.id]?.toString() || "";
       if (!valor.trim()) {
         nuevosErrores[nivel.id] = "El límite es obligatorio";
@@ -92,26 +83,18 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
         nuevosErrores[nivel.id] = "El límite debe ser mayor a 0";
         hayErrores = true;
       }
-    });
-
-    // Si hay errores, no continuar
-    if (hayErrores) {
+    });    if (hayErrores) {
       setErrores(nuevosErrores);
       return;
     }
 
-    // Mostrar modal de confirmación
-    setConfirmModalVisible(true);
-  };
-
-  // Confirmar y guardar cambios
-  const confirmarGuardado = async () => {
+        setConfirmModalVisible(true);
+  };  const confirmarGuardado = async () => {
     setSaving(true);
     setConfirmModalVisible(false);
     
     try {
-      // Actualizar cada nivel en el backend
-      const promesas = niveles.map(nivel => {
+            const promesas = niveles.map(nivel => {
         const nuevoLimite = parseFloat(limites[nivel.id]);
         return tarjetaService.actualizarNivelSuscripcion(nivel.id, {
           nombre: nivel.nombre,
@@ -121,8 +104,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
       
       await Promise.all(promesas);
       
-      // Mostrar modal de éxito
-      setSuccessModalVisible(true);
+            setSuccessModalVisible(true);
     } catch (error) {
       console.error("Error al guardar límites:", error);
       Alert.alert(
@@ -132,10 +114,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     } finally {
       setSaving(false);
     }
-  };
-
-  // Cancelar confirmación
-  const cancelarConfirmacion = () => {
+  };  const cancelarConfirmacion = () => {
     setConfirmModalVisible(false);
   };
 
@@ -256,7 +235,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 <MaterialCommunityIcons name="check-circle-outline" size={60} color="#4CAF50" />
               </View>
 
-              {/* Título */}
+               */}
               <Text style={styles.confirmTitle}>¿Guardar cambios?</Text>
 
               {/* Mensaje */}
@@ -274,7 +253,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 ))}
               </View>
 
-              {/* Botones */}
+              {/* es */}
               <View style={styles.confirmButtonContainer}>
                 <TouchableOpacity
                   style={[styles.confirmButton, styles.confirmCancelButton]}
@@ -303,7 +282,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 <MaterialCommunityIcons name="check-circle" size={60} color="#4CAF50" />
               </View>
 
-              {/* Título */}
+               */}
               <Text style={styles.confirmTitle}>¡Cambios guardados!</Text>
 
               {/* Mensaje */}
@@ -311,7 +290,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 Los límites de suscripción se han actualizado correctamente.
               </Text>
 
-              {/* Botón */}
+               */}
               <TouchableOpacity
                 style={[styles.confirmButton, styles.confirmSaveButton, { flex: 'none', width: '100%' }]}
                 onPress={handleSuccessClose}
@@ -326,7 +305,6 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
   );
 }
 
-// Función helper para obtener icono según el nombre del nivel
 const getNivelIcon = (nombreNivel) => {
   const nombre = nombreNivel.toLowerCase();
   if (nombre.includes('black') || nombre.includes('negro')) return 'crown';
@@ -487,9 +465,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  // Estilos del modal de confirmación
-  confirmModalOverlay: {
+  },  confirmModalOverlay: {
     position: "absolute",
     top: 0,
     left: 0,

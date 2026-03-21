@@ -1,9 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, PanResponder } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-// Componente memorizado para evitar re-renders innecesarios
-const Mesa = React.memo(({ 
+import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.memo(({ 
   numero, 
   estado = "libre",
   posicion = { x: 0, y: 0 },
@@ -17,19 +14,12 @@ const Mesa = React.memo(({
 }) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDragging, setIsDragging] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState(posicion);
-
-  // Sincronizar posición cuando cambie externamente (solo si no estamos arrastrando)
-  useEffect(() => {
+  const [currentPosition, setCurrentPosition] = useState(posicion);  useEffect(() => {
     if (!isDragging) {
       setCurrentPosition(posicion);
       pan.setValue(posicion);
     }
-  }, [posicion.x, posicion.y, isDragging]);
-
-  // Log cuando cambia isSelected para debugging
-  useEffect(() => {
-    console.log(`🎨 Mesa ${numero} - isSelected cambió a:`, isSelected);
+  }, [posicion.x, posicion.y, isDragging]);  useEffect(() => {
   }, [isSelected, numero]);
 
   const panResponder = useMemo(
@@ -40,9 +30,7 @@ const Mesa = React.memo(({
       
       onPanResponderGrant: () => {
         if (!draggable) return;
-        setIsDragging(true);
-        // Iniciar desde la posición actual
-        pan.setOffset({
+        setIsDragging(true);        pan.setOffset({
           x: currentPosition.x,
           y: currentPosition.y,
         });
@@ -54,12 +42,9 @@ const Mesa = React.memo(({
         { useNativeDriver: false }
       ),
       
-      onPanResponderRelease: () => {
-        // Al liberar, aplanamos offset y guardamos la posición final
-        pan.flattenOffset();
+      onPanResponderRelease: () => {        pan.flattenOffset();
 
-        // Obtener valores actuales de pan (movimiento + offset ya aplanado)
-        const newX = Math.max(0, pan.x._value || 0);
+                const newX = Math.max(0, pan.x._value || 0);
         const newY = Math.max(0, pan.y._value || 0);
         
         setIsDragging(false);
@@ -67,37 +52,17 @@ const Mesa = React.memo(({
         
         if (onPosicionChange) {
           onPosicionChange(numero, { x: newX, y: newY });
-        }
-
-        // también fijar el valor del animated para mantener consistencia visual
-        pan.setValue({ x: newX, y: newY });
+        }        pan.setValue({ x: newX, y: newY });
       },
     }),
     [draggable, pan, numero, onPosicionChange, currentPosition]
   );
 
-  const handlePress = () => {
-    // Si no se está arrastrando: disparar onPress
-    console.log('🎯 Mesa.handlePress llamado');
-    console.log('   - Mesa:', numero);
-    console.log('   - Draggable:', draggable);
-    console.log('   - IsDragging:', isDragging);
-    console.log('   - IsSelected:', isSelected);
-    
-    if (!isDragging && onPress) {
-      console.log('✅ Ejecutando onPress para mesa', numero);
+  const handlePress = () => {    if (!isDragging && onPress) {
       onPress(numero);
     } else {
-      console.log('⚠️ No se ejecutó onPress - isDragging:', isDragging, 'onPress existe:', !!onPress);
     }
-  };
-
-  // Determinar colores según estado y grupo
-  const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;
-  
-  // Log para debugging
-  if (tienePedido || estado === "ocupada") {
-    console.log(`🎨 Mesa ${numero} - Estado: ${estado}, TienePedido: ${tienePedido}, TieneGrupo: ${tieneGrupo}`);
+  };  const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;  if (tienePedido || estado === "ocupada") {
   }
   
   const backgroundColor = estado === "ocupada" 
@@ -184,7 +149,6 @@ const Mesa = React.memo(({
   );
 });
 
-// Agregar displayName para debugging
 Mesa.displayName = 'Mesa';
 
 export default Mesa;

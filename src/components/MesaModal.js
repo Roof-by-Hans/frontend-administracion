@@ -25,8 +25,7 @@ export default function MesaModal({
   const isTablet = width >= 768;
   const isLargeTablet = width >= 1024;
 
-  // Cargar pedidos activos
-  useEffect(() => {
+    useEffect(() => {
     if (!visible || (!mesa && !grupo)) return;
 
     const cargarPedidos = async () => {
@@ -35,14 +34,10 @@ export default function MesaModal({
         let pedidos = [];
         
         if (grupo) {
-          console.log('🔵 Cargando pedidos de grupo:', grupo.id);
           pedidos = await pedidosService.getPedidosGrupo(grupo.id);
         } else if (mesa) {
-          console.log('🔵 Cargando pedidos de mesa:', mesa.idMesa || mesa.id);
           pedidos = await pedidosService.getPedidosMesa(mesa.idMesa || mesa.id);
         }
-        
-        console.log('🔵 Pedidos cargados en modal:', pedidos.length);
         setPedidosActivos(pedidos);
       } catch (error) {
         console.error('Error al cargar pedidos:', error);
@@ -52,10 +47,7 @@ export default function MesaModal({
     };
 
     cargarPedidos();
-  }, [visible, mesa, grupo]);
-
-  // Validación después de todos los hooks
-  if (!mesa && !grupo) return null;
+  }, [visible, mesa, grupo]);  if (!mesa && !grupo) return null;
 
   const numero = mesa?.numero || grupo?.nombre;
   const estado = mesa?.estado || (grupo?.mesas?.some(m => m.estado === 'ocupada') ? 'ocupada' : 'libre');
@@ -172,9 +164,7 @@ export default function MesaModal({
                             })}
                           </Text>
                           <TouchableOpacity 
-                            onPress={() => {
-                              // Editar pedido - abrir modal con datos precargados
-                              if (onEditarPedido) {
+                            onPress={() => {                              if (onEditarPedido) {
                                 onEditarPedido(pedido);
                               }
                             }}
@@ -195,20 +185,12 @@ export default function MesaModal({
                             onPress: async () => {
                               try {
                                 const clave = grupo ? `grupo-${grupo.id}` : `mesa-${mesa.idMesa || mesa.id}`;
-                                await pedidosService.eliminarPedido(pedido.id, clave);
-                                
-                                // Recargar pedidos localmente
-                                const pedidosActualizados = await (grupo 
+                                await pedidosService.eliminarPedido(pedido.id, clave);                                const pedidosActualizados = await (grupo 
                                   ? pedidosService.getPedidosGrupo(grupo.id)
                                   : pedidosService.getPedidosMesa(mesa.idMesa || mesa.id));
-                                setPedidosActivos(pedidosActualizados);
-                                
-                                // Notificar al padre para que emita evento WebSocket y actualice
-                                if (onEliminarPedido) {
+                                setPedidosActivos(pedidosActualizados);                                if (onEliminarPedido) {
                                   onEliminarPedido(pedido.id, mesa?.idMesa, grupo?.id);
                                 }
-                                
-                                console.log('✅ Pedido eliminado exitosamente');
                               } catch (error) {
                                 console.error('Error al eliminar pedido:', error);
                                 Alert.alert('Error', 'No se pudo eliminar el pedido');
@@ -284,7 +266,7 @@ export default function MesaModal({
 
           {/* Acciones */}
           <View style={styles.actions}>
-            {/* Botón Nuevo Pedido - Siempre visible */}
+             Nuevo Pedido - Siempre visible */}
             <TouchableOpacity 
               style={[styles.actionButton, styles.startButton, isTablet && styles.actionButtonTablet]}
               onPress={() => {
@@ -295,10 +277,8 @@ export default function MesaModal({
               <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Nuevo Pedido</Text>
             </TouchableOpacity>
 
-            {/* Botón Cobrar Mesa - Solo si hay pedidos activos */}
+             Cobrar Mesa - Solo si hay pedidos activos */}
             {(() => {
-              console.log('🔵 pedidosActivos.length:', pedidosActivos.length);
-              console.log('🔵 ¿Mostrar botón Cobrar?', pedidosActivos.length > 0);
               return pedidosActivos.length > 0;
             })() && (
               <TouchableOpacity 
@@ -312,7 +292,7 @@ export default function MesaModal({
               </TouchableOpacity>
             )}
 
-            {/* Botón Limpiar Mesa - Solo si está ocupada */}
+             Limpiar Mesa - Solo si está ocupada */}
             {estado === "ocupada" && (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.clearButton, isTablet && styles.actionButtonTablet]}

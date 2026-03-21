@@ -19,6 +19,8 @@ import { useAuth } from "../context/AuthContext";
 import clienteService from "../services/clientesService";
 import Alert from "@blazejkustra/react-native-alert";
 
+const { toggleCliente } = clienteService;
+
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -37,8 +39,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar clientes desde la API al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarClientes();
   }, []);
 
@@ -48,26 +49,17 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       setError(null);
       const response = await clienteService.getClientes();
 
-      // El backend devuelve { success, data, message }
-      // El servicio ya devuelve response.data, así que accedemos directamente a .data
-      const clientesData = response.data || [];
-
-      // Asegurarse de que cada cliente tenga un ID válido
-      const clientesConId = clientesData.map((cliente) => ({
+      const clientesData = response.data || [];      const clientesConId = clientesData.map((cliente) => ({
         ...cliente,
         id:
           cliente.id ||
           cliente.idCliente ||
           Math.random().toString(36).substr(2, 9),
+        habilitar: cliente.habilitar ?? 1,
       }));
       setClientes(clientesConId);
-    } catch (error) {
-      // Error ya logueado en el interceptor de axios
-      // Manejo específico de errores
-      if (error.response?.status === 401) {
-        setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
-        // El interceptor ya limpió el token, el AuthContext redirigirá
-        setTimeout(() => logout(), 2000);
+    } catch (error) {      if (error.response?.status === 401) {
+        setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");        setTimeout(() => logout(), 2000);
       } else if (error.response?.status === 403) {
         setError("No tienes permisos para ver los clientes.");
       } else if (error.code === "ERR_NETWORK" || !error.response) {
@@ -85,8 +77,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Filtrar clientes según la búsqueda manual
-  const clientesFiltrados = clientes.filter((cliente) => {
+    const clientesFiltrados = clientes.filter((cliente) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     if (!terminoBusqueda) return true;
 
@@ -96,10 +87,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       cliente.telefono?.includes(terminoBusqueda) ||
       cliente.email?.toLowerCase().includes(terminoBusqueda)
     );
-  });
-
-  // Definir columnas para el DataGrid
-  const columns = [
+  });  const columns = [
     {
       field: "fotoPerfil",
       headerName: "Foto",
@@ -158,9 +146,39 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       ),
     },
     {
+      field: "estado",
+      headerName: "Estado",
+      width: 100,
+      sortable: true,
+      renderCell: (params) => {
+        const habilitado = params.row?.habilitar;
+        return (
+          <TouchableOpacity
+            onPress={() => handleToggleCliente(params.row)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: habilitado ? "#e8f5e9" : "#ffebee",
+              borderWidth: 1,
+              borderColor: habilitado ? "#4CAF50" : "#f44336",
+            }}
+          >
+            <Text style={{
+              color: habilitado ? "#2e7d32" : "#c62828",
+              fontSize: 12,
+              fontWeight: "600",
+            }}>
+              {habilitado ? "Activo" : "Inactivo"}
+            </Text>
+          </TouchableOpacity>
+        );
+      },
+    },
+    {
       field: "acciones",
       headerName: "Acciones",
-      minWidth: 150,
+      width: 120,
       sortable: false,
       filterable: false,
       renderCell: (params) => {
@@ -189,81 +207,85 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
                 />
               </IconButton>
             )}
-            <IconButton
-              onClick={() => handleEliminarCliente(params.row.id)}
-              color="error"
-              size="small"
-              title="Eliminar"
-            >
-              <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
-            </IconButton>
           </View>
         );
       },
     },
   ];
 
-  // Función para abrir modal de agregar cliente
-  const handleAgregarCliente = () => {
+    const handleAgregarCliente = () => {
     setClienteSeleccionado(null);
     setModalVisible(true);
   };
 
-  // Función para abrir modal de editar cliente
-  const handleEditarCliente = (cliente) => {
+    const handleEditarCliente = (cliente) => {
     setClienteSeleccionado(cliente);
     setModalVisible(true);
   };
 
-  // Función para abrir modal de confirmación de eliminación
-  const handleEliminarCliente = (clienteId) => {
+    const handleEliminarCliente = (clienteId) => {
     setClienteAEliminar(clienteId);
     setConfirmModalVisible(true);
   };
 
-  // Función para abrir modal de desvinculación de tarjeta
-  const handleDesvincularTarjeta = (cliente) => {
+    const handleDesvincularTarjeta = (cliente) => {
     setClienteADesvincular(cliente);
     setDesvincularModalVisible(true);
   };
 
-  // Función para confirmar la eliminación
-  const confirmarEliminacion = async () => {
+    const handleToggleCliente = async (clienteRow) => {
+    try {
+      setLoading(true);
+      const response = await toggleCliente(clienteRow.id);
+
+            setClientes((prevClientes) =>
+        prevClientes.map((c) =>
+          c.id === clienteRow.id
+            ? { ...c, habilitar: response.data?.habilitar }
+            : c
+        )
+      );
+
+      const nuevoEstado = response.data?.habilitar === 1 ? "habilitado" : "deshabilitado";
+      Alert.alert("Éxito", `Cliente ${nuevoEstado} correctamente.`);
+    } catch (error) {
+      console.error("Error al togglear cliente:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo cambiar el estado del cliente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    const confirmarEliminacion = async () => {
     if (!clienteAEliminar) return;
 
     try {
       setLoading(true);
       await clienteService.eliminarCliente(clienteAEliminar);
 
-      // Actualizar la lista local
-      setClientes(clientes.filter((c) => c.id !== clienteAEliminar));
+            setClientes(clientes.filter((c) => c.id !== clienteAEliminar));
       setConfirmModalVisible(false);
       setClienteAEliminar(null);
 
       Alert.alert("Éxito", "Cliente eliminado correctamente");
     } catch (error) {
-      // Error ya logueado en el interceptor de axios
-      // Cerrar el modal de confirmación
-      setConfirmModalVisible(false);
-
-      // Manejo específico según el código de error
-      if (error.response?.status === 401) {
+                  setConfirmModalVisible(false);      if (error.response?.status === 401) {
         Alert.alert(
           "Sesión expirada",
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
           [{ text: "OK", onPress: () => logout() }]
         );
       } else if (error.response?.status === 409) {
-        // Error de conflicto - cliente tiene registros relacionados
-        Alert.alert(
+                Alert.alert(
           "No se puede eliminar el cliente",
           "Este cliente tiene registros relacionados (suscripciones, movimientos, etc.) y no puede ser eliminado. " +
             "Si deseas desactivar este cliente, considera actualizar su estado en lugar de eliminarlo.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 404) {
-        // Cliente no encontrado
-        Alert.alert(
+      } else if (error.response?.status === 404) {        Alert.alert(
           "Cliente no encontrado",
           "El cliente que intentas eliminar no existe o ya fue eliminado.",
           [
@@ -274,9 +296,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             },
           ]
         );
-      } else {
-        // Otros errores
-        const mensaje =
+      } else {        const mensaje =
           error.response?.data?.message ||
           "Error al eliminar el cliente. Por favor, intenta nuevamente.";
         Alert.alert("Error", mensaje);
@@ -288,8 +308,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Función para cancelar la eliminación
-  const cancelarEliminacion = () => {
+    const cancelarEliminacion = () => {
     setConfirmModalVisible(false);
     setClienteAEliminar(null);
   };
@@ -368,78 +387,57 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Función para guardar cliente (agregar o editar)
-  const handleGuardarCliente = async (formData, clienteId) => {
+    const handleGuardarCliente = async (formData, clienteId) => {
     try {
       setLoading(true);
 
-      if (clienteId) {
-        // Editar cliente existente
-        const response = await clienteService.actualizarCliente(
+      if (clienteId) {        const response = await clienteService.actualizarCliente(
           clienteId,
           formData
         );
 
-        // El backend devuelve { success, data, message }
-        // El servicio ya devuelve response.data, así que accedemos directamente a .data
         const clienteActualizado = response.data;
 
-        // Actualizar la lista local
-        setClientes(
+                setClientes(
           clientes.map((c) => (c.id === clienteId ? clienteActualizado : c))
         );
 
         Alert.alert("Éxito", "Cliente actualizado correctamente");
       } else {
-        // Crear nuevo cliente
-        const response = await clienteService.crearCliente(formData);
+                const response = await clienteService.crearCliente(formData);
 
-        // El backend devuelve { success, data, message }
-        // El servicio ya devuelve response.data, así que accedemos directamente a .data
         const clienteCreado = response.data;
 
-        // Agregar a la lista local
-        setClientes([...clientes, clienteCreado]);
+                setClientes([...clientes, clienteCreado]);
 
         Alert.alert("Éxito", "Cliente creado correctamente");
       }
 
       setModalVisible(false);
       setClienteSeleccionado(null);
-    } catch (error) {
-      // Error ya logueado en el interceptor de axios
-      // Manejo específico según el código de error
-      if (error.response?.status === 401) {
+    } catch (error) {      if (error.response?.status === 401) {
         Alert.alert(
           "Sesión expirada",
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
           [{ text: "OK", onPress: () => logout() }]
         );
-      } else if (error.response?.status === 409) {
-        // Conflicto - email duplicado
-        Alert.alert(
+      } else if (error.response?.status === 409) {        Alert.alert(
           "Email ya registrado",
           "Ya existe un cliente registrado con este correo electrónico. Por favor, utiliza otro email.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 404) {
-        // Recurso no encontrado (ej: tarjeta)
-        Alert.alert(
+      } else if (error.response?.status === 404) {        Alert.alert(
           "Recurso no encontrado",
           error.response?.data?.message || "El recurso especificado no existe.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 400) {
-        // Validación fallida
-        Alert.alert(
+      } else if (error.response?.status === 400) {        Alert.alert(
           "Datos inválidos",
           error.response?.data?.message ||
             "Por favor, verifica los datos ingresados.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else {
-        // Otros errores
-        const mensaje =
+      } else {        const mensaje =
           error.response?.data?.message ||
           "Error al guardar el cliente. Por favor, intenta nuevamente.";
         Alert.alert("Error", mensaje);
@@ -494,7 +492,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón Agregar */}
+             Agregar */}
             <TouchableOpacity
               style={styles.agregarButton}
               onPress={handleAgregarCliente}

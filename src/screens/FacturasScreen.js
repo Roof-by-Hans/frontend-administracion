@@ -43,10 +43,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
 
   useEffect(() => {
     cargarFacturas();
-  }, []);
-
-  // Suscripción WebSocket: pago:revertido
-  useEffect(() => {
+  }, []);  useEffect(() => {
     emit("join:pedidos");
 
     const handlePagoRevertido = ({ data }) => {
@@ -96,8 +93,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     setLoadingDetalles(true);
     
     try {
-      // Cargar detalles completos de la factura
-      const detalles = await facturasService.getDetallesFactura(factura.id);
+            const detalles = await facturasService.getDetallesFactura(factura.id);
       setDetallesFactura(detalles.data || detalles || []);
     } catch (error) {
       console.error("Error al cargar detalles de factura:", error);
@@ -158,8 +154,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     }, 300);
   };
 
-  // Filtrar facturas
-  const facturasFiltradas = facturas.filter((factura) => {
+    const facturasFiltradas = facturas.filter((factura) => {
     const terminoBusqueda = busqueda.toLowerCase().trim();
     const cumpleFiltroEstado = filtroEstado === "todas" || factura.estado === filtroEstado;
     
@@ -174,10 +169,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       clienteNombre.includes(terminoBusqueda) ||
       factura.mesa?.numero?.toString().includes(terminoBusqueda)
     );
-  });
-
-  // Definir columnas
-  const columns = [
+  });  const columns = [
     {
       field: "id",
       headerName: "# Factura",
@@ -826,8 +818,7 @@ const styles = StyleSheet.create({
     color: "#999",
     textAlign: "center",
   },
-  // Modal styles
-  modalOverlay: {
+    modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
