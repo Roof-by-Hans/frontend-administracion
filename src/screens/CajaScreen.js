@@ -366,6 +366,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {
                 rows={movimientosFiltrados}
                 columns={columns}
                 pageSize={10}
+              exportFileBaseName="movimientos_caja"
             />
             </View>
         ) : (

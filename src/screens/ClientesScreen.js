@@ -533,7 +533,12 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
         {/* DataGrid con filtrado y ordenamiento nativo */}
         {!loading && !error && clientesFiltrados.length > 0 && (
-          <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} />
+          <DataTable
+            rows={clientesFiltrados}
+            columns={columns}
+            pageSize={10}
+            exportFileBaseName="clientes"
+          />
         )}
 
         {/* Estado vacío */}

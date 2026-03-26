@@ -210,7 +210,12 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
 
         {/* DataTable */}
         {!loading && !error && (
-          <DataTable rows={mozosFiltrados} columns={columns} pageSize={10} />
+          <DataTable
+            rows={mozosFiltrados}
+            columns={columns}
+            pageSize={10}
+            exportFileBaseName="mozos"
+          />
         )}
 
         {/* Loading */}
