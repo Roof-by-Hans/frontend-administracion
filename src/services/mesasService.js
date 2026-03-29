@@ -18,7 +18,7 @@ const mesasService = {
       const token = await AsyncStorage.getItem('token');
       
       if (!token) {
-        console.warn('⚠️ No hay token disponible para WebSocket (conexión como invitado)');
+        console.warn('[WARN] No hay token disponible para WebSocket (conexión como invitado)');
       }
 
       if (socket?.connected) {
@@ -39,7 +39,7 @@ const mesasService = {
       });
 
       socket.on('connect_error', (error) => {
-        console.error('❌ Error de conexión WebSocket:', error.message);
+        console.error('[ERROR] Error de conexión WebSocket:', error.message);
       });
 
       socket.on('disconnect', (reason) => {
@@ -49,11 +49,11 @@ const mesasService = {
       });
 
       socket.on('reconnect_error', (error) => {
-        console.error('❌ Error de reconexión:', error.message);
+        console.error('[ERROR] Error de reconexión:', error.message);
       });
 
       socket.on('reconnect_failed', () => {
-        console.error('❌ Falló la reconexión después de todos los intentos');
+        console.error('[ERROR] Falló la reconexión después de todos los intentos');
       });      socket.on('joined:mesas', (data) => {
       });
 
@@ -65,12 +65,12 @@ const mesasService = {
 
       socket.on('left:mesa', (data) => {
       });      socket.on('error', (error) => {
-        console.error('⚠️ Error del servidor:', error);
+        console.error('[WARN] Error del servidor:', error);
       });
 
       return socket;
     } catch (error) {
-      console.error('❌ Error al conectar WebSocket:', error);
+      console.error('[ERROR] Error al conectar WebSocket:', error);
       return null;
     }
   },
@@ -117,7 +117,7 @@ const mesasService = {
     if (socket && socket.connected) {
       socket.emit('join:mesas');
     } else {
-      console.warn('⚠️ Socket no conectado');
+      console.warn('[WARN] Socket no conectado');
     }
   },
 
@@ -138,7 +138,7 @@ const mesasService = {
     if (socket && socket.connected) {
       socket.emit('join:mesa', { mesaId });
     } else {
-      console.warn('⚠️ Socket no conectado');
+      console.warn('[WARN] Socket no conectado');
     }
   },
 
@@ -176,7 +176,7 @@ const mesasService = {
    */
   onMesaCreada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:creada', (payload) => {
@@ -190,7 +190,7 @@ const mesasService = {
    */
   onMesaActualizada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:actualizada', (payload) => {
@@ -204,7 +204,7 @@ const mesasService = {
    */
   onMesaEliminada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:eliminada', (payload) => {
@@ -218,7 +218,7 @@ const mesasService = {
    */
   onMesaEstadoCambiado(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:estado-cambiado', (payload) => {
@@ -232,7 +232,7 @@ const mesasService = {
    */
   onMesasActualizar(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesas:actualizar', (payload) => {
@@ -246,7 +246,7 @@ const mesasService = {
    */
   onNotificacion(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('notificacion', (payload) => {
@@ -260,7 +260,7 @@ const mesasService = {
    */
   onConnectedClients(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesas:connected-clients', (data) => {
@@ -274,7 +274,7 @@ const mesasService = {
    */
   onMesaEstado(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:estado', (data) => {
@@ -288,11 +288,11 @@ const mesasService = {
    */
   onError(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('error', (error) => {
-      console.error('⚠️ Error del servidor:', error);
+      console.error('[WARN] Error del servidor:', error);
       callback(error);
     });
   },
@@ -341,7 +341,7 @@ const mesasService = {
       const response = await api.get('/mesas');
       return response.data.data || [];
     } catch (error) {
-      console.error('❌ Error al obtener mesas:', error.message);
+      console.error('[ERROR] Error al obtener mesas:', error.message);
       throw error;
     }
   },
@@ -354,7 +354,7 @@ const mesasService = {
       const response = await api.get(`/mesas/${id}`);
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al obtener mesa:', error.message);
+      console.error('[ERROR] Error al obtener mesa:', error.message);
       throw error;
     }
   },
@@ -367,7 +367,7 @@ const mesasService = {
       const response = await api.post('/mesas', { nombre });
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al crear mesa:', error.message);
+      console.error('[ERROR] Error al crear mesa:', error.message);
       throw error;
     }
   },
@@ -380,7 +380,7 @@ const mesasService = {
       const response = await api.put(`/mesas/${id}`, { nombre });
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al actualizar mesa:', error.message);
+      console.error('[ERROR] Error al actualizar mesa:', error.message);
       throw error;
     }
   },
@@ -397,7 +397,7 @@ const mesasService = {
       const response = await api.post(`/mesas/${mesaId}/ocupar`, payload);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al ocupar mesa:', error.message);
+      console.error('[ERROR] Error al ocupar mesa:', error.message);
       throw error;
     }
   },
@@ -412,7 +412,7 @@ const mesasService = {
       const response = await api.post(`/mesas/${mesaId}/liberar`);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al liberar mesa:', error.message);
+      console.error('[ERROR] Error al liberar mesa:', error.message);
       throw error;
     }
   },
@@ -428,7 +428,7 @@ const mesasService = {
       const response = await api.patch(`/mesas/${mesaId}/estado`, { estado });
       return response.data;
     } catch (error) {
-      console.error('❌ Error al cambiar estado de mesa:', error.message);
+      console.error('[ERROR] Error al cambiar estado de mesa:', error.message);
       throw error;
     }
   },
@@ -442,7 +442,7 @@ const mesasService = {
       const response = await api.get('/mesas/estadisticas/resumen');
       return response.data;
     } catch (error) {
-      console.error('❌ Error al obtener estadísticas:', error.message);
+      console.error('[ERROR] Error al obtener estadísticas:', error.message);
       throw error;
     }
   },
@@ -455,7 +455,7 @@ const mesasService = {
       const response = await api.delete(`/mesas/${id}`);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al eliminar mesa:', error.message);
+      console.error('[ERROR] Error al eliminar mesa:', error.message);
       throw error;
     }
   },
@@ -471,7 +471,7 @@ const mesasService = {
       });
       return response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar posición:', error);
+      console.error('[ERROR] Error al actualizar posición:', error);
       throw error;
     }
   },
@@ -489,7 +489,7 @@ const mesasService = {
         return response.data.data || response.data || [];
       }
     } catch (error) {
-      console.error('❌ Error al obtener grupos:', error.message);
+      console.error('[ERROR] Error al obtener grupos:', error.message);
       throw error;
     }
   },
@@ -505,8 +505,8 @@ const mesasService = {
       });
       return response.data.data || response.data;
     } catch (error) {
-      console.error('❌ Error al crear grupo:', error.message);
-      console.error('❌ Detalles:', error.response?.data);
+      console.error('[ERROR] Error al crear grupo:', error.message);
+      console.error('[ERROR] Detalles:', error.response?.data);
       throw error;
     }
   },
@@ -519,7 +519,7 @@ const mesasService = {
       const response = await api.delete(`/mesas-grupo/grupos/${id}`);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al disolver grupo:', error.message);
+      console.error('[ERROR] Error al disolver grupo:', error.message);
       throw error;
     }
   },
@@ -536,8 +536,8 @@ const mesasService = {
       });
       return response.data.data || response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar grupo:', error.message);
-      console.error('❌ Detalles:', error.response?.data);
+      console.error('[ERROR] Error al actualizar grupo:', error.message);
+      console.error('[ERROR] Detalles:', error.response?.data);
       throw error;
     }
   },
@@ -554,7 +554,7 @@ const mesasService = {
       }      return await this.actualizarMesasGrupo(grupoId, { remover: mesasIdsARemover });
       
     } catch (error) {
-      console.error('❌ Error al remover mesas del grupo:', error.message);
+      console.error('[ERROR] Error al remover mesas del grupo:', error.message);
       throw error;
     }
   },
@@ -570,7 +570,7 @@ const mesasService = {
       const response = await api.patch(`/mesas/${idMesa}`, { estado });
       return response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar estado:', error.message);
+      console.error('[ERROR] Error al actualizar estado:', error.message);
       throw error;
     }
   },

@@ -25,7 +25,7 @@ export default function GestionarMesasModal({
   
   const handleAgregarMesa = () => {
     if (!nombreNuevaMesa.trim()) {
-      Alert.alert("⚠️ Error", "Por favor ingresa un nombre para la mesa");
+      Alert.alert("[WARN] Error", "Por favor ingresa un nombre para la mesa");
       return;
     }
     
@@ -34,7 +34,7 @@ export default function GestionarMesasModal({
 
   const handleEliminarMesa = (numero, nombre) => {
     Alert.alert(
-      "⚠️ Confirmar eliminación",
+      "[WARN] Confirmar eliminación",
       `¿Estás seguro de eliminar la mesa "${nombre || numero}"?`,
       [
         {

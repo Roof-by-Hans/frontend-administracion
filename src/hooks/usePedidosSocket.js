@@ -84,7 +84,7 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirPedidoCreado = useCallback((pedido) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
     socket.emit('pedido:crear', pedido);
@@ -95,7 +95,7 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirPedidoActualizado = useCallback((pedido) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
     socket.emit('pedido:actualizar', pedido);
@@ -106,7 +106,7 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirPedidoEliminado = useCallback((idPedido, idMesa, idGrupo) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
     socket.emit('pedido:eliminar', { idPedido, idMesa, idGrupo });
@@ -117,7 +117,7 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirMesaCobrada = useCallback((idMesa, idGrupo, factura) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
     socket.emit('pedido:cobrar', { idMesa, idGrupo, factura });
@@ -128,7 +128,7 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirMesaActualizada = useCallback((idMesa, estado) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
     socket.emit('mesa:actualizar', { idMesa, estado });

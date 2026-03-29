@@ -297,7 +297,6 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
           </View>
         )}
 
-         de Movimientos Recientes */}
         {cajaAbierta ? (
             <View style={styles.movimientosSection}>
             <View style={styles.movimientosHeader}>

@@ -137,7 +137,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
 
             setScanStatus("");
     } catch (error) {
-      console.error("❌ Error en el proceso de emisión:", error);
+      console.error("[ERROR] Error en el proceso de emisión:", error);
 
             if (error.response?.status === 409) {
         const errorData = error.response.data;        const conflicto = {
@@ -201,7 +201,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
             setConflictoInfo(null);
       setDatosEmisionPendiente(null);
     } catch (error) {
-      console.error("❌ Error al forzar desvinculación:", error);
+      console.error("[ERROR] Error al forzar desvinculación:", error);
 
       setErrorMessage(
         error.response?.data?.message ||
@@ -355,7 +355,6 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
               </View>
             )}
 
-             Emitir */}
             <TouchableOpacity
               style={[
                 styles.submitButton,

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton } from "@mui/material";
+import { IconButton, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import DataTable from "../components/DataTable";
 import { getMozos, getMozosActivos } from "../services/mozoService";
@@ -81,6 +81,38 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       width: 130,
       headerAlign: "center",
       align: "center",
+      valueGetter: (value, row) => row?.activo ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
       renderCell: (params) => (
         <View
           style={{
@@ -183,7 +215,6 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-             actualizar */}
             <TouchableOpacity
               style={styles.refreshButton}
               onPress={cargarMozos}

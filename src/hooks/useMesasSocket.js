@@ -26,7 +26,7 @@ export function useMesasSocket(options = {}) {
         const token = await AsyncStorage.getItem('token');
         
         if (!token) {
-          console.warn('⚠️ No hay token disponible para WebSocket');
+          console.warn('[WARN] No hay token disponible para WebSocket');
           return;
         }
         socket = io(SOCKET_URL, {
@@ -58,11 +58,11 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('reconnect_error', (error) => {
-          console.error('❌ Error de reconexión:', error.message);
+          console.error('[ERROR] Error de reconexión:', error.message);
         });
 
         socket.on('reconnect_failed', () => {
-          console.error('❌ Falló la reconexión después de todos los intentos');
+          console.error('[ERROR] Falló la reconexión después de todos los intentos');
           Alert.alert(
             'Error de conexión',
             'No se pudo reconectar al servidor. Por favor, verifica tu conexión e intenta nuevamente.',
@@ -258,7 +258,7 @@ export function useMesasSocket(options = {}) {
               );
 
               if (!mesaCambiada) {
-                console.warn('⚠️ Mesa no encontrada:', payload.data.id);
+                console.warn('[WARN] Mesa no encontrada:', payload.data.id);
                 return prev;
               }              const mesasDelGrupo = mesaCambiada.grupo 
                 ? prev.filter(m => m.grupo === mesaCambiada.grupo).map(m => m.numero)
@@ -327,7 +327,7 @@ export function useMesasSocket(options = {}) {
             });            if (options.onNotification) {
               options.onNotification({
                 type: 'success',
-                title: '✅ Grupo Creado',
+                title: 'Grupo Creado',
                 message: `"${payload.data.nombre}" con ${payload.data.mesas.length} mesa(s)`,
                 timestamp: payload.timestamp
               });
@@ -377,7 +377,7 @@ export function useMesasSocket(options = {}) {
             );            if (options.onNotification) {
               options.onNotification({
                 type: 'success',
-                title: '🔗 Mesas Unidas',
+                title: 'Mesas Unidas',
                 message: `${mesasUnidas.length} mesa(s) unidas al grupo`,
                 timestamp: payload.timestamp
               });
@@ -404,7 +404,7 @@ export function useMesasSocket(options = {}) {
             );            if (options.onNotification) {
               options.onNotification({
                 type: 'info',
-                title: '✂️ Mesas Separadas',
+                title: 'Mesas Separadas',
                 message: `${mesasSeparadas.length} mesa(s) separada(s) del grupo`,
                 timestamp: payload.timestamp
               });
@@ -425,7 +425,7 @@ export function useMesasSocket(options = {}) {
         });
 
                 socket.on('error', (error) => {
-          console.error('⚠️ Error de socket:', error);
+          console.error('[ERROR] Error de socket:', error);
           
           if (options.onNotification) {
             options.onNotification({
@@ -437,11 +437,11 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('connect_error', (error) => {
-          console.error('❌ Error de conexión:', error.message);
+          console.error('[ERROR] Error de conexión:', error.message);
         });
 
       } catch (error) {
-        console.error('❌ Error al inicializar socket:', error);
+        console.error('[ERROR] Error al inicializar socket:', error);
       }
     };
 
@@ -498,7 +498,7 @@ export function useMesasSocket(options = {}) {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('join:mesa', { mesaId });
     } else {
-      console.warn('⚠️ Socket no conectado, no se puede unir a mesa');
+      console.warn('[WARN] Socket no conectado, no se puede unir a mesa');
     }
   };
 

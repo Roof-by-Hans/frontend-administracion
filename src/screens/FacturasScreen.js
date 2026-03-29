@@ -664,7 +664,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
               </View>
 
               <Text style={styles.reversionWarning}>
-                ⚠️ Esta acción revertirá el pago y devolverá el saldo al cliente. No se puede deshacer.
+                Esta acción revertirá el pago y devolverá el saldo al cliente. No se puede deshacer.
               </Text>
 
               <Text style={styles.reversionLabel}>Motivo de la reversión *</Text>

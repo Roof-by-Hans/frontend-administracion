@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton } from "@mui/material";
+import { IconButton, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CategoriaModal from "../components/CategoriaModal";
 import DataTable from "../components/DataTable";
@@ -146,6 +146,38 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       headerName: 'Estado',
       width: 100,
       sortable: true,
+      valueGetter: (value, row) => row?.habilitar ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
       renderCell: (params) => {
         const habilitado = params.row.habilitar;
         return (
@@ -324,7 +356,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-             Agregar */}
             <TouchableOpacity 
               style={[styles.addButton, cargando && styles.addButtonDisabled]} 
               onPress={handleAgregarCategoria}

@@ -120,7 +120,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("❌ Error al escanear tarjeta:", error);
+      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -208,7 +208,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasCredito();
       }
     } catch (error) {
-      console.error("❌ Error al registrar pago:", error);
+      console.error("[ERROR] Error al registrar pago:", error);
       alert(
         error.response?.data?.message ||
           error.message ||

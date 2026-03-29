@@ -68,7 +68,7 @@ export default function Login() {
         );
       }
     } catch (error) {
-      console.error("❌ Error en login:", error);
+      console.error("[ERROR] Error en login:", error);
       Alert.alert(
         "Error",
         "No se pudo conectar con el servidor: " + error.message

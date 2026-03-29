@@ -76,11 +76,11 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('reconnect_error', (error) => {
-          console.error('❌ Error de reconexión global:', error.message);
+          console.error('[ERROR] Error de reconexión global:', error.message);
         });
 
         socket.on('reconnect_failed', () => {
-          console.error('❌ Falló la reconexión global después de todos los intentos');
+          console.error('[ERROR] Falló la reconexión global después de todos los intentos');
           
           if (mounted) {
             Alert.alert(
@@ -92,7 +92,7 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('connect_error', (error) => {
-          console.error('❌ Error de conexión global:', error.message);
+          console.error('[ERROR] Error de conexión global:', error.message);
         });
 
                 socket.on('authenticated', (data) => {
@@ -105,14 +105,14 @@ export const SocketProvider = ({ children }) => {
         socket.on('unauthorized', (data) => {
           if (!mounted) return;
           
-          console.warn('⚠️ Usuario no autorizado:', data);
+          console.warn('[WARN] Usuario no autorizado:', data);
           setIsAuthenticated(false);
           setUserId(null);
           setUserRole(null);
         });
 
       } catch (error) {
-        console.error('❌ Error al inicializar socket global:', error);
+        console.error('[ERROR] Error al inicializar socket global:', error);
       }
     };
 
@@ -162,7 +162,7 @@ export const SocketProvider = ({ children }) => {
         socketRef.current.connect();
       }
     } catch (error) {
-      console.error('❌ Error al actualizar token:', error);
+      console.error('[ERROR] Error al actualizar token:', error);
     }
   };
 
@@ -181,7 +181,7 @@ export const SocketProvider = ({ children }) => {
         socketRef.current.auth = { token: null };
       }
     } catch (error) {
-      console.error('❌ Error al limpiar token:', error);
+      console.error('[ERROR] Error al limpiar token:', error);
     }
   };
 
@@ -203,7 +203,7 @@ export const SocketProvider = ({ children }) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit(event, data);
     } else {
-      console.warn('⚠️ Socket no conectado, no se puede emitir:', event);
+      console.warn('[WARN] Socket no conectado, no se puede emitir:', event);
     }
   };
 

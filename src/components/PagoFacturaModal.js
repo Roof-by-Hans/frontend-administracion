@@ -94,7 +94,7 @@ export default function PagoFacturaModal({
       }, 1000);
       
     } catch (error) {
-      console.error("❌ Error en validación de tarjeta:", error);
+      console.error("[ERROR] Error en validación de tarjeta:", error);
       setScanStatus("error");
       setErrorMessage(error.response?.data?.message || error.message || "Error al validar la tarjeta");
     }

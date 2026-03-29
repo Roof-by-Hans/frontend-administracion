@@ -112,7 +112,7 @@ export default function DashboardLayout({
     if (onLogout && typeof onLogout === "function") {
       onLogout();
     } else {
-      console.error("❌ onLogout no es función o es undefined");
+      console.error("[ERROR] onLogout no es función o es undefined");
     }
   }, [onLogout]);
 

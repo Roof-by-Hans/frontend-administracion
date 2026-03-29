@@ -47,42 +47,42 @@ export const logger = {
    * Log de WebSocket/Socket.io
    */
   socket: (...args) => {
-    if (isDev) console.log("🔌", ...args);
+    if (isDev) console.log("[SOCKET]", ...args);
   },
 
   /**
    * Log de peticiones API
    */
   api: (...args) => {
-    if (isDev) console.log("📡", ...args);
+    if (isDev) console.log("[API]", ...args);
   },
 
   /**
    * Log de operación exitosa
    */
   success: (...args) => {
-    if (isDev) console.log("✅", ...args);
+    if (isDev) console.log("[SUCCESS]", ...args);
   },
 
   /**
    * Log de datos/transformaciones
    */
   data: (...args) => {
-    if (isDev) console.log("📊", ...args);
+    if (isDev) console.log("[DATA]", ...args);
   },
 
   /**
    * Log de autenticación
    */
   auth: (...args) => {
-    if (isDev) console.log("🔐", ...args);
+    if (isDev) console.log("[AUTH]", ...args);
   },
 
   /**
    * Log de navegación/UI
    */
   ui: (...args) => {
-    if (isDev) console.log("🖥️", ...args);
+    if (isDev) console.log("[UI]", ...args);
   },
 };
 

@@ -255,7 +255,6 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         {/* Header */}
         <Text style={styles.title}>Ajustes Generales</Text>
 
-         Perfil de Usuario */}
         <View style={styles.perfilSection}>
           <Text style={styles.sectionTitle}>Mi Perfil</Text>
           <View style={styles.perfilCard}>

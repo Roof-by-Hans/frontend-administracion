@@ -120,7 +120,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("❌ Error al escanear tarjeta:", error);
+      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -208,7 +208,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasPrepago();
       }
     } catch (error) {
-      console.error("❌ Error al cargar saldo:", error);
+      console.error("[ERROR] Error al cargar saldo:", error);
       alert(
         error.response?.data?.message ||
           error.message ||

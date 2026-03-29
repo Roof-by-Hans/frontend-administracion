@@ -8,7 +8,7 @@ import {
   ActivityIndicator
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton, Avatar } from "@mui/material";
+import { IconButton, Avatar, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ClienteModal from "../components/ClienteModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -150,6 +150,38 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       headerName: "Estado",
       width: 100,
       sortable: true,
+      valueGetter: (value, row) => row?.habilitar ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
       renderCell: (params) => {
         const habilitado = params.row?.habilitar;
         return (
@@ -492,7 +524,6 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-             Agregar */}
             <TouchableOpacity
               style={styles.agregarButton}
               onPress={handleAgregarCliente}

@@ -70,7 +70,7 @@ const pedidosService = {
    */
   getPedidosLocal(clave) {
     if (typeof localStorage === 'undefined') {
-      console.warn('⚠️ localStorage no disponible');
+      console.warn('[WARN] localStorage no disponible');
       return [];
     }
     
@@ -87,7 +87,7 @@ const pedidosService = {
    */
   async guardarPedidoLocal(clave, pedido) {
     if (typeof localStorage === 'undefined') {
-      console.error('⚠️ localStorage no disponible');
+      console.error('[WARN] localStorage no disponible');
       return;
     }
 
@@ -119,7 +119,7 @@ const pedidosService = {
    */
   transferirPedidosAGrupo(mesasIds, grupoId) {
     if (typeof localStorage === 'undefined') {
-      console.error('⚠️ localStorage no disponible');
+      console.error('[WARN] localStorage no disponible');
       return 0;
     }
 

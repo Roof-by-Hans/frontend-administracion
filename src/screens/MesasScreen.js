@@ -93,10 +93,10 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     },
     onNotification: (notification) => {
       const title = notification.title || 
-                    (notification.type === 'error' ? '❌ Error' : 
-                     notification.type === 'warning' ? '⚠️ Atención' : 
-                     notification.type === 'success' ? '✅ Éxito' : 
-                     'ℹ️ Información');
+                    (notification.type === 'error' ? 'Error' : 
+                     notification.type === 'warning' ? 'Atención' : 
+                     notification.type === 'success' ? 'Éxito' : 
+                     'Información');
       
       showConfirm({
         title,
@@ -520,7 +520,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                 try {
                   await mesasService.ocuparMesa(mesaId);
                 } catch (error) {
-                  console.error(`❌ Error al ocupar mesa ${mesaId}:`, error);
+                  console.error(`[ERROR] Error al ocupar mesa ${mesaId}:`, error);
                 }
               }
 
@@ -533,7 +533,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                       unidaCon: nuevasUniones,
                       nombreGrupo: nombre,
                       grupo: grupoId,
-                      estado: 'ocupada' // ✅ Marcar como ocupada (en rojo)
+                      estado: 'ocupada' // [OK] Marcar como ocupada (en rojo)
                     };
                   }
                   return m;
@@ -691,7 +691,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               : `Mesa(s) separada(s) del grupo "${nombreGrupo}"`;
               
             showConfirm({
-              title: "✅ Éxito",
+              title: "[OK] Éxito",
               message: mensajeExito,
               singleButton: true,
               confirmColor: "#51cf66",
@@ -755,7 +755,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       )
     );    try {      const response = await mesasService.ocuparMesa(mesaActual.idMesa);
     } catch (error) {
-      console.error('❌ Error al ocupar mesa:', error);      setMesas(prevMesas => 
+      console.error('[ERROR] Error al ocupar mesa:', error);      setMesas(prevMesas => 
         prevMesas.map(mesa => 
           mesasDelGrupo.includes(mesa.numero)
             ? { ...mesa, estado: "libre", pedido: null }
@@ -917,7 +917,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     if (mesa.estado === "ocupada") {
     if (mesa.estado === "ocupada") {
       showConfirm({
-        title: "❌ Error",
+        title: "[ERROR] Error",
         message: "No puedes eliminar una mesa ocupada",
         singleButton: true,
         confirmColor: '#d32f2f',
@@ -930,7 +930,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     if (mesa.unidaCon.length > 0) {
     if (mesa.unidaCon.length > 0) {
       showConfirm({
-        title: "❌ Error",
+        title: "[ERROR] Error",
         message: "No puedes eliminar una mesa que está unida. Sepárala primero.",
         singleButton: true,
         confirmColor: '#d32f2f',
@@ -955,7 +955,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       console.error('Error al eliminar mesa:', error);
       console.error('Error al eliminar mesa:', error);
       showConfirm({
-        title: '❌ Error',
+        title: '[ERROR] Error',
         message: 'No se pudo eliminar la mesa del servidor',
         singleButton: true,
         confirmColor: '#d32f2f',
@@ -1038,8 +1038,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               </View>
               <Text style={styles.pageSubtitle}>
                 {modoActivo === 'mover' && "🔄 Modo: arrastra mesas"}
-                {modoActivo === 'unir' && "🔗 Modo: selecciona mesas para unir"}
-                {modoActivo === 'separar' && "✂️ Modo: selecciona mesas para separar"}
+                {modoActivo === 'unir' && "[LINK] Modo: selecciona mesas para unir"}
+                {modoActivo === 'separar' && "[CUT] Modo: selecciona mesas para separar"}
                 {!modoActivo && "Selecciona un modo para comenzar"}
               </Text>
             </View>

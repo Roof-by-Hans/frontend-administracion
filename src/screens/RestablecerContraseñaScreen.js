@@ -175,7 +175,6 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
               </View>
             </View>
 
-             de restablecer */}
             <TouchableOpacity
               style={[
                 styles.botonRestablecer,

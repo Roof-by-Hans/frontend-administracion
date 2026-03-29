@@ -266,7 +266,6 @@ export default function MesaModal({
 
           {/* Acciones */}
           <View style={styles.actions}>
-             Nuevo Pedido - Siempre visible */}
             <TouchableOpacity 
               style={[styles.actionButton, styles.startButton, isTablet && styles.actionButtonTablet]}
               onPress={() => {
@@ -277,7 +276,6 @@ export default function MesaModal({
               <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Nuevo Pedido</Text>
             </TouchableOpacity>
 
-             Cobrar Mesa - Solo si hay pedidos activos */}
             {(() => {
               return pedidosActivos.length > 0;
             })() && (
@@ -292,7 +290,6 @@ export default function MesaModal({
               </TouchableOpacity>
             )}
 
-             Limpiar Mesa - Solo si está ocupada */}
             {estado === "ocupada" && (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.clearButton, isTablet && styles.actionButtonTablet]}
