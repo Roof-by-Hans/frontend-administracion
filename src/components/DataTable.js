@@ -10,6 +10,16 @@ import {
   prepareTableDataForExport,
 } from '../utils/tableExportUtils';
 
+const DEFAULT_LOGO_URI = null;
+
+const toExportTitle = (baseName = 'tabla') => {
+  return String(baseName)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
 /**
  * Componente de tabla reutilizable con Material-UI DataGrid
  * Incluye filtrado, ordenamiento y paginación nativos
@@ -34,6 +44,7 @@ export default function DataTable({
   exportEnabled = true,
   exportFileBaseName = 'tabla',
   exportExcludeFields = ['acciones'],
+  exportOptions = {},
   sx = {},
   ...props
 }) {
@@ -54,7 +65,7 @@ export default function DataTable({
     setExportAnchorEl(event.currentTarget);
   };
 
-  const runExport = (type) => {
+  const runExport = async (type) => {
     if (!exportRows.length || !exportColumns.length) {
       closeExportMenu();
       return;
@@ -65,21 +76,29 @@ export default function DataTable({
       rows: exportRows,
       columns: exportColumns,
       fileName,
+      options: {
+        title: `Reporte de ${toExportTitle(exportFileBaseName)}`,
+        subtitle: 'Documento exportado desde panel de administracion',
+        ...(DEFAULT_LOGO_URI ? { logoPath: DEFAULT_LOGO_URI } : {}),
+        ...exportOptions,
+      },
     };
 
-    if (type === 'csv') {
-      exportAsCsv(payload);
-    }
+    try {
+      if (type === 'csv') {
+        exportAsCsv(payload);
+      }
 
-    if (type === 'excel') {
-      exportAsExcel(payload);
-    }
+      if (type === 'excel') {
+        exportAsExcel(payload);
+      }
 
-    if (type === 'pdf') {
-      exportAsPdf(payload);
+      if (type === 'pdf') {
+        await exportAsPdf(payload);
+      }
+    } finally {
+      closeExportMenu();
     }
-
-    closeExportMenu();
   };
 
   return (

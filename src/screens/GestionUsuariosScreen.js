@@ -326,6 +326,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
             columns={columns}
             pageSize={10}
             rowHeight={52}
+            exportFileBaseName="usuarios"
           />
         )}
 

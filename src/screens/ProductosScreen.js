@@ -358,6 +358,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             rows={productosFiltrados}
             columns={columns}
             pageSize={10}
+            exportFileBaseName="productos"
           />
         )}
 

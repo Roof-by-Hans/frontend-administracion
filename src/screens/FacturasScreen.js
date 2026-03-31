@@ -418,7 +418,12 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
 
         {/* DataTable */}
         {!loading && facturasFiltradas.length > 0 && (
-          <DataTable rows={facturasFiltradas} columns={columns} pageSize={15} />
+          <DataTable
+            rows={facturasFiltradas}
+            columns={columns}
+            pageSize={15}
+            exportFileBaseName="facturas"
+          />
         )}
 
         {/* Estado vacío */}
