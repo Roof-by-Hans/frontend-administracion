@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: "#666",
-    textDecoration: "none",
+    textDecorationLine: "none",
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   forgotPassword: {
     fontSize: 14,
     color: "#333333",
-    textDecoration: "none",
+    textDecorationLine: "none",
   },
   loginButton: {
     backgroundColor: "#333333",

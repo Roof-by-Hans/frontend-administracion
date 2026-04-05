@@ -331,6 +331,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
             columns={columns}
             pageSize={10}
             rowHeight={52}
+            exportFileBaseName="categorias"
           />
         )}
 
