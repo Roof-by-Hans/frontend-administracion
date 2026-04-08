@@ -340,6 +340,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
                 rows={movimientosFiltrados}
                 columns={columns}
                 pageSize={10}
+              exportFileBaseName=\ movimientos_caja\
             />
             </View>
         ) : (
@@ -591,3 +592,4 @@ const styles = StyleSheet.create({
     color: "#1f1f1f",
   }
 });
+
