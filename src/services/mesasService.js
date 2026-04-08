@@ -1,9 +1,6 @@
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from './api';
-
-// URL del servidor (sin /api para WebSocket)
-const WS_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
+import api from './api';const WS_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
 
 let socket = null;
 
@@ -12,9 +9,7 @@ let socket = null;
  * Basado en la documentación del backend: docs/websocket-mesas.md
  */
 const mesasService = {
-  // ==================== GESTIÓN DE CONEXIÓN ====================
-
-  /**
+    /**
    * Inicializar conexión WebSocket
    * @returns {Promise<Socket|null>} - Instancia del socket o null si hay error
    */
@@ -23,16 +18,12 @@ const mesasService = {
       const token = await AsyncStorage.getItem('token');
       
       if (!token) {
-        console.warn('⚠️ No hay token disponible para WebSocket (conexión como invitado)');
+        console.warn('[WARN] No hay token disponible para WebSocket (conexión como invitado)');
       }
 
       if (socket?.connected) {
-        console.log('✅ Socket ya está conectado');
         return socket;
       }
-
-      console.log('🔌 Conectando WebSocket a:', WS_BASE_URL);
-
       socket = io(WS_BASE_URL, {
         auth: {
           token: token || null // Permitir conexión sin token (invitado)
@@ -44,60 +35,42 @@ const mesasService = {
         reconnectionAttempts: 10,
       });
 
-      // Eventos de conexión
-      socket.on('connect', () => {
-        console.log('✅ WebSocket conectado:', socket.id);
-        // Unirse automáticamente a la sala de mesas
-        socket.emit('join:mesas');
+            socket.on('connect', () => {        socket.emit('join:mesas');
       });
 
       socket.on('connect_error', (error) => {
-        console.error('❌ Error de conexión WebSocket:', error.message);
+        console.error('[ERROR] Error de conexión WebSocket:', error.message);
       });
 
       socket.on('disconnect', (reason) => {
-        console.log('🔌 WebSocket desconectado:', reason);
       });
 
-      socket.on('reconnect', (attemptNumber) => {
-        console.log('🔄 WebSocket reconectado después de', attemptNumber, 'intentos');
-        // Re-unirse a la sala después de reconectar
-        socket.emit('join:mesas');
+      socket.on('reconnect', (attemptNumber) => {        socket.emit('join:mesas');
       });
 
       socket.on('reconnect_error', (error) => {
-        console.error('❌ Error de reconexión:', error.message);
+        console.error('[ERROR] Error de reconexión:', error.message);
       });
 
       socket.on('reconnect_failed', () => {
-        console.error('❌ Falló la reconexión después de todos los intentos');
-      });
-
-      // Confirmaciones de sala
-      socket.on('joined:mesas', (data) => {
-        console.log('✅ Unido a sala de mesas:', data);
+        console.error('[ERROR] Falló la reconexión después de todos los intentos');
+      });      socket.on('joined:mesas', (data) => {
       });
 
       socket.on('left:mesas', (data) => {
-        console.log('👋 Saliste de sala de mesas:', data);
       });
 
       socket.on('joined:mesa', (data) => {
-        console.log('✅ Unido a mesa específica:', data);
       });
 
       socket.on('left:mesa', (data) => {
-        console.log('👋 Saliste de mesa específica:', data);
-      });
-
-      // Manejo de errores
-      socket.on('error', (error) => {
-        console.error('⚠️ Error del servidor:', error);
+      });      socket.on('error', (error) => {
+        console.error('[WARN] Error del servidor:', error);
       });
 
       return socket;
     } catch (error) {
-      console.error('❌ Error al conectar WebSocket:', error);
+      console.error('[ERROR] Error al conectar WebSocket:', error);
       return null;
     }
   },
@@ -106,17 +79,9 @@ const mesasService = {
    * Desconectar WebSocket
    */
   disconnect() {
-    if (socket) {
-      console.log('🔌 Desconectando WebSocket...');
+    if (socket) {      socket.emit('leave:mesas');
       
-      // Salir de la sala antes de desconectar
-      socket.emit('leave:mesas');
-      
-      // Remover todos los listeners
-      this.removeAllListeners();
-      
-      // Desconectar
-      socket.disconnect();
+            this.removeAllListeners();      socket.disconnect();
       socket = null;
     }
   },
@@ -142,22 +107,17 @@ const mesasService = {
    */
   reconnect() {
     if (socket && !socket.connected) {
-      console.log('🔄 Reconectando socket...');
       socket.connect();
     }
-  },
-
-  // ==================== EMITIR EVENTOS (CLIENT -> SERVER) ====================
-
+  },
   /**
    * Unirse a la sala general de mesas
    */
   joinMesas() {
     if (socket && socket.connected) {
-      console.log('📥 Uniéndose a sala de mesas...');
       socket.emit('join:mesas');
     } else {
-      console.warn('⚠️ Socket no conectado');
+      console.warn('[WARN] Socket no conectado');
     }
   },
 
@@ -166,7 +126,6 @@ const mesasService = {
    */
   leaveMesas() {
     if (socket && socket.connected) {
-      console.log('📤 Saliendo de sala de mesas...');
       socket.emit('leave:mesas');
     }
   },
@@ -177,10 +136,9 @@ const mesasService = {
    */
   joinMesa(mesaId) {
     if (socket && socket.connected) {
-      console.log('📥 Uniéndose a mesa:', mesaId);
       socket.emit('join:mesa', { mesaId });
     } else {
-      console.warn('⚠️ Socket no conectado');
+      console.warn('[WARN] Socket no conectado');
     }
   },
 
@@ -190,7 +148,6 @@ const mesasService = {
    */
   leaveMesa(mesaId) {
     if (socket && socket.connected) {
-      console.log('📤 Saliendo de mesa:', mesaId);
       socket.emit('leave:mesa', { mesaId });
     }
   },
@@ -200,7 +157,6 @@ const mesasService = {
    */
   getConnectedClients() {
     if (socket && socket.connected) {
-      console.log('👥 Solicitando clientes conectados...');
       socket.emit('mesas:get-connected-clients');
     }
   },
@@ -211,24 +167,19 @@ const mesasService = {
    */
   getEstadoMesa(mesaId) {
     if (socket && socket.connected) {
-      console.log('📊 Solicitando estado de mesa:', mesaId);
       socket.emit('mesa:get-estado', { mesaId });
     }
-  },
-
-  // ==================== ESCUCHAR EVENTOS (SERVER -> CLIENT) ====================
-
+  },
   /**
    * Escuchar evento de mesa creada
    * @param {Function} callback - Función que recibe el payload: { message, data, timestamp }
    */
   onMesaCreada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:creada', (payload) => {
-      console.log('🆕 Mesa creada:', payload);
       callback(payload);
     });
   },
@@ -239,11 +190,10 @@ const mesasService = {
    */
   onMesaActualizada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:actualizada', (payload) => {
-      console.log('🔄 Mesa actualizada:', payload);
       callback(payload);
     });
   },
@@ -254,11 +204,10 @@ const mesasService = {
    */
   onMesaEliminada(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:eliminada', (payload) => {
-      console.log('🗑️ Mesa eliminada:', payload);
       callback(payload);
     });
   },
@@ -269,11 +218,10 @@ const mesasService = {
    */
   onMesaEstadoCambiado(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:estado-cambiado', (payload) => {
-      console.log('🔄 Estado de mesa cambió:', payload);
       callback(payload);
     });
   },
@@ -284,11 +232,10 @@ const mesasService = {
    */
   onMesasActualizar(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesas:actualizar', (payload) => {
-      console.log('🔄 Solicitud de actualización masiva:', payload);
       callback(payload);
     });
   },
@@ -299,11 +246,10 @@ const mesasService = {
    */
   onNotificacion(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('notificacion', (payload) => {
-      console.log('🔔 Notificación:', payload);
       callback(payload);
     });
   },
@@ -314,11 +260,10 @@ const mesasService = {
    */
   onConnectedClients(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesas:connected-clients', (data) => {
-      console.log('👥 Clientes conectados:', data);
       callback(data);
     });
   },
@@ -329,11 +274,10 @@ const mesasService = {
    */
   onMesaEstado(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('mesa:estado', (data) => {
-      console.log('📊 Estado de mesa:', data);
       callback(data);
     });
   },
@@ -344,11 +288,11 @@ const mesasService = {
    */
   onError(callback) {
     if (!socket) {
-      console.warn('⚠️ Socket no inicializado');
+      console.warn('[WARN] Socket no inicializado');
       return;
     }
     socket.on('error', (error) => {
-      console.error('⚠️ Error del servidor:', error);
+      console.error('[WARN] Error del servidor:', error);
       callback(error);
     });
   },
@@ -386,23 +330,18 @@ const mesasService = {
       socket.off('joined:mesa');
       socket.off('left:mesa');
       socket.off('error');
-      console.log('🔇 Todos los listeners removidos');
     }
   },
 
-  // ==================== API REST ====================
-
-  /**
+    /**
    * Obtener todas las mesas
    */
   async getMesas() {
     try {
-      console.log('📥 Obteniendo todas las mesas...');
       const response = await api.get('/mesas');
-      console.log('📥 Respuesta del backend (primera mesa):', response.data.data?.[0]);
       return response.data.data || [];
     } catch (error) {
-      console.error('❌ Error al obtener mesas:', error.message);
+      console.error('[ERROR] Error al obtener mesas:', error.message);
       throw error;
     }
   },
@@ -412,11 +351,10 @@ const mesasService = {
    */
   async getMesaById(id) {
     try {
-      console.log('📥 Obteniendo mesa:', id);
       const response = await api.get(`/mesas/${id}`);
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al obtener mesa:', error.message);
+      console.error('[ERROR] Error al obtener mesa:', error.message);
       throw error;
     }
   },
@@ -426,11 +364,10 @@ const mesasService = {
    */
   async createMesa(nombre) {
     try {
-      console.log('📤 Creando mesa:', nombre);
       const response = await api.post('/mesas', { nombre });
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al crear mesa:', error.message);
+      console.error('[ERROR] Error al crear mesa:', error.message);
       throw error;
     }
   },
@@ -440,11 +377,10 @@ const mesasService = {
    */
   async updateMesa(id, nombre) {
     try {
-      console.log('📤 Actualizando mesa:', id, nombre);
       const response = await api.put(`/mesas/${id}`, { nombre });
       return response.data.data;
     } catch (error) {
-      console.error('❌ Error al actualizar mesa:', error.message);
+      console.error('[ERROR] Error al actualizar mesa:', error.message);
       throw error;
     }
   },
@@ -457,12 +393,11 @@ const mesasService = {
    */
   async ocuparMesa(mesaId, idCliente = null) {
     try {
-      console.log('📤 Ocupando mesa:', mesaId, idCliente ? `con cliente ${idCliente}` : 'sin cliente');
       const payload = idCliente ? { idCliente } : {};
       const response = await api.post(`/mesas/${mesaId}/ocupar`, payload);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al ocupar mesa:', error.message);
+      console.error('[ERROR] Error al ocupar mesa:', error.message);
       throw error;
     }
   },
@@ -474,11 +409,10 @@ const mesasService = {
    */
   async liberarMesa(mesaId) {
     try {
-      console.log('📤 Liberando mesa:', mesaId);
       const response = await api.post(`/mesas/${mesaId}/liberar`);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al liberar mesa:', error.message);
+      console.error('[ERROR] Error al liberar mesa:', error.message);
       throw error;
     }
   },
@@ -491,11 +425,10 @@ const mesasService = {
    */
   async cambiarEstadoMesa(mesaId, estado) {
     try {
-      console.log('📤 Cambiando estado de mesa:', mesaId, 'a', estado);
       const response = await api.patch(`/mesas/${mesaId}/estado`, { estado });
       return response.data;
     } catch (error) {
-      console.error('❌ Error al cambiar estado de mesa:', error.message);
+      console.error('[ERROR] Error al cambiar estado de mesa:', error.message);
       throw error;
     }
   },
@@ -506,11 +439,10 @@ const mesasService = {
    */
   async getEstadisticas() {
     try {
-      console.log('📊 Obteniendo estadísticas de mesas...');
       const response = await api.get('/mesas/estadisticas/resumen');
       return response.data;
     } catch (error) {
-      console.error('❌ Error al obtener estadísticas:', error.message);
+      console.error('[ERROR] Error al obtener estadísticas:', error.message);
       throw error;
     }
   },
@@ -520,11 +452,10 @@ const mesasService = {
    */
   async deleteMesa(id) {
     try {
-      console.log('📤 Eliminando mesa:', id);
       const response = await api.delete(`/mesas/${id}`);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al eliminar mesa:', error.message);
+      console.error('[ERROR] Error al eliminar mesa:', error.message);
       throw error;
     }
   },
@@ -534,15 +465,13 @@ const mesasService = {
    */
   async actualizarPosicionMesa(idMesa, posX, posY) {
     try {
-      console.log(`📍 Actualizando posición mesa ${idMesa}:`, { posX, posY });
       const response = await api.patch(`/mesas/${idMesa}/posicion`, {
         posX,
         posY
       });
-      console.log('✅ Posición actualizada:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar posición:', error);
+      console.error('[ERROR] Error al actualizar posición:', error);
       throw error;
     }
   },
@@ -552,21 +481,15 @@ const mesasService = {
    * Obtener todos los grupos de mesas
    */
   async getGrupos() {
-    try {
-      console.log('📥 Obteniendo grupos de mesas...');
-      // Intentar ambos endpoints por si uno funciona
-      try {
+    try {      try {
         const response = await api.get('/mesas-grupo');
-        console.log('✅ Grupos obtenidos desde /mesas-grupo');
         return response.data.data || response.data || [];
       } catch (error1) {
-        console.log('⚠️ Endpoint /mesas-grupo falló, intentando /mesas-grupo/grupos');
         const response = await api.get('/mesas-grupo/grupos');
-        console.log('✅ Grupos obtenidos desde /mesas-grupo/grupos');
         return response.data.data || response.data || [];
       }
     } catch (error) {
-      console.error('❌ Error al obtener grupos:', error.message);
+      console.error('[ERROR] Error al obtener grupos:', error.message);
       throw error;
     }
   },
@@ -576,16 +499,14 @@ const mesasService = {
    */
   async createGrupo(nombre, mesasIds) {
     try {
-      console.log('� Creando grupo:', nombre, 'con mesas:', mesasIds);
       const response = await api.post('/mesas-grupo/grupos', { 
         nombre, 
         mesas: mesasIds 
       });
-      console.log('✅ Grupo creado:', response.data);
       return response.data.data || response.data;
     } catch (error) {
-      console.error('❌ Error al crear grupo:', error.message);
-      console.error('❌ Detalles:', error.response?.data);
+      console.error('[ERROR] Error al crear grupo:', error.message);
+      console.error('[ERROR] Detalles:', error.response?.data);
       throw error;
     }
   },
@@ -595,12 +516,10 @@ const mesasService = {
    */
   async deleteGrupo(id) {
     try {
-      console.log('📤 Disolviendo grupo:', id);
       const response = await api.delete(`/mesas-grupo/grupos/${id}`);
-      console.log('✅ Grupo disuelto');
       return response.data;
     } catch (error) {
-      console.error('❌ Error al disolver grupo:', error.message);
+      console.error('[ERROR] Error al disolver grupo:', error.message);
       throw error;
     }
   },
@@ -611,20 +530,14 @@ const mesasService = {
    */
   async actualizarMesasGrupo(grupoId, { agregar = [], remover = [] }) {
     try {
-      console.log('📤 Actualizando grupo:', grupoId);
-      console.log('  ➕ Agregar:', agregar);
-      console.log('  ➖ Remover:', remover);
-      
       const response = await api.patch(`/mesas-grupo/grupos/${grupoId}/mesas`, {
         agregar,
         remover
       });
-      
-      console.log('✅ Grupo actualizado:', response.data);
       return response.data.data || response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar grupo:', error.message);
-      console.error('❌ Detalles:', error.response?.data);
+      console.error('[ERROR] Error al actualizar grupo:', error.message);
+      console.error('[ERROR] Detalles:', error.response?.data);
       throw error;
     }
   },
@@ -636,25 +549,12 @@ const mesasService = {
    */
   async removerMesasDeGrupo(grupoId, mesasIdsARemover, todasLasMesasDelGrupo, nombreGrupo) {
     try {
-      console.log('📤 Removiendo mesas del grupo:', grupoId, 'Mesas a remover:', mesasIdsARemover);
-      
-      // Filtrar las mesas que quedarán en el grupo
-      const mesasRestantes = todasLasMesasDelGrupo.filter(id => !mesasIdsARemover.includes(id));
-      
-      console.log('📊 Mesas restantes:', mesasRestantes.length);
-      
-      // Si quedan menos de 2 mesas, disolver el grupo completo
-      if (mesasRestantes.length < 2) {
-        console.log('⚠️ Solo queda 1 o ninguna mesa, disolviendo grupo completo');
+            const mesasRestantes = todasLasMesasDelGrupo.filter(id => !mesasIdsARemover.includes(id));      if (mesasRestantes.length < 2) {
         return await this.deleteGrupo(grupoId);
-      }
-      
-      // Si quedan 2 o más mesas, usar PATCH para remover sin recrear
-      console.log('🔄 Usando PATCH para remover mesas del grupo');
-      return await this.actualizarMesasGrupo(grupoId, { remover: mesasIdsARemover });
+      }      return await this.actualizarMesasGrupo(grupoId, { remover: mesasIdsARemover });
       
     } catch (error) {
-      console.error('❌ Error al remover mesas del grupo:', error.message);
+      console.error('[ERROR] Error al remover mesas del grupo:', error.message);
       throw error;
     }
   },
@@ -667,12 +567,10 @@ const mesasService = {
    */
   async actualizarEstado(idMesa, estado) {
     try {
-      console.log(`📤 Actualizando estado de mesa ${idMesa} a ${estado}`);
       const response = await api.patch(`/mesas/${idMesa}`, { estado });
-      console.log('✅ Estado actualizado:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Error al actualizar estado:', error.message);
+      console.error('[ERROR] Error al actualizar estado:', error.message);
       throw error;
     }
   },

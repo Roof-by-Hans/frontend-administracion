@@ -38,7 +38,6 @@ export default function Login() {
   }, []);
 
   const handleLogin = async () => {
-    console.log("🚀 handleLogin ejecutado");
     if (!usuario.trim() || !contrasena.trim()) {
       Alert.alert("Error", "Por favor complete todos los campos");
       return;
@@ -46,9 +45,6 @@ export default function Login() {
 
     try {
       setLoading(true);
-      console.log("🔐 Intentando login con:", usuario);
-      console.log("🌐 URL:", `${API_URL}/auth/login`);
-
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
@@ -59,27 +55,20 @@ export default function Login() {
           contrasena: contrasena,
         }),
       });
-
-      console.log("📡 Status:", response.status);
       const data = await response.json();
-      console.log("📥 Respuesta del servidor:", data);
-
       if (response.ok && data.success) {
-        console.log("✅ Login exitoso");
-        console.log("👤 Datos del usuario:", data.data.usuario);
         await login(data.data.usuario, data.data.token);
         if (recordarme) {
           await AsyncStorage.setItem("recordarme", "true");
         }
       } else {
-        console.log("❌ Login fallido:", data.message);
         Alert.alert(
           "Credenciales inválidas",
           data.message || "Usuario o contraseña incorrectos. Por favor, verifica tus datos e intenta nuevamente."
         );
       }
     } catch (error) {
-      console.error("❌ Error en login:", error);
+      console.error("[ERROR] Error en login:", error);
       Alert.alert(
         "Error",
         "No se pudo conectar con el servidor: " + error.message

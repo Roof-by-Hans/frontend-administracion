@@ -103,31 +103,29 @@ export default function DataTable({
 
   return (
     <View style={styles.container}>
-      <Paper sx={{ height: 600, width: '100%', ...sx }}>
-        {exportEnabled && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={openExportMenu}
-              aria-controls={isExportMenuOpen ? 'datatable-export-menu' : undefined}
-              aria-haspopup="true"
-              aria-expanded={isExportMenuOpen ? 'true' : undefined}
-            >
-              Exportar
-            </Button>
-            <Menu
-              id="datatable-export-menu"
-              anchorEl={exportAnchorEl}
-              open={isExportMenuOpen}
-              onClose={closeExportMenu}
-            >
-              <MenuItem onClick={() => runExport('csv')}>CSV</MenuItem>
-              <MenuItem onClick={() => runExport('excel')}>Excel</MenuItem>
-              <MenuItem onClick={() => runExport('pdf')}>PDF</MenuItem>
-            </Menu>
-          </Box>
-        )}
+      {/* Toolbar con botón de exportar */}
+      {exportEnabled && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, pb: 0 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={openExportMenu}
+          >
+            Exportar
+          </Button>
+        </Box>
+      )}
+      <Paper sx={{ height: exportEnabled ? 560 : 600, width: '100%', ...sx }}>
+        <Menu
+          id="datatable-export-menu"
+          anchorEl={exportAnchorEl}
+          open={isExportMenuOpen}
+          onClose={closeExportMenu}
+        >
+          <MenuItem onClick={() => runExport('csv')}>CSV</MenuItem>
+          <MenuItem onClick={() => runExport('excel')}>Excel</MenuItem>
+          <MenuItem onClick={() => runExport('pdf')}>PDF</MenuItem>
+        </Menu>
         <DataGrid
           rows={rows}
           columns={columns}

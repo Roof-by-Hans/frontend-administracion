@@ -17,10 +17,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [turno, setTurno] = useState("Mañana");
-  
-  // Estados para los errores
-  const [errores, setErrores] = useState({
+  const [turno, setTurno] = useState("Mañana");  const [errores, setErrores] = useState({
     nombre: "",
     apellido: "",
     telefono: "",
@@ -28,18 +25,13 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   });
 
   useEffect(() => {
-    if (mozo) {
-      // Modo edición
-      setNombre(mozo.nombre);
+    if (mozo) {      setNombre(mozo.nombre);
       setApellido(mozo.apellido);
       setTelefono(mozo.telefono);
       setTurno(mozo.turno);
-    } else {
-      // Modo creación
-      limpiarCampos();
+    } else {      limpiarCampos();
     }
-    // Limpiar errores al abrir/cerrar modal
-    setErrores({ nombre: "", apellido: "", telefono: "", turno: "" });
+        setErrores({ nombre: "", apellido: "", telefono: "", turno: "" });
   }, [mozo, visible]);
 
   const limpiarCampos = () => {
@@ -47,10 +39,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     setApellido("");
     setTelefono("");
     setTurno("Mañana");
-  };
-
-  // Validación en tiempo real del nombre
-  const handleNombreChange = (text) => {
+  };  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
@@ -59,10 +48,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     } else {
       setErrores(prev => ({ ...prev, nombre: "" }));
     }
-  };
-
-  // Validación en tiempo real del apellido
-  const handleApellidoChange = (text) => {
+  };  const handleApellidoChange = (text) => {
     setApellido(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
@@ -71,10 +57,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     } else {
       setErrores(prev => ({ ...prev, apellido: "" }));
     }
-  };
-
-  // Validación en tiempo real del teléfono
-  const handleTelefonoChange = (text) => {
+  };  const handleTelefonoChange = (text) => {
     setTelefono(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
@@ -88,13 +71,10 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   };
 
   const handleGuardar = () => {
-    // Validar que no haya errores (turno siempre tendrá valor por defecto)
-    const hayErrores = Object.values(errores).some(error => error !== "");
+        const hayErrores = Object.values(errores).some(error => error !== "");
     const camposVacios = !nombre.trim() || !apellido.trim() || !telefono.trim();
     
-    if (hayErrores || camposVacios) {
-      // Marcar todos los campos vacíos como error
-      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
+    if (hayErrores || camposVacios) {      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
       if (!apellido.trim()) setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
       if (!telefono.trim()) setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
       return;

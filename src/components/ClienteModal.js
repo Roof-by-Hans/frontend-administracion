@@ -23,20 +23,14 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [preferencias, setPreferencias] = useState("");
   const [fotoPerfil, setFotoPerfil] = useState(null);
-  const [guardando, setGuardando] = useState(false);
-
-  // Estados para los errores
-  const [errores, setErrores] = useState({
+  const [guardando, setGuardando] = useState(false);  const [errores, setErrores] = useState({
     nombre: "",
     apellido: "",
     telefono: "",
     email: "",
     contrasena: "",
     confirmarContrasena: "",
-  });
-
-  // Efecto para cargar datos del cliente al editar
-  useEffect(() => {
+  });  useEffect(() => {
     if (cliente) {
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
@@ -47,8 +41,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       setContrasena(""); // No mostramos la contraseña
       setConfirmarContrasena("");
     } else {
-      // Resetear campos al agregar nuevo
-      setNombre("");
+            setNombre("");
       setApellido("");
       setTelefono("");
       setEmail("");
@@ -57,8 +50,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       setPreferencias("");
       setFotoPerfil(null);
     }
-    // Limpiar errores al abrir/cerrar modal
-    setErrores({
+        setErrores({
       nombre: "",
       apellido: "",
       telefono: "",
@@ -67,10 +59,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       confirmarContrasena: "",
     });
     setGuardando(false);
-  }, [cliente, visible]);
-
-  // Validación en tiempo real del nombre
-  const handleNombreChange = (text) => {
+  }, [cliente, visible]);  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores((prev) => ({ ...prev, nombre: "El nombre es obligatorio" }));
@@ -82,10 +71,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, nombre: "" }));
     }
-  };
-
-  // Validación en tiempo real del apellido
-  const handleApellidoChange = (text) => {
+  };  const handleApellidoChange = (text) => {
     setApellido(text);
     if (text.trim() === "") {
       setErrores((prev) => ({
@@ -100,10 +86,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, apellido: "" }));
     }
-  };
-
-  // Validación en tiempo real del teléfono
-  const handleTelefonoChange = (text) => {
+  };  const handleTelefonoChange = (text) => {
     setTelefono(text);
     if (text.trim() !== "" && !/^\d+$/.test(text)) {
       setErrores((prev) => ({
@@ -118,10 +101,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, telefono: "" }));
     }
-  };
-
-  // Validación en tiempo real del email
-  const handleEmailChange = (text) => {
+  };  const handleEmailChange = (text) => {
     setEmail(text);
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (text.trim() === "") {
@@ -134,10 +114,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, email: "" }));
     }
-  };
-
-  // Validación en tiempo real de la contraseña
-  const handleContrasenaChange = (text) => {
+  };  const handleContrasenaChange = (text) => {
     setContrasena(text);
     if (!cliente && text.trim() === "") {
       setErrores((prev) => ({
@@ -152,8 +129,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, contrasena: "" }));
     }
-    // Validar confirmación si ya hay algo escrito
-    if (confirmarContrasena && text !== confirmarContrasena) {
+        if (confirmarContrasena && text !== confirmarContrasena) {
       setErrores((prev) => ({
         ...prev,
         confirmarContrasena: "Las contraseñas no coinciden",
@@ -161,10 +137,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else if (confirmarContrasena) {
       setErrores((prev) => ({ ...prev, confirmarContrasena: "" }));
     }
-  };
-
-  // Validación en tiempo real de confirmar contraseña
-  const handleConfirmarContrasenaChange = (text) => {
+  };  const handleConfirmarContrasenaChange = (text) => {
     setConfirmarContrasena(text);
     if (text !== contrasena) {
       setErrores((prev) => ({
@@ -174,13 +147,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, confirmarContrasena: "" }));
     }
-  };
-
-  // Seleccionar foto de perfil
-  const handleSeleccionarFoto = async () => {
-    try {
-      // Solicitar permisos
-      const { status } =
+  };  const handleSeleccionarFoto = async () => {
+    try {      const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== "granted") {
@@ -188,8 +156,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
         return;
       }
 
-      // Abrir selector de imagen
-      const result = await ImagePicker.launchImageLibraryAsync({
+            const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
@@ -205,10 +172,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     }
   };
 
-  // Validar y guardar cliente
-  const handleGuardar = async () => {
-    // Validaciones finales
-    const nuevosErrores = {
+    const handleGuardar = async () => {    const nuevosErrores = {
       nombre: "",
       apellido: "",
       telefono: "",
@@ -217,39 +181,33 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       confirmarContrasena: "",
     };
 
-    // Validar nombre
-    if (!nombre.trim()) {
+        if (!nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio";
     } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre)) {
       nuevosErrores.nombre = "El nombre solo debe contener letras";
     }
 
-    // Validar apellido
-    if (!apellido.trim()) {
+        if (!apellido.trim()) {
       nuevosErrores.apellido = "El apellido es obligatorio";
     } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(apellido)) {
       nuevosErrores.apellido = "El apellido solo debe contener letras";
     }
 
-    // Validar teléfono (opcional)
-    if (telefono.trim() && !/^\d+$/.test(telefono)) {
+        if (telefono.trim() && !/^\d+$/.test(telefono)) {
       nuevosErrores.telefono = "El teléfono solo debe contener números";
     } else if (telefono.trim() && telefono.length < 7) {
       nuevosErrores.telefono = "El teléfono debe tener al menos 7 dígitos";
     }
 
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
       nuevosErrores.email = "El email es obligatorio";
     } else if (!emailRegex.test(email)) {
       nuevosErrores.email = "El formato del email es inválido";
     }
 
-    // Validar contraseña (solo si es nuevo cliente o si se ingresó una contraseña al editar)
-    if (!cliente) {
-      // Crear nuevo cliente - contraseña obligatoria
-      if (!contrasena.trim()) {
+        if (!cliente) {
+            if (!contrasena.trim()) {
         nuevosErrores.contrasena = "La contraseña es obligatoria";
       } else if (contrasena.length < 6) {
         nuevosErrores.contrasena =
@@ -261,25 +219,19 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       } else if (contrasena !== confirmarContrasena) {
         nuevosErrores.confirmarContrasena = "Las contraseñas no coinciden";
       }
-    } else {
-      // Editar cliente - contraseña opcional (solo si quiere cambiarla)
-      if (contrasena.trim() && contrasena.length < 6) {
+    } else {      if (contrasena.trim() && contrasena.length < 6) {
         nuevosErrores.contrasena =
           "La contraseña debe tener al menos 6 caracteres";
       }
       if (contrasena.trim() && contrasena !== confirmarContrasena) {
         nuevosErrores.confirmarContrasena = "Las contraseñas no coinciden";
       }
-    }
-
-    // Si hay errores, actualizar el estado y no continuar
-    if (Object.values(nuevosErrores).some((error) => error !== "")) {
+    }    if (Object.values(nuevosErrores).some((error) => error !== "")) {
       setErrores(nuevosErrores);
       return;
     }
 
-    // Crear FormData
-    setGuardando(true);
+        setGuardando(true);
     try {
       const formData = new FormData();
       formData.append("nombre", nombre.trim());
@@ -288,10 +240,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
 
       if (telefono.trim()) {
         formData.append("telefono", telefono.trim());
-      }
-
-      // Solo enviar contraseña si se proporcionó
-      if (contrasena.trim()) {
+      }      if (contrasena.trim()) {
         formData.append("contrasena", contrasena.trim());
       }
 
@@ -299,16 +248,11 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
         formData.append("preferencias", preferencias.trim());
       }
 
-      // Agregar foto si existe
-      if (fotoPerfil) {
-        if (Platform.OS === "web") {
-          // Para web, necesitamos crear un blob
-          const response = await fetch(fotoPerfil.uri);
+            if (fotoPerfil) {
+        if (Platform.OS === "web") {          const response = await fetch(fotoPerfil.uri);
           const blob = await response.blob();
           formData.append("fotoPerfil", blob, "foto.jpg");
-        } else {
-          // Para móvil
-          const fileUri = fotoPerfil.uri;
+        } else {          const fileUri = fotoPerfil.uri;
           const filename = fileUri.split("/").pop();
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : "image/jpeg";

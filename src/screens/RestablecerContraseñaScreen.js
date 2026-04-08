@@ -20,13 +20,11 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
   const [exito, setExito] = useState(false);
 
   useEffect(() => {
-    // Token pasado directamente como prop (cuando Login lo renderiza sin React Navigation)
-    if (tokenDirecto) {
+        if (tokenDirecto) {
       setToken(tokenDirecto);
       return;
     }
-    // Token desde parámetros de ruta (React Navigation)
-    if (route?.params?.token) {
+        if (route?.params?.token) {
       setToken(route.params.token);
     }
     if (route?.params?.search) {
@@ -177,7 +175,6 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
               </View>
             </View>
 
-            {/* Botón de restablecer */}
             <TouchableOpacity
               style={[
                 styles.botonRestablecer,
@@ -194,9 +191,9 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
                     name="lock"
                     size={20}
                     color="#fff"
-                    style={styles.iconoBoton}
+                    style={styles.icono}
                   />
-                  <Text style={styles.textoBoton}>
+                  <Text style={styles.texto}>
                     Restablecer contraseña
                   </Text>
                 </>
@@ -304,10 +301,10 @@ const styles = StyleSheet.create({
   botonDeshabilitado: {
     opacity: 0.7,
   },
-  iconoBoton: {
+  icono: {
     marginRight: 8,
   },
-  textoBoton: {
+  texto: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",

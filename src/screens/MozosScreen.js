@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton } from "@mui/material";
+import { IconButton, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import DataTable from "../components/DataTable";
 import { getMozos, getMozosActivos } from "../services/mozoService";
@@ -22,8 +22,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar mozos al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarMozos();
   }, []);
 
@@ -41,8 +40,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Filtrar mozos
-  const mozosFiltrados = mozos.filter((mozo) => {
+    const mozosFiltrados = mozos.filter((mozo) => {
     const nombreUsuario = mozo.nombreUsuario?.toLowerCase() || "";
     const nombre = mozo.nombre?.toLowerCase() || "";
     const apellido = mozo.apellido?.toLowerCase() || "";
@@ -53,10 +51,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       nombre.includes(busquedaLower) ||
       apellido.includes(busquedaLower)
     );
-  });
-
-  // Definir columnas para DataTable
-  const columns = [
+  });  const columns = [
     {
       field: "nombreUsuario",
       headerName: "Usuario",
@@ -86,6 +81,38 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       width: 130,
       headerAlign: "center",
       align: "center",
+      valueGetter: (value, row) => row?.activo ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
       renderCell: (params) => (
         <View
           style={{
@@ -188,7 +215,6 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón actualizar */}
             <TouchableOpacity
               style={styles.refreshButton}
               onPress={cargarMozos}
@@ -210,12 +236,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
 
         {/* DataTable */}
         {!loading && !error && (
-          <DataTable
-            rows={mozosFiltrados}
-            columns={columns}
-            pageSize={10}
-            exportFileBaseName="mozos"
-          />
+          <DataTable rows={mozosFiltrados} columns={columns} pageSize={10} />
         )}
 
         {/* Loading */}

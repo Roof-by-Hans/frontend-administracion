@@ -25,17 +25,16 @@ export default function GestionarMesasModal({
   
   const handleAgregarMesa = () => {
     if (!nombreNuevaMesa.trim()) {
-      Alert.alert("⚠️ Error", "Por favor ingresa un nombre para la mesa");
+      Alert.alert("[WARN] Error", "Por favor ingresa un nombre para la mesa");
       return;
     }
     
     onAgregarMesa(nombreNuevaMesa.trim());
-    setNombreNuevaMesa(""); // Limpiar el input
-  };
+    setNombreNuevaMesa("");   };
 
   const handleEliminarMesa = (numero, nombre) => {
     Alert.alert(
-      "⚠️ Confirmar eliminación",
+      "[WARN] Confirmar eliminación",
       `¿Estás seguro de eliminar la mesa "${nombre || numero}"?`,
       [
         {
@@ -99,8 +98,7 @@ export default function GestionarMesasModal({
           <Text style={styles.sectionTitle}>Mesas actuales ({mesas?.length || 0})</Text>
           <ScrollView style={styles.mesasList}>
             {mesas && mesas.length > 0 ? (
-              // Filtrar duplicados usando Map
-              Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map((mesa) => (
+                            Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map((mesa) => (
                 <View key={`modal-mesa-${mesa.idMesa || mesa.numero}`} style={styles.mesaItem}>
                   <View style={styles.mesaInfo}>
                     <View style={[

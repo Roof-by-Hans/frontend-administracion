@@ -19,10 +19,7 @@ const ImageSelector = ({
   imagePickerOptions = {} 
 }) => {
   const [imageUri, setImageUri] = useState(initialImageUrl);
-  const [loading, setLoading] = useState(false);
-
-  // Opciones por defecto del selector de imágenes
-  const defaultOptions = {
+  const [loading, setLoading] = useState(false);  const defaultOptions = {
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
     aspect: [4, 3],
@@ -35,10 +32,7 @@ const ImageSelector = ({
    */
   const pickImageFromGallery = async () => {
     try {
-      setLoading(true);
-
-      // Solicitar permisos en iOS
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setLoading(true);      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -48,14 +42,10 @@ const ImageSelector = ({
         return;
       }
 
-      // Abrir selector de imágenes
-      const result = await ImagePicker.launchImageLibraryAsync(defaultOptions);
+            const result = await ImagePicker.launchImageLibraryAsync(defaultOptions);
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        
-        // Preparar objeto de imagen
-        const imageData = {
+        const asset = result.assets[0];        const imageData = {
           uri: asset.uri,
           type: asset.type || 'image/jpeg',
           name: asset.fileName || `image_${Date.now()}.jpg`,
@@ -63,10 +53,7 @@ const ImageSelector = ({
           height: asset.height,
         };
         
-        setImageUri(asset.uri);
-        
-        // Notificar al componente padre
-        if (onImageSelected) {
+        setImageUri(asset.uri);        if (onImageSelected) {
           onImageSelected(imageData);
         }
       }
@@ -83,10 +70,7 @@ const ImageSelector = ({
    */
   const takePhoto = async () => {
     try {
-      setLoading(true);
-
-      // Solicitar permisos de cámara
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      setLoading(true);      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -96,11 +80,8 @@ const ImageSelector = ({
         return;
       }
 
-      // Abrir cámara
-      const result = await ImagePicker.launchCameraAsync({
-        ...defaultOptions,
-        // La cámara no soporta aspect ratio en algunos dispositivos
-        aspect: undefined,
+            const result = await ImagePicker.launchCameraAsync({
+        ...defaultOptions,        aspect: undefined,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -132,12 +113,8 @@ const ImageSelector = ({
    * Mostrar opciones de selección
    */
   const showImageOptions = () => {
-    if (Platform.OS === 'web') {
-      // En web, solo galería
-      pickImageFromGallery();
-    } else {
-      // En móvil, mostrar opciones
-      Alert.alert(
+    if (Platform.OS === 'web') {      pickImageFromGallery();
+    } else {      Alert.alert(
         'Seleccionar imagen',
         '¿De dónde quieres obtener la imagen?',
         [

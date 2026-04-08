@@ -20,6 +20,20 @@ export const getProductos = async () => {
 };
 
 /**
+ * Obtiene solo productos habilitados para pedidos
+ * @returns {Promise} Lista de productos habilitados
+ */
+export const getProductosHabilitados = async () => {
+  try {
+    const response = await api.get('/productos/habilitados');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener productos habilitados:', error);
+    throw error;
+  }
+};
+
+/**
  * Obtiene un producto por su ID
  * @param {number} id - ID del producto
  * @returns {Promise} Datos del producto
@@ -48,8 +62,7 @@ export const crearProducto = async (productoData, imagen = null) => {
   try {
     const formData = new FormData();
     
-    // Agregar datos del producto
-    formData.append('nombre', productoData.nombre);
+        formData.append('nombre', productoData.nombre);
     formData.append('precio_unitario', productoData.precio_unitario.toString());
     formData.append('id_categoria', productoData.id_categoria.toString());
     
@@ -57,20 +70,13 @@ export const crearProducto = async (productoData, imagen = null) => {
       formData.append('descripcion', productoData.descripcion);
     }
     
-    // Agregar imagen si existe
-    if (imagen) {
-      // En web, si tenemos el archivo real, usarlo directamente
-      if (imagen.file) {
+        if (imagen) {      if (imagen.file) {
         formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
-      }
-      // En web, si solo tenemos blob URI
-      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+      }      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
         const response = await fetch(imagen.uri);
         const blob = await response.blob();
         formData.append('imagen', blob, imagen.name || 'producto.jpg');
-      } 
-      // En React Native móvil
-      else {
+      }       else {
         formData.append('imagen', {
           uri: imagen.uri,
           type: imagen.type || 'image/jpeg',
@@ -107,8 +113,7 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
   try {
     const formData = new FormData();
     
-    // Agregar solo los campos que se van a actualizar
-    if (productoData.nombre !== undefined) {
+        if (productoData.nombre !== undefined) {
       formData.append('nombre', productoData.nombre);
     }
     if (productoData.precio_unitario !== undefined) {
@@ -121,20 +126,13 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
       formData.append('descripcion', productoData.descripcion);
     }
     
-    // Agregar imagen si existe
-    if (imagen) {
-      // En web, si tenemos el archivo real, usarlo directamente
-      if (imagen.file) {
+        if (imagen) {      if (imagen.file) {
         formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
-      }
-      // En web, si solo tenemos blob URI
-      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+      }      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
         const response = await fetch(imagen.uri);
         const blob = await response.blob();
         formData.append('imagen', blob, imagen.name || 'producto.jpg');
-      } 
-      // En React Native móvil
-      else {
+      }       else {
         formData.append('imagen', {
           uri: imagen.uri,
           type: imagen.type || 'image/jpeg',
@@ -171,11 +169,25 @@ export const eliminarProducto = async (id) => {
   }
 };
 
-// Exportar todas las funciones como default también
-export default {
+/**
+ * Toggle el estado de habilitación de un producto
+ * @param {number} id - ID del producto
+ * @returns {Promise} Nuevo estado del producto
+ */
+export const toggleProducto = async (id) => {
+  try {
+    const response = await api.patch(`/productos/${id}/toggle`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al toggle producto ${id}:`, error);
+    throw error;
+  }
+};export default {
   getProductos,
+  getProductosHabilitados,
   getProductoPorId,
   crearProducto,
   actualizarProducto,
   eliminarProducto,
+  toggleProducto,
 };

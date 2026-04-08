@@ -65,6 +65,18 @@ const clienteService = {
     );
     return response.data; // Devuelve { success, data, message }
   },
+
+  /**
+   * Toggle el estado de habilitación de un cliente.
+   * @param {string|number} clienteId Identificador del cliente.
+   * @returns {Promise} Axios response con el nuevo estado.
+   */
+  toggleCliente: async (clienteId) => {
+    const response = await api.patch(
+      `${CLIENTES_ENDPOINT}/${clienteId}/toggle`
+    );
+    return response.data; // Devuelve { success, data, message }
+  },
 };
 
 export default clienteService;

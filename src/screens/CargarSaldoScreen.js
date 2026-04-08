@@ -22,24 +22,14 @@ import clienteService from "../services/clienteService";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
-  // Estados principales
-  const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
+    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoCargar, setMontoCargar] = useState("");
-  const [metodoPago, setMetodoPago] = useState("Efectivo");
-
-  // Estados para la lista
-  const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState("");
-
-  // Estados de UI
-  const [loading, setLoading] = useState(true);
+  const [metodoPago, setMetodoPago] = useState("Efectivo");  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState("");  const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");
-
-  // Estados para modales
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -48,8 +38,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
   const { width } = useWindowDimensions();
   const isCompact = width < 768;
 
-  // Cargar clientes con tarjetas PREPAGO al montar
-  useEffect(() => {
+    useEffect(() => {
     cargarClientesConTarjetasPrepago();
   }, []);
 
@@ -57,32 +46,26 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
     try {
       setLoading(true);
 
-      // Obtener todos los clientes
-      const clientesRes = await clienteService.getClientes();
+            const clientesRes = await clienteService.getClientes();
       const todosLosClientes = clientesRes.data || [];
 
-      // Obtener todas las tarjetas
-      const tarjetasRes = await tarjetaService.getTarjetas();
+            const tarjetasRes = await tarjetaService.getTarjetas();
       const todasLasTarjetas = tarjetasRes.data || [];
 
-      // Filtrar solo tarjetas PREPAGO
-      const tarjetasPrepago = todasLasTarjetas.filter(
+            const tarjetasPrepago = todasLasTarjetas.filter(
         (t) => t.nombreTipoSuscripcion === "PREPAGA"
       );
 
-      // Crear un mapa de tarjetas por ID
-      const mapaTarjetas = {};
+            const mapaTarjetas = {};
       tarjetasPrepago.forEach((tarjeta) => {
         mapaTarjetas[tarjeta.id] = tarjeta;
       });
 
-      // Filtrar clientes que tengan tarjeta PREPAGO
-      const clientesConTarjetaPrepago = todosLosClientes.filter(
+            const clientesConTarjetaPrepago = todosLosClientes.filter(
         (cliente) => cliente.idTarjeta && mapaTarjetas[cliente.idTarjeta]
       );
 
-      // Agregar info de tarjeta a cada cliente
-      const clientesConInfo = clientesConTarjetaPrepago.map((cliente) => ({
+            const clientesConInfo = clientesConTarjetaPrepago.map((cliente) => ({
         ...cliente,
         tarjeta: mapaTarjetas[cliente.idTarjeta],
       }));
@@ -101,15 +84,9 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
     setErrorMessage("");
     setTarjetaSeleccionada(null);
 
-    try {
-      // Escanear tarjeta RFID
-      const response = await cardService.scanRFID();
+    try {      const response = await cardService.scanRFID();
       const rfidUid = response.uid;
-
-      console.log("📡 Tarjeta escaneada:", rfidUid);
-
-      // Buscar la tarjeta en el sistema
-      const verificacion = await tarjetaService.verificarUid(rfidUid);
+            const verificacion = await tarjetaService.verificarUid(rfidUid);
 
       if (!verificacion.existe) {
         setErrorMessage("Esta tarjeta no está registrada en el sistema");
@@ -117,8 +94,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         return;
       }
 
-      // Verificar que sea una tarjeta PREPAGO
-      if (verificacion.data.tipoSuscripcion !== "PREPAGA") {
+            if (verificacion.data.tipoSuscripcion !== "PREPAGA") {
         setErrorMessage(
           "Solo se puede cargar saldo a tarjetas PREPAGO. Esta tarjeta es de tipo " +
             verificacion.data.tipoSuscripcion
@@ -127,15 +103,13 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         return;
       }
 
-      // Verificar que esté asociada a un cliente
-      if (!verificacion.data.asociadaACliente) {
+            if (!verificacion.data.asociadaACliente) {
         setErrorMessage("Esta tarjeta no está asociada a ningún cliente");
         setScanStatus("error");
         return;
       }
 
-      // Obtener datos completos de la tarjeta
-      const tarjetaCompleta = await tarjetaService.getTarjetaPorId(
+            const tarjetaCompleta = await tarjetaService.getTarjetaPorId(
         verificacion.data.idTarjeta
       );
 
@@ -146,7 +120,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("❌ Error al escanear tarjeta:", error);
+      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -166,8 +140,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
       const cliente = clientes.find((c) => c.id === parseInt(idCliente));
       if (!cliente || !cliente.tarjeta) return;
 
-      // Obtener datos actualizados de la tarjeta
-      const tarjetaCompleta = await tarjetaService.getTarjetaPorId(
+            const tarjetaCompleta = await tarjetaService.getTarjetaPorId(
         cliente.tarjeta.id
       );
 
@@ -185,9 +158,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  const handleSolicitarCarga = () => {
-    // Validaciones
-    if (!tarjetaSeleccionada) {
+  const handleSolicitarCarga = () => {    if (!tarjetaSeleccionada) {
       alert("Por favor, selecciona o escanea una tarjeta primero");
       return;
     }
@@ -203,8 +174,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
       return;
     }
 
-    // Mostrar modal de confirmación
-    setShowConfirmModal(true);
+        setShowConfirmModal(true);
   };
 
   const handleConfirmarCarga = async () => {
@@ -215,23 +185,17 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       const monto = parseFloat(montoCargar);
 
-      // Llamar al servicio para cargar saldo
-      const resultado = await tarjetaService.cargarSaldo(
+            const resultado = await tarjetaService.cargarSaldo(
         tarjetaSeleccionada.cliente.id,
         monto,
         metodoPago
       );
-
-      console.log("✅ Saldo cargado exitosamente:", resultado);
-
-      // Actualizar la tarjeta seleccionada con el nuevo saldo
-      setTarjetaSeleccionada({
+            setTarjetaSeleccionada({
         ...tarjetaSeleccionada,
         saldoActual: resultado.data.saldos.actual,
       });
 
-      // Mostrar mensaje de éxito
-      setSuccessMessage(
+            setSuccessMessage(
         `Se cargaron $${formatCurrency(
           monto
         )} exitosamente. Nuevo saldo: $${formatCurrency(
@@ -240,15 +204,11 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
       );
       setShowSuccessModal(true);
 
-      // Limpiar el campo de monto
-      setMontoCargar("");
-
-      // Recargar la lista de clientes si estamos en modo lista
-      if (metodoSeleccion === "lista") {
+            setMontoCargar("");      if (metodoSeleccion === "lista") {
         cargarClientesConTarjetasPrepago();
       }
     } catch (error) {
-      console.error("❌ Error al cargar saldo:", error);
+      console.error("[ERROR] Error al cargar saldo:", error);
       alert(
         error.response?.data?.message ||
           error.message ||
@@ -371,9 +331,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
         {/* Contenido según método seleccionado */}
         <View style={styles.contentSection}>
-          {metodoSeleccion === "escanear" ? (
-            // Modo escaneo
-            <View style={styles.scanSection}>
+          {metodoSeleccion === "escanear" ? (            <View style={styles.scanSection}>
               <Text style={styles.instructionText}>
                 Presiona el botón para escanear una tarjeta RFID
               </Text>
@@ -390,9 +348,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
                 <Text style={styles.scanButtonText}>Escanear Tarjeta</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            // Modo lista
-            <View style={styles.listaSection}>
+          ) : (            <View style={styles.listaSection}>
               <Text style={styles.label}>Seleccionar cliente</Text>
               {clientes.length === 0 ? (
                 <View style={styles.emptyState}>

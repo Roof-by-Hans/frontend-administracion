@@ -28,17 +28,12 @@ export default function SuccessModal({
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible) {
-      // Animación de aparición
-      Animated.spring(scaleAnim, {
+    if (visible) {      Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
         useNativeDriver: true,
-      }).start();
-
-      // Auto-cerrar si se especificó delay
-      if (autoCloseDelay && autoCloseDelay > 0) {
+      }).start();      if (autoCloseDelay && autoCloseDelay > 0) {
         const timer = setTimeout(() => {
           onClose();
         }, autoCloseDelay);
@@ -64,13 +59,13 @@ export default function SuccessModal({
             />
           </View>
 
-          {/* Título */}
+           */}
           <Text style={styles.title}>{title}</Text>
 
           {/* Mensaje */}
           <Text style={styles.message}>{message}</Text>
 
-          {/* Botón de cerrar */}
+           de cerrar */}
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}

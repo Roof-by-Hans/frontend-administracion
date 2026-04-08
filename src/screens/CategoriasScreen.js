@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton } from "@mui/material";
+import { IconButton, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CategoriaModal from "../components/CategoriaModal";
-import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 import * as categoriasService from "../services/categoriasService";
@@ -13,24 +12,21 @@ import Alert from "@blazejkustra/react-native-alert";
 export default function CategoriasScreen({ onNavigate, currentScreen }) {
   const [categorias, setCategorias] = useState([]);
   const [categoriasPlanas, setCategoriasPlanas] = useState([]);
+  const [categoriasTodas, setCategoriasTodas] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [categoriaEditando, setCategoriaEditando] = useState(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
   const { user } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar categorías desde el backend al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarCategorias();
   }, []);
 
-  // Función auxiliar para crear un mapa de todas las categorías con su idCatPadre
-  const crearMapaCategorias = (arbol, mapa = {}) => {
+    const crearMapaCategorias = (arbol, mapa = {}) => {
     arbol.forEach(cat => {
       mapa[cat.id] = {
         id: cat.id,
@@ -50,11 +46,33 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       setError(null);
       const response = await categoriasService.getCategorias();
       
-      if (response.success && response.data) {
-        setCategorias(response.data);
-        // Convertir a formato plano para la tabla
-        const planas = categoriasService.aplanarCategorias(response.data);
+      if (response.success && response.data) {        const treeData = response.data.tree || response.data;
+        const flatData = response.data.flat || [];
+        
+        setCategorias(treeData);
+        
+                const mapaCategorias = {};
+        flatData.forEach(cat => {
+          mapaCategorias[cat.id] = cat;
+        });        const planas = flatData.map(cat => {
+          const nivel = calcularNivel(cat.idCatPadre, mapaCategorias, 0);
+          const indentacion = "  ".repeat(nivel);
+          return {
+            id: cat.id,
+            nombre: cat.nombre,
+            nombreConIndentacion: nivel > 0 ? `${indentacion}└ ${cat.nombre}` : cat.nombre,
+            idCatPadre: cat.idCatPadre,
+            nivel: nivel,
+            habilitar: cat.habilitar ?? 1,
+          };
+        });        planas.sort((a, b) => {
+          if (a.nivel !== b.nivel) return a.nivel - b.nivel;
+          return a.nombre.localeCompare(b.nombre);
+        });
+        
         setCategoriasPlanas(planas);
+        
+                setCategoriasTodas(flatData);
       }
     } catch (error) {
       console.error("Error al cargar categorías:", error);
@@ -64,27 +82,33 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       setCargando(false);
     }
   };
+  
+    const calcularNivel = (idPadre, mapa, nivelActual) => {
+    if (!idPadre) return 0;
+    const padre = mapa[idPadre];
+    if (!padre) return 0;
+    return 1 + calcularNivel(padre.idCatPadre, mapa, nivelActual);
+  };
 
-  // Filtrar categorías según la búsqueda manual
-  const categoriasFiltradas = categoriasPlanas.filter((categoria) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();
-    if (!terminoBusqueda) return true;
+    const categoriasFiltradas = categoriasPlanas.filter((categoria) => {
+    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+      if (!categoria.nombre.toLowerCase().includes(terminoBusqueda)) {
+        return false;
+      }
+    }
 
-    return categoria.nombre.toLowerCase().includes(terminoBusqueda);
+    return true;
   });
 
-  // Crear mapa de categorías para búsqueda rápida
-  const mapaCategorias = crearMapaCategorias(categorias);
-
-  // Preparar datos para la tabla con ID único
-  const categoriasParaTabla = categoriasFiltradas.map(cat => {
-    const categoriaCompleta = mapaCategorias[cat.id];
-    const idPadre = categoriaCompleta?.idCatPadre;
+    const mapaCategorias = {};
+  categoriasTodas.forEach(cat => {
+    mapaCategorias[cat.id] = cat;
+  });  const categoriasParaTabla = categoriasFiltradas.map(cat => {
+    const idPadre = cat.idCatPadre;
     
     let nombrePadre = 'Raíz';
-    if (idPadre) {
-      const padre = mapaCategorias[idPadre];
-      nombrePadre = padre ? padre.nombre : 'N/A';
+    if (idPadre && mapaCategorias[idPadre]) {
+      nombrePadre = mapaCategorias[idPadre].nombre;
     }
     
     return {
@@ -92,10 +116,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       idCatPadre: idPadre,
       nombrePadre: nombrePadre,
     };
-  });
-
-  // Definir columnas para el DataGrid
-  const columns = [
+  });  const columns = [
     {
       field: 'id',
       headerName: 'ID',
@@ -121,30 +142,82 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       minWidth: 200,
     },
     {
+      field: 'estado',
+      headerName: 'Estado',
+      width: 100,
+      sortable: true,
+      valueGetter: (value, row) => row?.habilitar ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
+      renderCell: (params) => {
+        const habilitado = params.row.habilitar;
+        return (
+          <TouchableOpacity
+            onPress={() => handleToggleCategoria(params.row)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: habilitado ? "#e8f5e9" : "#ffebee",
+              borderWidth: 1,
+              borderColor: habilitado ? "#4CAF50" : "#f44336",
+            }}
+          >
+            <Text style={{
+              color: habilitado ? "#2e7d32" : "#c62828",
+              fontSize: 12,
+              fontWeight: "600",
+            }}>
+              {habilitado ? "Activo" : "Inactivo"}
+            </Text>
+          </TouchableOpacity>
+        );
+      },
+    },
+    {
       field: 'acciones',
       headerName: 'Acciones',
-      minWidth: 150,
+      width: 80,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <View style={styles.actionsContainer}>
-          <IconButton
-            onClick={() => handleEditarCategoria(params.row)}
-            color="primary"
-            size="small"
-            title="Editar"
-          >
-            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
-          </IconButton>
-          <IconButton
-            onClick={() => handleEliminarCategoria(params.row.id)}
-            color="error"
-            size="small"
-            title="Eliminar"
-          >
-            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
-          </IconButton>
-        </View>
+        <IconButton
+          onClick={() => handleEditarCategoria(params.row)}
+          color="primary"
+          size="small"
+          title="Editar"
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+        </IconButton>
       ),
     },
   ];
@@ -155,14 +228,12 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
   };
 
   const handleEditarCategoria = (categoria) => {
-    // Buscar la categoría completa con idCatPadre en la estructura original
-    const categoriaCompleta = encontrarCategoriaEnArbol(categorias, categoria.id);
+        const categoriaCompleta = encontrarCategoriaEnArbol(categorias, categoria.id);
     setCategoriaEditando(categoriaCompleta || categoria);
     setModalVisible(true);
   };
 
-  // Función auxiliar para buscar categoría en árbol jerárquico
-  const encontrarCategoriaEnArbol = (arbol, id) => {
+    const encontrarCategoriaEnArbol = (arbol, id) => {
     for (const cat of arbol) {
       if (cat.id === id) return cat;
       if (cat.children && cat.children.length > 0) {
@@ -173,47 +244,29 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
     return null;
   };
 
-  // Función para abrir modal de confirmación de eliminación
-  const handleEliminarCategoria = (categoriaId) => {
-    setCategoriaAEliminar(categoriaId);
-    setConfirmModalVisible(true);
-  };
-
-  // Función para confirmar la eliminación
-  const confirmarEliminacion = async () => {
-    if (categoriaAEliminar) {
-      try {
-        setCargando(true);
-        await categoriasService.eliminarCategoria(categoriaAEliminar);
-        
-        // Recargar categorías
-        await cargarCategorias();
-        setConfirmModalVisible(false);
-        setCategoriaAEliminar(null);
-        Alert.alert("Éxito", "Categoría eliminada correctamente.");
-      } catch (error) {
-        console.error("Error al eliminar categoría:", error);
-        const mensaje = error.response?.data?.message || "No se pudo eliminar la categoría. Puede que tenga productos o subcategorías asociadas.";
-        Alert.alert("Error", mensaje);
-      } finally {
-        setCargando(false);
-      }
+    const handleToggleCategoria = async (categoriaRow) => {
+    try {
+      setCargando(true);
+      const response = await categoriasService.toggleCategoria(categoriaRow.id);      await cargarCategorias();
+      
+      const nuevoEstado = response.data?.habilitar === 1 ? "habilitada" : "deshabilitada";
+      Alert.alert("Éxito", `Categoría ${nuevoEstado} correctamente.`);
+    } catch (error) {
+      console.error("Error al togglear categoría:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo cambiar el estado de la categoría."
+      );
+    } finally {
+      setCargando(false);
     }
-  };
-
-  // Función para cancelar la eliminación
-  const cancelarEliminacion = () => {
-    setConfirmModalVisible(false);
-    setCategoriaAEliminar(null);
   };
 
   const handleGuardarCategoria = async (categoriaData) => {
     try {
       setCargando(true);
       
-      if (categoriaEditando) {
-        // Editar categoría existente
-        const datosActualizacion = {
+      if (categoriaEditando) {        const datosActualizacion = {
           nombre: categoriaData.nombre,
           idCatPadre: categoriaData.idCatPadre,
         };
@@ -228,8 +281,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           Alert.alert("Éxito", "Categoría actualizada correctamente.");
         }
       } else {
-        // Agregar nueva categoría
-        const datosNuevaCategoria = {
+                const datosNuevaCategoria = {
           nombre: categoriaData.nombre,
           idCatPadre: categoriaData.idCatPadre,
         };
@@ -304,7 +356,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón Agregar */}
             <TouchableOpacity 
               style={[styles.addButton, cargando && styles.addButtonDisabled]} 
               onPress={handleAgregarCategoria}
@@ -331,7 +382,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
             columns={columns}
             pageSize={10}
             rowHeight={52}
-            exportFileBaseName="categorias"
           />
         )}
 
@@ -344,15 +394,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
             setCategoriaEditando(null);
           }}
           onSave={handleGuardarCategoria}
-        />
-
-        {/* Modal de confirmación para eliminar */}
-        <ConfirmModal
-          visible={confirmModalVisible}
-          title="Eliminar Categoría"
-          message="¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer. Si la categoría tiene productos o subcategorías asociadas, no podrá ser eliminada."
-          onConfirm={confirmarEliminacion}
-          onCancel={cancelarEliminacion}
         />
       </View>
     </DashboardLayout>

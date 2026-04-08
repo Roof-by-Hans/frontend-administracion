@@ -36,8 +36,7 @@ export default function ConfirmDesvinculacionModal({
 }) {
   const [confirmado, setConfirmado] = useState(false);
 
-  // Resetear el checkbox cuando se cierra el modal
-  const handleCancel = () => {
+    const handleCancel = () => {
     setConfirmado(false);
     onCancel();
   };
@@ -55,16 +54,7 @@ export default function ConfirmDesvinculacionModal({
   const tarjetaActual = conflicto.tarjetaActual || {};
   const esMismoCliente = conflicto.esMismoCliente || false;
 
-  // Debug: Log para verificar qué está recibiendo el modal
-  console.log("🔔 ConfirmDesvinculacionModal - conflicto recibido:", conflicto);
-  console.log("🔔 ConfirmDesvinculacionModal - clienteActual:", clienteActual);
-  console.log("🔔 ConfirmDesvinculacionModal - clienteNuevo:", clienteNuevo);
-  console.log(
-    "🔔 ConfirmDesvinculacionModal - esMismoCliente:",
-    esMismoCliente
-  );
-
-  return (
+    return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -81,7 +71,7 @@ export default function ConfirmDesvinculacionModal({
               />
             </View>
 
-            {/* Título */}
+             */}
             <Text style={styles.title}>
               {esMismoCliente
                 ? "Advertencia: Cambio de Tipo de Tarjeta"
@@ -222,7 +212,7 @@ export default function ConfirmDesvinculacionModal({
             </TouchableOpacity>
           </ScrollView>
 
-          {/* Botones de acción */}
+          {/* es de acción */}
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={styles.cancelButton}

@@ -17,7 +17,6 @@ import {
   Easing,
   ScrollView,
 } from "react-native";
-// import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -32,7 +31,6 @@ export default function DashboardLayout({
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
   const isTablet = width >= 900 && width < 1200;
-  // const insets = useSafeAreaInsets();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const animationValue = useRef(new Animated.Value(0)).current;
@@ -110,16 +108,11 @@ export default function DashboardLayout({
   }, [closeMenu, isCompact, isMenuVisible]);
 
   const handleConfirmLogout = useCallback(() => {
-    console.log("🟢 handleConfirmLogout ejecutado");
-    console.log("🟢 onLogout:", onLogout);
-    console.log("🟢 typeof onLogout:", typeof onLogout);
     setShowLogoutPrompt(false);
     if (onLogout && typeof onLogout === "function") {
-      console.log("🟢 Ejecutando onLogout()...");
       onLogout();
-      console.log("🟢 onLogout() ejecutado");
     } else {
-      console.error("❌ onLogout no es función o es undefined");
+      console.error("[ERROR] onLogout no es función o es undefined");
     }
   }, [onLogout]);
 

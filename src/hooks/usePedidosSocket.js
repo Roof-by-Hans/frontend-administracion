@@ -30,77 +30,43 @@ export function usePedidosSocket(options = {}) {
     onMesaActualizada
   } = options;
 
-  // ==================== ESCUCHAR EVENTOS ====================
+    useEffect(() => {
+    if (!socket || !isConnected) return;    socket.emit('join:pedidos');
 
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    console.log('🎧 Suscribiendo a eventos de pedidos...');
-
-    // Unirse a la sala de pedidos para recibir actualizaciones
-    socket.emit('join:pedidos');
-
-    // Evento: Nuevo pedido creado
-    const handlePedidoCreado = (data) => {
-      console.log('🆕 Pedido creado:', data);
-      
+        const handlePedidoCreado = (data) => {
       if (onPedidoCreado) {
         onPedidoCreado(data);
       }
     };
 
-    // Evento: Pedido actualizado (editado)
-    const handlePedidoActualizado = (data) => {
-      console.log('✏️ Pedido actualizado:', data);
-      
+        const handlePedidoActualizado = (data) => {
       if (onPedidoActualizado) {
         onPedidoActualizado(data);
       }
     };
 
-    // Evento: Pedido eliminado
-    const handlePedidoEliminado = (data) => {
-      console.log('🗑️ Pedido eliminado:', data);
-      
+        const handlePedidoEliminado = (data) => {
       if (onPedidoEliminado) {
         onPedidoEliminado(data);
       }
     };
 
-    // Evento: Mesa cobrada (factura generada)
-    const handlePedidoCobrado = (data) => {
-      console.log('💰 Mesa cobrada:', data);
-      
+        const handlePedidoCobrado = (data) => {
       if (onPedidoCobrado) {
         onPedidoCobrado(data);
       }
     };
 
-    // Evento: Estado de mesa actualizado
-    const handleMesaActualizada = (data) => {
-      console.log('🔄 Mesa actualizada:', data);
-      
+        const handleMesaActualizada = (data) => {
       if (onMesaActualizada) {
         onMesaActualizada(data);
       }
-    };
-
-    // Registrar listeners
-    socket.on('pedido:creado', handlePedidoCreado);
+    };    socket.on('pedido:creado', handlePedidoCreado);
     socket.on('pedido:actualizado', handlePedidoActualizado);
     socket.on('pedido:eliminado', handlePedidoEliminado);
     socket.on('pedido:cobrado', handlePedidoCobrado);
-    socket.on('mesa:actualizada', handleMesaActualizada);
-
-    // Confirmación de unión a sala
-    socket.on('joined:pedidos', (data) => {
-      console.log('✅ Unido a sala de pedidos:', data);
-    });
-
-    // Cleanup: Remover listeners y salir de sala
-    return () => {
-      console.log('🔌 Desuscribiendo de eventos de pedidos...');
-      
+    socket.on('mesa:actualizada', handleMesaActualizada);    socket.on('joined:pedidos', (data) => {
+    });    return () => {
       socket.off('pedido:creado', handlePedidoCreado);
       socket.off('pedido:actualizado', handlePedidoActualizado);
       socket.off('pedido:eliminado', handlePedidoEliminado);
@@ -112,19 +78,15 @@ export function usePedidosSocket(options = {}) {
     };
   }, [socket, isConnected, onPedidoCreado, onPedidoActualizado, onPedidoEliminado, onPedidoCobrado, onMesaActualizada]);
 
-  // ==================== FUNCIONES PARA EMITIR EVENTOS ====================
-
-  /**
+    /**
    * Emitir evento de pedido creado
    * El backend recibirá esto y lo reenviará a todos los clientes conectados
    */
   const emitirPedidoCreado = useCallback((pedido) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
-
-    console.log('📤 Emitiendo pedido:crear:', pedido);
     socket.emit('pedido:crear', pedido);
   }, [socket, isConnected]);
 
@@ -133,11 +95,9 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirPedidoActualizado = useCallback((pedido) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
-
-    console.log('📤 Emitiendo pedido:actualizar:', pedido);
     socket.emit('pedido:actualizar', pedido);
   }, [socket, isConnected]);
 
@@ -146,11 +106,9 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirPedidoEliminado = useCallback((idPedido, idMesa, idGrupo) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
-
-    console.log('📤 Emitiendo pedido:eliminar:', { idPedido, idMesa, idGrupo });
     socket.emit('pedido:eliminar', { idPedido, idMesa, idGrupo });
   }, [socket, isConnected]);
 
@@ -159,11 +117,9 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirMesaCobrada = useCallback((idMesa, idGrupo, factura) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
-
-    console.log('📤 Emitiendo pedido:cobrar:', { idMesa, idGrupo, factura });
     socket.emit('pedido:cobrar', { idMesa, idGrupo, factura });
   }, [socket, isConnected]);
 
@@ -172,19 +128,15 @@ export function usePedidosSocket(options = {}) {
    */
   const emitirMesaActualizada = useCallback((idMesa, estado) => {
     if (!socket || !isConnected) {
-      console.warn('⚠️ Socket no conectado, no se puede emitir evento');
+      console.warn('[WARN] Socket no conectado, no se puede emitir evento');
       return;
     }
-
-    console.log('📤 Emitiendo mesa:actualizar:', { idMesa, estado });
     socket.emit('mesa:actualizar', { idMesa, estado });
   }, [socket, isConnected]);
 
   return {
     socket,
-    isConnected: isConnected && isAuthenticated,
-    // Funciones para emitir eventos
-    emitirPedidoCreado,
+    isConnected: isConnected && isAuthenticated,    emitirPedidoCreado,
     emitirPedidoActualizado,
     emitirPedidoEliminado,
     emitirMesaCobrada,

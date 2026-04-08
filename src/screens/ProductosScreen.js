@@ -9,10 +9,9 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { IconButton } from "@mui/material";
+import { IconButton, Select, MenuItem, FormControl } from "@mui/material";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ProductoModal from "../components/ProductoModal";
-import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
 import { useAuth } from "../context/AuthContext";
 import * as productosService from "../services/productosService";
@@ -23,16 +22,13 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
   const { user, logout } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-  // Cargar productos desde el backend al montar el componente
-  useEffect(() => {
+    useEffect(() => {
     cargarProductos();
   }, []);
 
@@ -43,8 +39,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       const response = await productosService.getProductos();
 
       if (response.success && response.data) {
-        // Mapear los datos del backend al formato esperado por el frontend
-        const productosFormateados = response.data.map((producto) => ({
+                const productosFormateados = response.data.map((producto) => ({
           id: producto.id,
           nombre: producto.nombre,
           categoria: producto.categoria?.nombre || "Sin categoría",
@@ -53,6 +48,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           descripcion: producto.descripcion || "",
           fotoPrincipal: producto.fotoPrincipal,
           fotoPrincipalUrl: producto.fotoPrincipalUrl,
+          habilitar: producto.habilitar ?? 1,
         }));
         setProductos(productosFormateados);
       }
@@ -65,20 +61,17 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Filtrar productos según la búsqueda manual
-  const productosFiltrados = productos.filter((producto) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();
-    if (!terminoBusqueda) return true;
+    const productosFiltrados = productos.filter((producto) => {
+    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+      if (!producto.nombre.toLowerCase().includes(terminoBusqueda) &&
+          !producto.categoria.toLowerCase().includes(terminoBusqueda) &&
+          !producto.precio.toString().includes(terminoBusqueda)) {
+        return false;
+      }
+    }
 
-    return (
-      producto.nombre.toLowerCase().includes(terminoBusqueda) ||
-      producto.categoria.toLowerCase().includes(terminoBusqueda) ||
-      producto.precio.toString().includes(terminoBusqueda)
-    );
-  });
-
-  // Definir columnas para el DataGrid
-  const columns = [
+    return true;
+  });  const columns = [
     {
       field: "id",
       headerName: "ID",
@@ -137,30 +130,82 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       minWidth: 200,
     },
     {
+      field: "estado",
+      headerName: "Estado",
+      width: 100,
+      sortable: true,
+      valueGetter: (value, row) => row?.habilitar ? "Activo" : "Inactivo",
+      filterOperators: [
+        {
+          label: "es",
+          value: "is",
+          requiresFilterValue: false,
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value || filterItem.value === "") {
+              return null;
+            }
+            return (value) => {
+              return value === filterItem.value;
+            };
+          },
+          InputComponent: function EstadoFilterInput({ item, applyValue, focusRef }) {
+            return (
+              <FormControl sx={{ minWidth: 120 }}>
+                <Select
+                  size="small"
+                  value={item.value || ""}
+                  onChange={(e) => applyValue({ ...item, value: e.target.value })}
+                  inputRef={focusRef}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Activo">Activo</MenuItem>
+                  <MenuItem value="Inactivo">Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            );
+          },
+        },
+      ],
+      renderCell: (params) => {
+        const habilitado = params.row.habilitar;
+        return (
+          <TouchableOpacity
+            onPress={() => handleToggleProducto(params.row)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: habilitado ? "#e8f5e9" : "#ffebee",
+              borderWidth: 1,
+              borderColor: habilitado ? "#4CAF50" : "#f44336",
+            }}
+          >
+            <Text style={{
+              color: habilitado ? "#2e7d32" : "#c62828",
+              fontSize: 12,
+              fontWeight: "600",
+            }}>
+              {habilitado ? "Activo" : "Inactivo"}
+            </Text>
+          </TouchableOpacity>
+        );
+      },
+    },
+    {
       field: "acciones",
       headerName: "Acciones",
-      minWidth: 150,
+      width: 80,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <View style={styles.actionsContainer}>
-          <IconButton
-            onClick={() => handleEditarProducto(params.row)}
-            color="primary"
-            size="small"
-            title="Editar"
-          >
-            <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
-          </IconButton>
-          <IconButton
-            onClick={() => handleEliminarProducto(params.row.id)}
-            color="error"
-            size="small"
-            title="Eliminar"
-          >
-            <MaterialCommunityIcons name="delete" size={20} color="#d32f2f" />
-          </IconButton>
-        </View>
+        <IconButton
+          onClick={() => handleEditarProducto(params.row)}
+          color="primary"
+          size="small"
+          title="Editar"
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#1976d2" />
+        </IconButton>
       ),
     },
   ];
@@ -175,49 +220,29 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     setModalVisible(true);
   };
 
-  // Función para abrir modal de confirmación de eliminación
-  const handleEliminarProducto = (productoId) => {
-    setProductoAEliminar(productoId);
-    setConfirmVisible(true);
-  };
-
-  // Función para confirmar la eliminación
-  const confirmarEliminacion = async () => {
-    if (productoAEliminar) {
-      try {
-        setCargando(true);
-        await productosService.eliminarProducto(productoAEliminar);
-
-        // Actualizar la lista local
-        setProductos(productos.filter((p) => p.id !== productoAEliminar));
-        setConfirmVisible(false);
-        setProductoAEliminar(null);
-        Alert.alert("Éxito", "Producto eliminado correctamente.");
-      } catch (error) {
-        console.error("Error al eliminar producto:", error);
-        Alert.alert(
-          "Error",
-          "No se pudo eliminar el producto. Por favor, intenta nuevamente."
-        );
-      } finally {
-        setCargando(false);
-      }
+    const handleToggleProducto = async (productoRow) => {
+    try {
+      setCargando(true);
+      const response = await productosService.toggleProducto(productoRow.id);      await cargarProductos();
+      
+      const nuevoEstado = response.data?.habilitar === 1 ? "habilitado" : "deshabilitado";
+      Alert.alert("Éxito", `Producto ${nuevoEstado} correctamente.`);
+    } catch (error) {
+      console.error("Error al togglear producto:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo cambiar el estado del producto."
+      );
+    } finally {
+      setCargando(false);
     }
-  };
-
-  // Función para cancelar la eliminación
-  const cancelarEliminacion = () => {
-    setConfirmVisible(false);
-    setProductoAEliminar(null);
   };
 
   const handleGuardarProducto = async (productoData) => {
     try {
       setCargando(true);
 
-      if (productoEditando) {
-        // Editar producto existente
-        const datosActualizacion = {
+      if (productoEditando) {        const datosActualizacion = {
           nombre: productoData.nombre,
           precio_unitario: productoData.precio,
           id_categoria: productoData.categoriaId,
@@ -230,14 +255,11 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           productoData.imagen // Si hay una nueva imagen
         );
 
-        if (response.success) {
-          // Recargar productos para obtener los datos actualizados
-          await cargarProductos();
+        if (response.success) {          await cargarProductos();
           Alert.alert("Éxito", "Producto actualizado correctamente.");
         }
       } else {
-        // Agregar nuevo producto
-        const datosNuevoProducto = {
+                const datosNuevoProducto = {
           nombre: productoData.nombre,
           precio_unitario: productoData.precio,
           id_categoria: productoData.categoriaId,
@@ -249,9 +271,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           productoData.imagen // Si hay imagen
         );
 
-        if (response.success) {
-          // Recargar productos para obtener el nuevo producto
-          await cargarProductos();
+        if (response.success) {          await cargarProductos();
           Alert.alert("Éxito", "Producto creado correctamente.");
         }
       }
@@ -332,7 +352,6 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Botón Agregar */}
             <TouchableOpacity
               style={[styles.addButton, cargando && styles.addButtonDisabled]}
               onPress={handleAgregarProducto}
@@ -358,7 +377,6 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             rows={productosFiltrados}
             columns={columns}
             pageSize={10}
-            exportFileBaseName="productos"
           />
         )}
 
@@ -371,15 +389,6 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             setProductoEditando(null);
           }}
           onSave={handleGuardarProducto}
-        />
-
-        {/* Modal de confirmación para eliminar */}
-        <ConfirmModal
-          visible={confirmVisible}
-          title="Eliminar Producto"
-          message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
-          onConfirm={confirmarEliminacion}
-          onCancel={cancelarEliminacion}
         />
       </View>
     </DashboardLayout>

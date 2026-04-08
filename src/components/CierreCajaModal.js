@@ -18,8 +18,7 @@ export default function CierreCajaModal({
   onClose,
   onConfirm,
   loading,
-  saldoSistema = 0, // Dato informativo (opcional, si queremos mostrar cuánto debería haber)
-}) {
+  saldoSistema = 0, }) {
   const [conteoEfectivo, setConteoEfectivo] = useState("");
   const [conteoTarjetas, setConteoTarjetas] = useState("");
   const [observacion, setObservacion] = useState("");
@@ -40,20 +39,13 @@ export default function CierreCajaModal({
 
     const montoFinalReportado = efectivo + tarjetas;
 
-    // Estructura que espera el backend
-    // subtotalesPorMedio es opcional pero idealmente enviaríamos el detalle
-    // Por simplicidad, asumiremos IDs genéricos o enviaremos solo el conteo global
-    // El backend usa 'subtotalesPorMedio' para auditoría detallada. 
-    // Si no tenemos los IDs de medios de pago a mano, podemos enviar array vacío o implementarlo luego.
-    // Enviaremos array vacío por ahora para evitar errores de IDs incorrectos.
-    
+        
     onConfirm({
       montoFinalReportado,
       observacion,
       conteoEfectivo: efectivo,
       conteoTarjetas: tarjetas,
-      subtotalesPorMedio: [], // TODO: Implementar si se requiere desglose por tipo de tarjeta
-    });
+      subtotalesPorMedio: [],     });
   };
 
   const handleClose = () => {
@@ -91,7 +83,7 @@ export default function CierreCajaModal({
             </View>
 
             <ScrollView style={styles.body}>
-              {/* Sección Efectivo */}
+               Efectivo */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
                   <MaterialCommunityIcons name="cash" size={18} color="#37474f" /> Efectivo
@@ -109,7 +101,7 @@ export default function CierreCajaModal({
                 <Text style={styles.helperText}>Total de billetes y monedas en caja</Text>
               </View>
 
-              {/* Sección Tarjetas */}
+               Tarjetas */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
                   <MaterialCommunityIcons name="credit-card" size={18} color="#37474f" /> Tarjetas (Vouchers)

@@ -2,10 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { AppState } from 'react-native';
 import Alert from "@blazejkustra/react-native-alert";
 import { io } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// URL del servidor (sin /api para WebSocket)
-const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
+import AsyncStorage from '@react-native-async-storage/async-storage';const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
 
 const SocketContext = createContext(null);
 
@@ -41,10 +38,6 @@ export const SocketProvider = ({ children }) => {
     const initSocket = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        
-        console.log('🔌 Inicializando socket global...');
-        console.log('🔑 Token disponible:', !!token);
-
         const socket = io(SOCKET_URL, {
           auth: { token: token || null },
           transports: ['websocket', 'polling'],
@@ -61,12 +54,8 @@ export const SocketProvider = ({ children }) => {
 
         socketRef.current = socket;
 
-        // ==================== EVENTOS DE CONEXIÓN ====================
-
-        socket.on('connect', () => {
+                socket.on('connect', () => {
           if (!mounted) return;
-          
-          console.log('✅ Socket global conectado:', socket.id);
           setIsConnected(true);
           setIsAuthenticated(!!token);
           reconnectAttempts.current = 0;
@@ -74,29 +63,24 @@ export const SocketProvider = ({ children }) => {
 
         socket.on('disconnect', (reason) => {
           if (!mounted) return;
-          
-          console.log('❌ Socket global desconectado:', reason);
           setIsConnected(false);
         });
 
         socket.on('reconnect', (attemptNumber) => {
           if (!mounted) return;
-          
-          console.log('🔄 Socket global reconectado después de', attemptNumber, 'intentos');
           reconnectAttempts.current = 0;
         });
 
         socket.on('reconnect_attempt', (attemptNumber) => {
-          console.log('🔄 Intento de reconexión global:', attemptNumber);
           reconnectAttempts.current = attemptNumber;
         });
 
         socket.on('reconnect_error', (error) => {
-          console.error('❌ Error de reconexión global:', error.message);
+          console.error('[ERROR] Error de reconexión global:', error.message);
         });
 
         socket.on('reconnect_failed', () => {
-          console.error('❌ Falló la reconexión global después de todos los intentos');
+          console.error('[ERROR] Falló la reconexión global después de todos los intentos');
           
           if (mounted) {
             Alert.alert(
@@ -108,15 +92,11 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('connect_error', (error) => {
-          console.error('❌ Error de conexión global:', error.message);
+          console.error('[ERROR] Error de conexión global:', error.message);
         });
 
-        // ==================== EVENTOS DE AUTENTICACIÓN ====================
-
-        socket.on('authenticated', (data) => {
+                socket.on('authenticated', (data) => {
           if (!mounted) return;
-          
-          console.log('✅ Usuario autenticado:', data);
           setIsAuthenticated(true);
           setUserId(data.userId);
           setUserRole(data.userRole);
@@ -125,31 +105,24 @@ export const SocketProvider = ({ children }) => {
         socket.on('unauthorized', (data) => {
           if (!mounted) return;
           
-          console.warn('⚠️ Usuario no autorizado:', data);
+          console.warn('[WARN] Usuario no autorizado:', data);
           setIsAuthenticated(false);
           setUserId(null);
           setUserRole(null);
         });
 
       } catch (error) {
-        console.error('❌ Error al inicializar socket global:', error);
+        console.error('[ERROR] Error al inicializar socket global:', error);
       }
     };
 
     initSocket();
 
-    // ==================== MANEJO DE ESTADO DE LA APP ====================
-
-    const subscription = AppState.addEventListener('change', nextAppState => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
-      ) {
-        // La app volvió a foreground
-        console.log('📱 App en foreground, verificando conexión global...');
-        
-        if (socketRef.current && !socketRef.current.connected) {
-          console.log('🔄 Reconectando socket global...');
+      ) {        if (socketRef.current && !socketRef.current.connected) {
           socketRef.current.connect();
         }
       }
@@ -157,12 +130,8 @@ export const SocketProvider = ({ children }) => {
       appState.current = nextAppState;
     });
 
-    // ==================== CLEANUP ====================
-
-    return () => {
+        return () => {
       mounted = false;
-      console.log('🧹 Limpiando socket global...');
-      
       if (socketRef.current) {
         socketRef.current.off('connect');
         socketRef.current.off('disconnect');
@@ -180,9 +149,7 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
-  // ==================== FUNCIONES AUXILIARES ====================
-
-  /**
+    /**
    * Actualizar token de autenticación
    * @param {string} newToken - Nuevo token JWT
    */
@@ -190,16 +157,12 @@ export const SocketProvider = ({ children }) => {
     try {
       await AsyncStorage.setItem('token', newToken);
       
-      if (socketRef.current) {
-        console.log('🔄 Actualizando token del socket...');
-        
-        // Desconectar y reconectar con nuevo token
-        socketRef.current.disconnect();
+      if (socketRef.current) {        socketRef.current.disconnect();
         socketRef.current.auth = { token: newToken };
         socketRef.current.connect();
       }
     } catch (error) {
-      console.error('❌ Error al actualizar token:', error);
+      console.error('[ERROR] Error al actualizar token:', error);
     }
   };
 
@@ -214,12 +177,11 @@ export const SocketProvider = ({ children }) => {
       setUserRole(null);
       
       if (socketRef.current) {
-        console.log('🔄 Desautenticando socket...');
         socketRef.current.disconnect();
         socketRef.current.auth = { token: null };
       }
     } catch (error) {
-      console.error('❌ Error al limpiar token:', error);
+      console.error('[ERROR] Error al limpiar token:', error);
     }
   };
 
@@ -228,7 +190,6 @@ export const SocketProvider = ({ children }) => {
    */
   const reconnect = () => {
     if (socketRef.current) {
-      console.log('🔄 Reconectando socket global manualmente...');
       socketRef.current.connect();
     }
   };
@@ -242,7 +203,7 @@ export const SocketProvider = ({ children }) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit(event, data);
     } else {
-      console.warn('⚠️ Socket no conectado, no se puede emitir:', event);
+      console.warn('[WARN] Socket no conectado, no se puede emitir:', event);
     }
   };
 

@@ -68,9 +68,7 @@ export default function UsuarioModal({
     }));
   };
 
-  const handleSave = () => {
-    // Validaciones
-    if (!formData.nombreUsuario.trim()) {
+  const handleSave = () => {    if (!formData.nombreUsuario.trim()) {
       Alert.alert("Error", "El nombre de usuario es obligatorio");
       return;
     }
@@ -102,17 +100,13 @@ export default function UsuarioModal({
     if (formData.roles.length === 0) {
       Alert.alert("Error", "Debe seleccionar al menos un rol");
       return;
-    }
-
-    // Preparar datos para enviar
-    const dataToSend = {
+    }    const dataToSend = {
       nombreUsuario: formData.nombreUsuario,
       activo: formData.activo,
       roles: formData.roles,
     };
 
-    // Validar y agregar email si se proporcionó
-    if (formData.email.trim()) {
+        if (formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
         Alert.alert("Error", "El formato del email es inválido");
@@ -121,10 +115,7 @@ export default function UsuarioModal({
       dataToSend.email = formData.email.trim();
     } else {
       dataToSend.email = null;
-    }
-
-    // Solo incluir contraseña si se proporcionó
-    if (formData.contrasena) {
+    }    if (formData.contrasena) {
       dataToSend.contrasena = formData.contrasena;
     }
 
