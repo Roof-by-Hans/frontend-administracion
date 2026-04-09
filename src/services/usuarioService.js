@@ -36,33 +36,19 @@ export const toggleUsuario = async (usuarioId) => {
   return response.data;
 };
 
-/**
- * Servicio para operaciones relacionadas con usuarios del sistema.
- */
+
 const usuarioService = {
-  /**
-   * Obtener todos los usuarios.
-   * @returns {Promise} Axios response con la lista de usuarios.
-   */
+  
   getUsuarios: async () => {
     return getUsuarios();
   },
 
-  /**
-   * Obtener un usuario por ID.
-   * @param {string|number} usuarioId Identificador del usuario.
-   * @returns {Promise} Axios response con los datos del usuario.
-   */
+  
   getUsuarioPorId: async (usuarioId) => {
     return getUsuarioPorId(usuarioId);
   },
 
-  /**
-   * Actualizar un usuario existente (incluyendo foto de perfil).
-   * @param {string|number} usuarioId Identificador del usuario.
-   * @param {FormData} usuarioData Datos actualizados del usuario.
-   * @returns {Promise} Axios response con el usuario actualizado.
-   */
+  
   actualizarUsuario: async (usuarioId, usuarioData) => {
     return actualizarUsuario(usuarioId, usuarioData);
   },
@@ -74,29 +60,17 @@ const usuarioService = {
     return response.data;
   },
 
-  /**
-   * Crear un nuevo usuario.
-   * @param {FormData} usuarioData Datos del nuevo usuario.
-   * @returns {Promise} Axios response con el usuario creado.
-   */
+  
   crearUsuario: async (usuarioData) => {
     return crearUsuario(usuarioData);
   },
 
-  /**
-   * Eliminar un usuario.
-   * @param {string|number} usuarioId Identificador del usuario a eliminar.
-   * @returns {Promise} Axios response de la operación.
-   */
+  
   eliminarUsuario: async (usuarioId) => {
     return eliminarUsuario(usuarioId);
   },
 
-  /**
-   * Toggle el estado activo de un usuario.
-   * @param {string|number} usuarioId Identificador del usuario.
-   * @returns {Promise} Axios response con el nuevo estado.
-   */
+  
   toggleUsuario: async (usuarioId) => {
     return toggleUsuario(usuarioId);
   },

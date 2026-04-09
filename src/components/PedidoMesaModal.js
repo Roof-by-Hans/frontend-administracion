@@ -15,10 +15,7 @@ import { getProductosHabilitados } from "../services/productosService";
 import clientesService from "../services/clientesService";
 import pedidosService from "../services/pedidosService";
 
-/**
- * Modal para crear/editar pedidos en mesas o grupos de mesas
- * NOTA: Los pedidos se guardan temporalmente, la factura se genera al cobrar
- */
+
 export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedidoCreado, pedidoEnEdicion = null }) {
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -60,7 +57,6 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
       setClientes(clientesData.data || clientesData || []);
       setProductos(productosData.data || productosData || []);
     } catch (error) {
-      console.error("Error al cargar datos:", error);
       Alert.alert("Error", "No se pudieron cargar los datos necesarios");
     } finally {
       setLoadingData(false);
@@ -117,7 +113,8 @@ export default function PedidoMesaModal({ visible, onClose, mesa, grupo, onPedid
     );
   };
 
-const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
+const handleCrearPedido = async () => {
+    if (!clienteSeleccionado) {
       Alert.alert("Error", "Debe seleccionar un cliente");
       return;
     }
@@ -125,7 +122,8 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
     if (productosSeleccionados.length === 0) {
       Alert.alert("Error", "Debe agregar al menos un producto");
       return;
-    }    const infoTarjeta = clienteSeleccionado.tarjeta;
+    }
+    const infoTarjeta = clienteSeleccionado.tarjeta;
     if (infoTarjeta) {
       const totalPedido = calcularTotal();
       const tipo = infoTarjeta.tipoSuscripcion;
@@ -170,7 +168,8 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
       } else if (mesa) {
         datos.idMesa = mesa.idMesa || mesa.id;
         datos.numeroMesa = mesa.numero;
-      }      if (pedidoEnEdicion) {
+      }
+      if (pedidoEnEdicion) {
         const clave = grupo ? `grupo-${grupo.id}` : `mesa-${datos.idMesa}`;
         await pedidosService.eliminarPedido(pedidoEnEdicion.id, clave);
       }
@@ -192,7 +191,6 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
         ]
       );
     } catch (error) {
-      console.error("Error al crear pedido:", error);
       const mensaje = error.response?.data?.message || error.message || "No se pudo crear el pedido";
       Alert.alert("Error", mensaje);
     } finally {
@@ -240,7 +238,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          {/* Header */}
+          
           <View style={styles.header}>
             <View>
               <Text style={styles.title}>{pedidoEnEdicion ? 'Editar Pedido' : 'Nuevo Pedido'}</Text>
@@ -258,7 +256,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
             </View>
           ) : (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* Selección de Cliente */}
+              
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Cliente *</Text>
                 <TextInput
@@ -286,7 +284,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                       </TouchableOpacity>
                     </View>
                     
-                    {/* Información de Saldo/Crédito */}
+                    
                     {clienteSeleccionado.tarjeta && (
                       <View style={[
                         styles.infoSaldo,
@@ -348,7 +346,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                 )}
               </View>
 
-              {/* Selección de Productos */}
+              
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Productos *</Text>
                 <TextInput
@@ -359,7 +357,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                   placeholderTextColor="#999"
                 />
 
-                {/* Productos Seleccionados */}
+                
                 {productosSeleccionados.length > 0 && (
                   <View style={styles.productosSeleccionados}>
                     {productosSeleccionados.map((producto) => (
@@ -393,7 +391,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                   </View>
                 )}
 
-                {/* Lista de Productos Disponibles */}
+                
                 <ScrollView style={styles.productosList} nestedScrollEnabled>
                   {productosFiltrados.length === 0 ? (
                     <Text style={styles.emptyText}>No se encontraron productos</Text>
@@ -422,7 +420,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                 </ScrollView>
               </View>
 
-              {/* Observaciones */}
+              
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Observaciones (opcional)</Text>
                 <TextInput
@@ -436,7 +434,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
                 />
               </View>
 
-              {/* Total */}
+              
               <View style={styles.totalContainer}>
                 <View>
                   <Text style={styles.totalLabel}>Total:</Text>
@@ -454,7 +452,7 @@ const handleCrearPedido = async () => {    if (!clienteSeleccionado) {
             </ScrollView>
           )}
 
-          {/* Footer con es */}
+          
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.button, styles.buttonSecondary]}

@@ -25,11 +25,14 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
     const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoPagar, setMontoPagar] = useState("");
-  const [metodoPago, setMetodoPago] = useState("Efectivo");  const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState("");  const [loading, setLoading] = useState(true);
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+  const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -72,8 +75,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      console.error("Error al cargar clientes:", error);
-      alert("Error al cargar los datos. Por favor, recarga la página.");
+      alert("Error al cargar clientes. Por favor, recarga la página.");
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
     setErrorMessage("");
     setTarjetaSeleccionada(null);
 
-    try {      const response = await cardService.scanRFID();
+    try {
+      const response = await cardService.scanRFID();
       const rfidUid = response.uid;
             const verificacion = await tarjetaService.verificarUid(rfidUid);
 
@@ -120,7 +123,6 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -153,12 +155,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         },
       });
     } catch (error) {
-      console.error("Error al seleccionar cliente:", error);
-      alert("Error al cargar los datos de la tarjeta");
+      alert("Error al seleccionar cliente");
     }
   };
 
-  const handleSolicitarPago = () => {    if (!tarjetaSeleccionada) {
+  const handleSolicitarPago = () => {
+    if (!tarjetaSeleccionada) {
       alert("Por favor, selecciona o escanea una tarjeta primero");
       return;
     }
@@ -204,16 +206,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
       );
       setShowSuccessModal(true);
 
-            setMontoPagar("");      if (metodoSeleccion === "lista") {
+            setMontoPagar("");
+      if (metodoSeleccion === "lista") {
         cargarClientesConTarjetasCredito();
       }
     } catch (error) {
-      console.error("[ERROR] Error al registrar pago:", error);
-      alert(
-        error.response?.data?.message ||
-          error.message ||
-          "Error al registrar el pago"
-      );
+      alert("Error al registrar pago");
     } finally {
       setProcesando(false);
     }
@@ -268,7 +266,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
           Pagar deuda de tarjeta crédito
         </Text>
 
-        {/* Selector de método */}
+        
         <View style={styles.metodoSelector}>
           <Text style={styles.sectionTitle}>
             ¿Cómo deseas identificar la tarjeta?
@@ -329,9 +327,10 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Contenido según método seleccionado */}
+        
         <View style={styles.contentSection}>
-          {metodoSeleccion === "escanear" ? (            <View style={styles.scanSection}>
+          {metodoSeleccion === "escanear" ? (
+            <View style={styles.scanSection}>
               <Text style={styles.instructionText}>
                 Presiona el botón para escanear una tarjeta RFID
               </Text>
@@ -348,7 +347,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
                 <Text style={styles.scanButtonText}>Escanear Tarjeta</Text>
               </TouchableOpacity>
             </View>
-          ) : (            <View style={styles.listaSection}>
+          ) : (
+            <View style={styles.listaSection}>
               <Text style={styles.label}>Seleccionar cliente</Text>
               {clientes.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -387,7 +387,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
             </View>
           )}
 
-          {/* Información de tarjeta seleccionada */}
+          
           {tarjetaSeleccionada && (
             <View style={styles.tarjetaInfo}>
               <View style={styles.tarjetaHeader}>
@@ -437,7 +437,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
                 </View>
               </View>
 
-              {/* Formulario de pago */}
+              
               <View style={styles.formSection}>
                 <Text style={styles.label}>Monto a pagar</Text>
                 <TextInput
@@ -511,7 +511,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         </View>
       </ScrollView>
 
-      {/* Modal de escaneo RFID */}
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
@@ -519,7 +519,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         onClose={handleCloseModal}
       />
 
-      {/* Modal de confirmación de pago */}
+      
       <ConfirmPagoDeudaModal
         visible={showConfirmModal}
         clienteNombre={
@@ -534,7 +534,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         onCancel={handleCancelarPago}
       />
 
-      {/* Modal de éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Pago registrado!"
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
   },
   deudaValue: {
     fontSize: 20,
-    color: "#D32F2F", // Color rojo para deuda
+    color: "#D32F2F", 
   },
   formSection: {
     gap: 16,
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 24,
-    backgroundColor: "#2196F3", // Azul para pago de deuda
+    backgroundColor: "#2196F3", 
     shadowColor: "#2196F3",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

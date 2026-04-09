@@ -25,7 +25,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todas"); // todas, COBRADA, PENDIENTE
+  const [filtroEstado, setFiltroEstado] = useState("todas"); 
   const [modalVisible, setModalVisible] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
   const [detallesFactura, setDetallesFactura] = useState([]);
@@ -43,7 +43,8 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
 
   useEffect(() => {
     cargarFacturas();
-  }, []);  useEffect(() => {
+  }, []);
+  useEffect(() => {
     emit("join:pedidos");
 
     const handlePagoRevertido = ({ data }) => {
@@ -71,9 +72,10 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       setMesas(mesasData.data || mesasData || []);
       setGrupos(gruposData.data || gruposData || []);
     } catch (error) {
-      console.error("Error al cargar facturas:", error);
+      setError("Error al cargar las facturas. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar las facturas del servidor.");
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
@@ -96,10 +98,12 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             const detalles = await facturasService.getDetallesFactura(factura.id);
       setDetallesFactura(detalles.data || detalles || []);
     } catch (error) {
-      console.error("Error al cargar detalles de factura:", error);
-      setDetallesFactura([]);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudieron cargar los detalles de la factura."
+      );
     } finally {
-      setLoadingDetalles(false);
+      setCargandoDetalles(false);
     }
   };
 
@@ -169,7 +173,8 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       clienteNombre.includes(terminoBusqueda) ||
       factura.mesa?.numero?.toString().includes(terminoBusqueda)
     );
-  });  const columns = [
+  });
+  const columns = [
     {
       field: "id",
       headerName: "# Factura",
@@ -293,15 +298,15 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       currentScreen={currentScreen}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Gestionar Facturas</Text>
         </View>
 
-        {/* Controles superiores */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -330,7 +335,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Filtro de estado */}
+            
             <View style={styles.filterContainer}>
               <TouchableOpacity
                 style={[
@@ -400,7 +405,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Loading indicator */}
+        
         {loading && facturas.length === 0 && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -408,12 +413,12 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* DataTable */}
+        
         {!loading && facturasFiltradas.length > 0 && (
           <DataTable rows={facturasFiltradas} columns={columns} pageSize={15} />
         )}
 
-        {/* Estado vacío */}
+        
         {!loading && facturasFiltradas.length === 0 && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
@@ -434,7 +439,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Modal de detalles */}
+        
         <Modal
           visible={modalVisible}
           animationType="fade"
@@ -448,7 +453,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             >
               {facturaSeleccionada && (
                 <ScrollView showsVerticalScrollIndicator={false}>
-                  {/* Header del modal */}
+                  
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>
                       Factura #{facturaSeleccionada.id}
@@ -461,7 +466,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Información general */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Información General</Text>
                     <View style={styles.infoRow}>
@@ -511,7 +516,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </View>
                   </View>
 
-                  {/* Información del cliente */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Cliente</Text>
                     <View style={styles.infoRow}>
@@ -542,7 +547,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     )}
                   </View>
 
-                  {/* Detalle de productos */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Detalle de Productos</Text>
                     {loadingDetalles ? (
@@ -586,7 +591,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     )}
                   </View>
 
-                  {/* Total */}
+                  
                   <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total:</Text>
                     <Text style={styles.totalValue}>
@@ -594,7 +599,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </Text>
                   </View>
 
-                  {/* Acciones de reversión */}
+                  
                   {(facturaSeleccionada.estado === "COBRADA" ||
                     facturaSeleccionada.estado === "PENDIENTE") && (
                     <TouchableOpacity
@@ -635,7 +640,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </Pressable>
         </Modal>
 
-        {/* Modal de reversión */}
+        
         <Modal
           visible={modalReversionVisible}
           animationType="fade"

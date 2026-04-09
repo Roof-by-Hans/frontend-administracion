@@ -25,7 +25,8 @@ export default function CategoriaModal({
   const [categoriasPlanas, setCategoriasPlanas] = useState([]);
   const [cargandoCategorias, setCargandoCategorias] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [categoriaPadreId, setCategoriaPadreId] = useState("");  const [errores, setErrores] = useState({
+  const [categoriaPadreId, setCategoriaPadreId] = useState("");
+  const [errores, setErrores] = useState({
     nombre: "",
   });
 
@@ -41,11 +42,15 @@ export default function CategoriaModal({
       const response = await categoriasService.getCategorias();
       
       if (response.success && response.data) {
-        setCategorias(response.data);        const planas = categoriasService.aplanarCategorias(response.data);        if (categoria) {          function collectDescendantIds(catId, categoriasTree) {
+        setCategorias(response.data);
+        const planas = categoriasService.aplanarCategorias(response.data);
+        if (categoria) {
+          function collectDescendantIds(catId, categoriasTree) {
             let ids = [];
             const findAndCollect = (nodes) => {
               for (const node of nodes) {
-                if (node.id === catId) {                  const collect = (children) => {
+                if (node.id === catId) {
+                  const collect = (children) => {
                     for (const child of children) {
                       ids.push(child.id);
                       if (child.children && child.children.length > 0) {
@@ -66,7 +71,8 @@ export default function CategoriaModal({
             return ids;
           }
           const descendantIds = collectDescendantIds(categoria.id, response.data);
-          const filtradas = planas.filter(cat => {            if (cat.id === categoria.id) return false;
+          const filtradas = planas.filter(cat => {
+            if (cat.id === categoria.id) return false;
             if (descendantIds.includes(cat.id)) return false;
             return true;
           });
@@ -76,7 +82,6 @@ export default function CategoriaModal({
         }
       }
     } catch (error) {
-      console.error("Error al cargar categorías:", error);
       Alert.alert("Error", "No se pudieron cargar las categorías. Intenta nuevamente.");
     } finally {
       setCargandoCategorias(false);
@@ -84,9 +89,11 @@ export default function CategoriaModal({
   };
 
   useEffect(() => {
-    if (categoria) {      setNombre(categoria.nombre);
+    if (categoria) {
+      setNombre(categoria.nombre);
       setCategoriaPadreId(categoria.idCatPadre?.toString() || "");
-    } else {      limpiarCampos();
+    } else {
+      limpiarCampos();
     }
         setErrores({ nombre: "" });
   }, [categoria, visible]);
@@ -94,7 +101,8 @@ export default function CategoriaModal({
   const limpiarCampos = () => {
     setNombre("");
     setCategoriaPadreId("");
-  };  const handleNombreChange = (text) => {
+  };
+  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
@@ -107,7 +115,8 @@ export default function CategoriaModal({
         const hayErrores = Object.values(errores).some(error => error !== "");
     const camposVacios = !nombre.trim();
     
-    if (hayErrores || camposVacios) {      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
+    if (hayErrores || camposVacios) {
+      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre de la categoría es obligatorio" }));
       return;
     }
 
@@ -140,7 +149,7 @@ export default function CategoriaModal({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {categoria ? "Editar Categoría" : "Agregar Categoría"}
@@ -153,7 +162,7 @@ export default function CategoriaModal({
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
+            
             <ScrollView
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}
@@ -203,7 +212,7 @@ export default function CategoriaModal({
               </View>
             </ScrollView>
 
-            {/* Footer */}
+            
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}

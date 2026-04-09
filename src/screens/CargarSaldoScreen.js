@@ -22,14 +22,17 @@ import clienteService from "../services/clienteService";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
-    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
+    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); 
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoCargar, setMontoCargar] = useState("");
-  const [metodoPago, setMetodoPago] = useState("Efectivo");  const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState("");  const [loading, setLoading] = useState(true);
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+  const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [scanStatus, setScanStatus] = useState(""); 
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -72,8 +75,11 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      console.error("Error al cargar clientes:", error);
-      alert("Error al cargar los datos. Por favor, recarga la página.");
+      setErrorMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Error al cargar los datos. Por favor, recarga la página."
+      );
     } finally {
       setLoading(false);
     }
@@ -84,7 +90,8 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
     setErrorMessage("");
     setTarjetaSeleccionada(null);
 
-    try {      const response = await cardService.scanRFID();
+    try {
+      const response = await cardService.scanRFID();
       const rfidUid = response.uid;
             const verificacion = await tarjetaService.verificarUid(rfidUid);
 
@@ -120,7 +127,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -153,12 +159,12 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         },
       });
     } catch (error) {
-      console.error("Error al seleccionar cliente:", error);
       alert("Error al cargar los datos de la tarjeta");
     }
   };
 
-  const handleSolicitarCarga = () => {    if (!tarjetaSeleccionada) {
+  const handleSolicitarCarga = () => {
+    if (!tarjetaSeleccionada) {
       alert("Por favor, selecciona o escanea una tarjeta primero");
       return;
     }
@@ -204,15 +210,15 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
       );
       setShowSuccessModal(true);
 
-            setMontoCargar("");      if (metodoSeleccion === "lista") {
+            setMontoCargar("");
+      if (metodoSeleccion === "lista") {
         cargarClientesConTarjetasPrepago();
       }
     } catch (error) {
-      console.error("[ERROR] Error al cargar saldo:", error);
       alert(
         error.response?.data?.message ||
           error.message ||
-          "Error al cargar el saldo"
+          "Error al cargar saldo"
       );
     } finally {
       setProcesando(false);
@@ -268,7 +274,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
           Cargar saldo a tarjeta prepago
         </Text>
 
-        {/* Selector de método */}
+        
         <View style={styles.metodoSelector}>
           <Text style={styles.sectionTitle}>
             ¿Cómo deseas identificar la tarjeta?
@@ -329,9 +335,10 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Contenido según método seleccionado */}
+        
         <View style={styles.contentSection}>
-          {metodoSeleccion === "escanear" ? (            <View style={styles.scanSection}>
+          {metodoSeleccion === "escanear" ? (
+            <View style={styles.scanSection}>
               <Text style={styles.instructionText}>
                 Presiona el botón para escanear una tarjeta RFID
               </Text>
@@ -348,7 +355,8 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
                 <Text style={styles.scanButtonText}>Escanear Tarjeta</Text>
               </TouchableOpacity>
             </View>
-          ) : (            <View style={styles.listaSection}>
+          ) : (
+            <View style={styles.listaSection}>
               <Text style={styles.label}>Seleccionar cliente</Text>
               {clientes.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -387,7 +395,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
             </View>
           )}
 
-          {/* Información de tarjeta seleccionada */}
+          
           {tarjetaSeleccionada && (
             <View style={styles.tarjetaInfo}>
               <View style={styles.tarjetaHeader}>
@@ -425,7 +433,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
                 </View>
               </View>
 
-              {/* Formulario de carga */}
+              
               <View style={styles.formSection}>
                 <Text style={styles.label}>Monto a cargar</Text>
                 <TextInput
@@ -499,7 +507,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         </View>
       </ScrollView>
 
-      {/* Modal de escaneo RFID */}
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
@@ -507,7 +515,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         onClose={handleCloseModal}
       />
 
-      {/* Modal de confirmación de carga */}
+      
       <ConfirmCargarSaldoModal
         visible={showConfirmModal}
         clienteNombre={
@@ -522,7 +530,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         onCancel={handleCancelarCarga}
       />
 
-      {/* Modal de éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Saldo cargado!"

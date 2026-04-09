@@ -2,14 +2,7 @@ import React from "react";
 import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-/**
- * Componente reutilizable de barra de búsqueda
- *
- * @param {string} value - Valor actual del input
- * @param {function} onChangeText - Función callback al cambiar el texto
- * @param {string} placeholder - Texto placeholder
- * @param {object} style - Estilos adicionales para el contenedor
- */
+
 export default function SearchBar({
   value,
   onChangeText,

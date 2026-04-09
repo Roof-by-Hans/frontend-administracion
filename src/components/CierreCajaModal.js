@@ -71,7 +71,7 @@ export default function CierreCajaModal({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.header}>
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons name="lock-check-outline" size={28} color="#c62828" />
@@ -83,7 +83,7 @@ export default function CierreCajaModal({
             </View>
 
             <ScrollView style={styles.body}>
-               Efectivo */}
+               
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
                   <MaterialCommunityIcons name="cash" size={18} color="#37474f" /> Efectivo
@@ -101,7 +101,7 @@ export default function CierreCajaModal({
                 <Text style={styles.helperText}>Total de billetes y monedas en caja</Text>
               </View>
 
-               Tarjetas */}
+               
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
                   <MaterialCommunityIcons name="credit-card" size={18} color="#37474f" /> Tarjetas (Vouchers)
@@ -119,7 +119,7 @@ export default function CierreCajaModal({
                 <Text style={styles.helperText}>Suma total de comprobantes de tarjeta</Text>
               </View>
 
-              {/* Resumen en tiempo real */}
+              
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryLabel}>Total Reportado</Text>
                 <Text style={styles.summaryValue}>
@@ -127,7 +127,7 @@ export default function CierreCajaModal({
                 </Text>
               </View>
 
-              {/* Observaciones */}
+              
               <View style={styles.section}>
                 <Text style={styles.label}>Observaciones (Opcional)</Text>
                 <TextInput
@@ -143,7 +143,7 @@ export default function CierreCajaModal({
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </ScrollView>
 
-            {/* Footer */}
+            
             <View style={styles.footer}>
               <TouchableOpacity
                 style={styles.cancelButton}

@@ -31,7 +31,8 @@ export default function ProductoModal({
   const [precio, setPrecio] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [imagen, setImagen] = useState(null);
-  const [imagenUrl, setImagenUrl] = useState("");  const [errores, setErrores] = useState({
+  const [imagenUrl, setImagenUrl] = useState("");
+  const [errores, setErrores] = useState({
     nombre: "",
     categoriaId: "",
     precio: "",
@@ -49,12 +50,13 @@ export default function ProductoModal({
       const response = await categoriasService.getCategorias();
       
       if (response.success && response.data) {
-        setCategorias(response.data);        const enabled = response.data.enabled || [];        const planas = categoriasService.aplanarCategorias(response.data);
+        setCategorias(response.data);
+        const enabled = response.data.enabled || [];
+        const planas = categoriasService.aplanarCategorias(response.data);
                 const habilitadas = planas.filter(cat => enabled.some(e => e.id === cat.value));
         setCategoriasPlanas(habilitadas);
       }
     } catch (error) {
-      console.error("Error al cargar categorías:", error);
       Alert.alert("Error", "No se pudieron cargar las categorías. Intenta nuevamente.");
     } finally {
       setCargandoCategorias(false);
@@ -62,13 +64,15 @@ export default function ProductoModal({
   };
 
   useEffect(() => {
-    if (producto) {      setNombre(producto.nombre);
+    if (producto) {
+      setNombre(producto.nombre);
       setCategoriaId(producto.categoriaId?.toString() || "");
       setPrecio(producto.precio.toString());
       setDescripcion(producto.descripcion || "");
       setImagenUrl(producto.fotoPrincipalUrl || "");
       setImagen(null);
-    } else {      limpiarCampos();
+    } else {
+      limpiarCampos();
     }
         setErrores({ nombre: "", categoriaId: "", precio: "" });
   }, [producto, visible]);
@@ -80,21 +84,24 @@ export default function ProductoModal({
     setDescripcion("");
     setImagen(null);
     setImagenUrl("");
-  };  const handleNombreChange = (text) => {
+  };
+  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
     } else {
       setErrores(prev => ({ ...prev, nombre: "" }));
     }
-  };  const handleCategoriaChange = (value) => {
+  };
+  const handleCategoriaChange = (value) => {
     setCategoriaId(value);
     if (!value || value === "") {
       setErrores(prev => ({ ...prev, categoriaId: "La categoría es obligatoria" }));
     } else {
       setErrores(prev => ({ ...prev, categoriaId: "" }));
     }
-  };  const handlePrecioChange = (text) => {
+  };
+  const handlePrecioChange = (text) => {
     setPrecio(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, precio: "El precio es obligatorio" }));
@@ -105,8 +112,10 @@ export default function ProductoModal({
     } else {
       setErrores(prev => ({ ...prev, precio: "" }));
     }
-  };  const handleSeleccionarImagen = async () => {
-    try {      if (Platform.OS === 'web') {
+  };
+  const handleSeleccionarImagen = async () => {
+    try {
+      if (Platform.OS === 'web') {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
@@ -139,7 +148,8 @@ export default function ProductoModal({
         
         input.click();
         return;
-      }      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -158,21 +168,23 @@ export default function ProductoModal({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];        const imagenSeleccionada = {
+        const asset = result.assets[0];
+        const imagenSeleccionada = {
           uri: asset.uri,
           type: asset.type || 'image/jpeg',
           name: asset.fileName || `producto_${Date.now()}.jpg`,
         };
         
         setImagen(imagenSeleccionada);
-        setImagenUrl(asset.uri); // Para previsualización
+        setImagenUrl(asset.uri); 
       }
     } catch (error) {
-      console.error("Error al seleccionar imagen:", error);
       Alert.alert("Error", "No se pudo seleccionar la imagen. Intenta nuevamente.");
     }
-  };  const handleTomarFoto = async () => {
-    try {      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+  };
+  const handleTomarFoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -201,14 +213,15 @@ export default function ProductoModal({
         setImagenUrl(asset.uri);
       }
     } catch (error) {
-      console.error("Error al tomar foto:", error);
       Alert.alert("Error", "No se pudo tomar la foto. Intenta nuevamente.");
     }
   };
 
     const mostrarOpcionesImagen = () => {
-    if (Platform.OS === 'web') {      handleSeleccionarImagen();
-    } else {      Alert.alert(
+    if (Platform.OS === 'web') {
+      handleSeleccionarImagen();
+    } else {
+      Alert.alert(
         "Seleccionar imagen",
         "¿De dónde quieres obtener la imagen?",
         [
@@ -234,7 +247,8 @@ export default function ProductoModal({
         const hayErrores = Object.values(errores).some(error => error !== "");
     const camposVacios = !nombre.trim() || !categoriaId || !precio.trim();
     
-    if (hayErrores || camposVacios) {      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
+    if (hayErrores || camposVacios) {
+      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre del producto es obligatorio" }));
       if (!categoriaId) setErrores(prev => ({ ...prev, categoriaId: "La categoría es obligatoria" }));
       if (!precio.trim()) setErrores(prev => ({ ...prev, precio: "El precio es obligatorio" }));
       return;
@@ -246,7 +260,7 @@ export default function ProductoModal({
       categoriaId: parseInt(categoriaId),
       precio: parseFloat(precio),
       descripcion: descripcion.trim(),
-      imagen: imagen, // Objeto de imagen si se seleccionó una nueva
+      imagen: imagen, 
     };
 
     onSave(productoData);
@@ -272,7 +286,7 @@ export default function ProductoModal({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {producto ? "Editar Producto" : "Agregar Producto"}
@@ -285,7 +299,7 @@ export default function ProductoModal({
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
+            
             <ScrollView
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}
@@ -416,7 +430,7 @@ export default function ProductoModal({
               </View>
             </ScrollView>
 
-            {/* Footer */}
+            
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}

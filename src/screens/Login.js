@@ -68,11 +68,8 @@ export default function Login() {
         );
       }
     } catch (error) {
-      console.error("[ERROR] Error en login:", error);
-      Alert.alert(
-        "Error",
-        "No se pudo conectar con el servidor: " + error.message
-      );
+      setError("Error al iniciar sesión. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudo iniciar sesión. Verifica tus credenciales o tu conexión.");
     } finally {
       setLoading(false);
     }
@@ -162,7 +159,7 @@ export default function Login() {
           <Text style={styles.loginButtonText}>INGRESAR</Text>
         </TouchableOpacity>
 
-        {/* Modal de recuperación de contraseña */}
+        
         <OlvidarContraseñaModal
           visible={modalOlvidarVisible}
           onClose={() => setModalOlvidarVisible(false)}

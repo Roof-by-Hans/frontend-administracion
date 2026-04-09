@@ -23,7 +23,7 @@ export default function ConfirmPagoDeudaModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Icono */}
+          
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="credit-card-minus"
@@ -32,10 +32,10 @@ export default function ConfirmPagoDeudaModal({
             />
           </View>
 
-           */}
+           
           <Text style={styles.title}>Confirmar pago de deuda</Text>
 
-          {/* Cliente */}
+          
           <View style={styles.clienteContainer}>
             <MaterialCommunityIcons
               name="account-circle"
@@ -45,9 +45,9 @@ export default function ConfirmPagoDeudaModal({
             <Text style={styles.clienteText}>{clienteNombre}</Text>
           </View>
 
-          {/* Desglose de saldos */}
+          
           <View style={styles.desglose}>
-            {/* Deuda actual */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Deuda actual:</Text>
               <Text style={styles.itemValue}>
@@ -55,7 +55,7 @@ export default function ConfirmPagoDeudaModal({
               </Text>
             </View>
 
-            {/* Monto a pagar */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Monto a pagar:</Text>
               <Text style={[styles.itemValue, styles.montoPago]}>
@@ -63,16 +63,16 @@ export default function ConfirmPagoDeudaModal({
               </Text>
             </View>
 
-             de pago */}
+             
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>
             </View>
 
-            {/* Separador */}
+            
             <View style={styles.separator} />
 
-            {/* Deuda nueva */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.saldoNuevoLabel}>Deuda restante:</Text>
               <Text style={styles.saldoNuevoValue}>
@@ -81,12 +81,12 @@ export default function ConfirmPagoDeudaModal({
             </View>
           </View>
 
-          {/* Mensaje de confirmación */}
+          
           <Text style={styles.message}>
             ¿Estás seguro de que deseas registrar este pago?
           </Text>
 
-          {/* es */}
+          
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

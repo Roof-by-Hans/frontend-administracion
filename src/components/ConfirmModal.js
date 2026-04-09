@@ -30,18 +30,18 @@ export default function ConfirmModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Icono de advertencia */}
+          
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#f44336" />
           </View>
 
-           */}
+           
           <Text style={styles.title}>{title}</Text>
 
-          {/* Mensaje */}
+          
           <Text style={styles.message}>{message}</Text>
 
-          {/* es */}
+          
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

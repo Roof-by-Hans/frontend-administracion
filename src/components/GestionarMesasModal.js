@@ -61,7 +61,7 @@ export default function GestionarMesasModal({
     >
       <View style={styles.overlay}>
         <View style={[styles.modal, isTablet && styles.modalTablet]}>
-          {/* Header */}
+          
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <MaterialCommunityIcons name="cog" size={isTablet ? 32 : 24} color="#1f1f1f" />
@@ -72,7 +72,7 @@ export default function GestionarMesasModal({
             </TouchableOpacity>
           </View>
 
-          {/* Agregar nueva mesa */}
+          
           <View style={styles.addSection}>
             <Text style={styles.sectionTitle}>Agregar nueva mesa</Text>
             <View style={styles.inputContainer}>
@@ -94,7 +94,7 @@ export default function GestionarMesasModal({
             </View>
           </View>
 
-          {/* Lista de mesas */}
+          
           <Text style={styles.sectionTitle}>Mesas actuales ({mesas?.length || 0})</Text>
           <ScrollView style={styles.mesasList}>
             {mesas && mesas.length > 0 ? (

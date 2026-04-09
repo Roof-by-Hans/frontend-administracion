@@ -23,7 +23,7 @@ export default function ConfirmCargarSaldoModal({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Icono */}
+          
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="cash-plus"
@@ -32,10 +32,10 @@ export default function ConfirmCargarSaldoModal({
             />
           </View>
 
-           */}
+          
           <Text style={styles.title}>Confirmar carga de saldo</Text>
 
-          {/* Cliente */}
+          
           <View style={styles.clienteContainer}>
             <MaterialCommunityIcons
               name="account-circle"
@@ -45,9 +45,9 @@ export default function ConfirmCargarSaldoModal({
             <Text style={styles.clienteText}>{clienteNombre}</Text>
           </View>
 
-          {/* Desglose de saldos */}
+          
           <View style={styles.desglose}>
-            {/* Saldo actual */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Saldo actual:</Text>
               <Text style={styles.itemValue}>
@@ -55,7 +55,7 @@ export default function ConfirmCargarSaldoModal({
               </Text>
             </View>
 
-            {/* Monto a cargar */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Monto a cargar:</Text>
               <Text style={[styles.itemValue, styles.montoCarga]}>
@@ -63,16 +63,16 @@ export default function ConfirmCargarSaldoModal({
               </Text>
             </View>
 
-             de pago */}
+             
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>
             </View>
 
-            {/* Separador */}
+            
             <View style={styles.separator} />
 
-            {/* Saldo nuevo */}
+            
             <View style={styles.itemRow}>
               <Text style={styles.saldoNuevoLabel}>Saldo nuevo:</Text>
               <Text style={styles.saldoNuevoValue}>
@@ -81,12 +81,12 @@ export default function ConfirmCargarSaldoModal({
             </View>
           </View>
 
-          {/* Mensaje de confirmación */}
+          
           <Text style={styles.message}>
             ¿Estás seguro de que deseas cargar este saldo?
           </Text>
 
-          {/* es */}
+          
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

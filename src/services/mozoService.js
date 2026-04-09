@@ -2,7 +2,9 @@ import API_URL from "../config/api";
 
 const getToken = () => {
   return localStorage.getItem("token");
-};const handleInvalidToken = (data) => {  if (
+};
+const handleInvalidToken = (data) => {
+  if (
     data &&
     (data.expired ||
       data.message?.includes("Token") ||
@@ -38,7 +40,6 @@ export const getMozos = async () => {
 
     return data.data;
   } catch (error) {
-    console.error("Error en getMozos:", error);
     throw error;
   }
 };
@@ -67,7 +68,6 @@ export const getMozosActivos = async () => {
 
     return data.data;
   } catch (error) {
-    console.error("Error en getMozosActivos:", error);
     throw error;
   }
 };
@@ -96,7 +96,6 @@ export const getMozoById = async (id) => {
 
     return data.data;
   } catch (error) {
-    console.error("Error en getMozoById:", error);
     throw error;
   }
 };

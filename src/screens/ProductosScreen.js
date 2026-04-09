@@ -53,8 +53,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         setProductos(productosFormateados);
       }
     } catch (error) {
-      console.error("Error al cargar productos:", error);
-      setError("Error al cargar los productos. Por favor, intenta nuevamente.");
+      setError("Error al cargar productos. Por favor, intenta nuevamente.");
       Alert.alert("Error", "No se pudieron cargar los productos del servidor.");
     } finally {
       setCargando(false);
@@ -62,7 +61,8 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   };
 
     const productosFiltrados = productos.filter((producto) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (terminoBusqueda) {
       if (!producto.nombre.toLowerCase().includes(terminoBusqueda) &&
           !producto.categoria.toLowerCase().includes(terminoBusqueda) &&
           !producto.precio.toString().includes(terminoBusqueda)) {
@@ -71,7 +71,8 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     }
 
     return true;
-  });  const columns = [
+  });
+  const columns = [
     {
       field: "id",
       headerName: "ID",
@@ -223,12 +224,12 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     const handleToggleProducto = async (productoRow) => {
     try {
       setCargando(true);
-      const response = await productosService.toggleProducto(productoRow.id);      await cargarProductos();
+      const response = await productosService.toggleProducto(productoRow.id);
+      await cargarProductos();
       
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitado" : "deshabilitado";
       Alert.alert("Éxito", `Producto ${nuevoEstado} correctamente.`);
     } catch (error) {
-      console.error("Error al togglear producto:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudo cambiar el estado del producto."
@@ -242,7 +243,8 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     try {
       setCargando(true);
 
-      if (productoEditando) {        const datosActualizacion = {
+      if (productoEditando) {
+        const datosActualizacion = {
           nombre: productoData.nombre,
           precio_unitario: productoData.precio,
           id_categoria: productoData.categoriaId,
@@ -252,10 +254,11 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
         const response = await productosService.actualizarProducto(
           productoData.id,
           datosActualizacion,
-          productoData.imagen // Si hay una nueva imagen
+          productoData.imagen 
         );
 
-        if (response.success) {          await cargarProductos();
+        if (response.success) {
+          await cargarProductos();
           Alert.alert("Éxito", "Producto actualizado correctamente.");
         }
       } else {
@@ -268,10 +271,11 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
 
         const response = await productosService.crearProducto(
           datosNuevoProducto,
-          productoData.imagen // Si hay imagen
+          productoData.imagen 
         );
 
-        if (response.success) {          await cargarProductos();
+        if (response.success) {
+          await cargarProductos();
           Alert.alert("Éxito", "Producto creado correctamente.");
         }
       }
@@ -279,10 +283,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       setModalVisible(false);
       setProductoEditando(null);
     } catch (error) {
-      console.error("Error al guardar producto:", error);
-      const mensaje =
-        error.response?.data?.message ||
-        "Error al guardar el producto. Por favor, intenta nuevamente.";
+      const mensaje = error.response?.data?.message || "Error al guardar el producto. Por favor, intenta nuevamente.";
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
@@ -297,12 +298,12 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       onLogout={logout}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Productos</Text>
         </View>
 
-        {/* Mostrar error si existe */}
+        
         {error && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons
@@ -320,10 +321,10 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Controles superiores: Buscador y Botón Agregar */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -363,7 +364,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Indicador de carga */}
+        
         {cargando && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -371,7 +372,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* DataGrid con filtrado y ordenamiento nativo */}
+        
         {!cargando && (
           <DataTable
             rows={productosFiltrados}
@@ -380,7 +381,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           />
         )}
 
-        {/* Modal para agregar/editar producto */}
+        
         <ProductoModal
           visible={modalVisible}
           producto={productoEditando}

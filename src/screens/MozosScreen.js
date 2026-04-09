@@ -30,11 +30,11 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getMozosActivos(); // Solo mozos activos
+      const data = await getMozosActivos(); 
       setMozos(data);
     } catch (err) {
-      setError(err.message);
-      console.error("Error al cargar mozos:", err);
+      setError("Error al cargar los mozos. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar los mozos del servidor.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,8 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       nombre.includes(busquedaLower) ||
       apellido.includes(busquedaLower)
     );
-  });  const columns = [
+  });
+  const columns = [
     {
       field: "nombreUsuario",
       headerName: "Usuario",
@@ -178,15 +179,15 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
       currentScreen={currentScreen}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Mozos</Text>
         </View>
 
-        {/* Controles superiores */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscar mozos */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -234,12 +235,12 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* DataTable */}
+        
         {!loading && !error && (
           <DataTable rows={mozosFiltrados} columns={columns} pageSize={10} />
         )}
 
-        {/* Loading */}
+        
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4A90E2" />
@@ -247,7 +248,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Error */}
+        
         {error && !loading && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons
@@ -262,7 +263,7 @@ export default function MozosScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Empty state */}
+        
         {!loading && !error && mozosFiltrados.length === 0 && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="account-tie" size={64} color="#ccc" />

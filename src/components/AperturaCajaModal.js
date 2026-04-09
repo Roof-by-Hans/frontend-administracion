@@ -52,7 +52,7 @@ export default function AperturaCajaModal({ visible, onClose, onConfirm, loading
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.header}>
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons name="store-clock-outline" size={28} color="#2e7d32" />
@@ -63,7 +63,7 @@ export default function AperturaCajaModal({ visible, onClose, onConfirm, loading
               </Text>
             </View>
 
-            {/* Body */}
+            
             <View style={styles.body}>
               <Text style={styles.label}>Monto Inicial</Text>
               <View style={styles.inputContainer}>
@@ -83,7 +83,7 @@ export default function AperturaCajaModal({ visible, onClose, onConfirm, loading
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </View>
 
-            {/* Footer */}
+            
             <View style={styles.footer}>
               <TouchableOpacity
                 style={styles.cancelButton}

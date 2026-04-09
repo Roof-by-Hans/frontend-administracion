@@ -2,15 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-/**
- * Modal de confirmación para desvincular la tarjeta de un cliente
- * @param {Object} props
- * @param {boolean} props.visible - Controla la visibilidad del modal
- * @param {Object|null} props.cliente - Datos del cliente seleccionado
- * @param {boolean} props.loading - Indica si la acción se está procesando
- * @param {Function} props.onConfirm - Callback al confirmar la acción
- * @param {Function} props.onCancel - Callback al cancelar la acción
- */
+
 export default function ConfirmTarjetaDesvinculacionModal({
   visible,
   cliente,

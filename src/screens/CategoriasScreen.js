@@ -46,7 +46,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       setError(null);
       const response = await categoriasService.getCategorias();
       
-      if (response.success && response.data) {        const treeData = response.data.tree || response.data;
+      if (response.success && response.data) {
+        const treeData = response.data.tree || response.data;
         const flatData = response.data.flat || [];
         
         setCategorias(treeData);
@@ -54,7 +55,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
                 const mapaCategorias = {};
         flatData.forEach(cat => {
           mapaCategorias[cat.id] = cat;
-        });        const planas = flatData.map(cat => {
+        });
+        const planas = flatData.map(cat => {
           const nivel = calcularNivel(cat.idCatPadre, mapaCategorias, 0);
           const indentacion = "  ".repeat(nivel);
           return {
@@ -65,7 +67,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
             nivel: nivel,
             habilitar: cat.habilitar ?? 1,
           };
-        });        planas.sort((a, b) => {
+        });
+        planas.sort((a, b) => {
           if (a.nivel !== b.nivel) return a.nivel - b.nivel;
           return a.nombre.localeCompare(b.nombre);
         });
@@ -75,7 +78,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
                 setCategoriasTodas(flatData);
       }
     } catch (error) {
-      console.error("Error al cargar categorías:", error);
       setError("Error al cargar las categorías. Por favor, intenta nuevamente.");
       Alert.alert("Error", "No se pudieron cargar las categorías del servidor.");
     } finally {
@@ -91,7 +93,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
   };
 
     const categoriasFiltradas = categoriasPlanas.filter((categoria) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (terminoBusqueda) {
       if (!categoria.nombre.toLowerCase().includes(terminoBusqueda)) {
         return false;
       }
@@ -103,7 +106,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
     const mapaCategorias = {};
   categoriasTodas.forEach(cat => {
     mapaCategorias[cat.id] = cat;
-  });  const categoriasParaTabla = categoriasFiltradas.map(cat => {
+  });
+  const categoriasParaTabla = categoriasFiltradas.map(cat => {
     const idPadre = cat.idCatPadre;
     
     let nombrePadre = 'Raíz';
@@ -116,7 +120,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       idCatPadre: idPadre,
       nombrePadre: nombrePadre,
     };
-  });  const columns = [
+  });
+  const columns = [
     {
       field: 'id',
       headerName: 'ID',
@@ -247,12 +252,12 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
     const handleToggleCategoria = async (categoriaRow) => {
     try {
       setCargando(true);
-      const response = await categoriasService.toggleCategoria(categoriaRow.id);      await cargarCategorias();
+      const response = await categoriasService.toggleCategoria(categoriaRow.id);
+      await cargarCategorias();
       
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitada" : "deshabilitada";
       Alert.alert("Éxito", `Categoría ${nuevoEstado} correctamente.`);
     } catch (error) {
-      console.error("Error al togglear categoría:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudo cambiar el estado de la categoría."
@@ -266,7 +271,8 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
     try {
       setCargando(true);
       
-      if (categoriaEditando) {        const datosActualizacion = {
+      if (categoriaEditando) {
+        const datosActualizacion = {
           nombre: categoriaData.nombre,
           idCatPadre: categoriaData.idCatPadre,
         };
@@ -297,7 +303,6 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       setModalVisible(false);
       setCategoriaEditando(null);
     } catch (error) {
-      console.error("Error al guardar categoría:", error);
       const mensaje = error.response?.data?.message || "Error al guardar la categoría. Por favor, intenta nuevamente.";
       Alert.alert("Error", mensaje);
     } finally {
@@ -312,7 +317,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       userName={userName}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Categorías</Text>
           <Text style={styles.subtitle}>
@@ -320,7 +325,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           </Text>
         </View>
 
-        {/* Mostrar error si existe */}
+        
         {error && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
@@ -331,10 +336,10 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Controles superiores: Buscador y Botón Agregar */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -367,7 +372,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Indicador de carga */}
+        
         {cargando && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -375,7 +380,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* DataGrid con filtrado y ordenamiento nativo */}
+        
         {!cargando && (
           <DataTable
             rows={categoriasParaTabla}
@@ -385,7 +390,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           />
         )}
 
-        {/* Modal para agregar/editar categoría */}
+        
         <CategoriaModal
           visible={modalVisible}
           categoria={categoriaEditando}

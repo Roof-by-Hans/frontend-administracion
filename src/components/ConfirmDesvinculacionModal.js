@@ -9,24 +9,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-/**
- * Modal de confirmación para desvincular tarjeta de cliente anterior
- * @param {Object} props
- * @param {boolean} props.visible - Si el modal está visible
- * @param {Object} props.conflicto - Información del conflicto
- * @param {Object} props.conflicto.clienteActual - Cliente que tiene la tarjeta actualmente
- * @param {string} props.conflicto.clienteActual.nombre - Nombre del cliente actual
- * @param {string} props.conflicto.clienteActual.apellido - Apellido del cliente actual
- * @param {Object} props.conflicto.tarjetaActual - Info de la tarjeta
- * @param {string} props.conflicto.tarjetaActual.uuid - UID de la tarjeta
- * @param {string} props.conflicto.tarjetaActual.tipo - Tipo de suscripción
- * @param {string} props.conflicto.tarjetaActual.nivel - Nivel de suscripción
- * @param {Object} props.clienteNuevo - Cliente nuevo al que se asignará
- * @param {string} props.clienteNuevo.nombre - Nombre del cliente nuevo
- * @param {string} props.clienteNuevo.apellido - Apellido del cliente nuevo
- * @param {Function} props.onConfirm - Callback al confirmar
- * @param {Function} props.onCancel - Callback al cancelar
- */
+
 export default function ConfirmDesvinculacionModal({
   visible,
   conflicto,
@@ -62,7 +45,7 @@ export default function ConfirmDesvinculacionModal({
             showsVerticalScrollIndicator={false}
             style={styles.scrollView}
           >
-            {/* Icono de advertencia */}
+            
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="alert-circle"
@@ -71,21 +54,21 @@ export default function ConfirmDesvinculacionModal({
               />
             </View>
 
-             */}
+             
             <Text style={styles.title}>
               {esMismoCliente
                 ? "Advertencia: Cambio de Tipo de Tarjeta"
                 : "Advertencia de Desvinculación"}
             </Text>
 
-            {/* Mensaje principal */}
+            
             <Text style={styles.warningText}>
               {esMismoCliente
                 ? "Está a punto de cambiar el tipo de suscripción de esta tarjeta. Esta acción resetea completamente los datos de la tarjeta."
                 : "Esta tarjeta ya está asignada a otro cliente. Si continúa, se realizarán las siguientes acciones:"}
             </Text>
 
-            {/* Información del cliente actual */}
+            
             <View style={styles.infoBox}>
               <View style={styles.infoBoxTitleContainer}>
                 <MaterialCommunityIcons
@@ -115,7 +98,7 @@ export default function ConfirmDesvinculacionModal({
               </Text>
             </View>
 
-            {/* Información del cliente nuevo - solo si NO es el mismo cliente */}
+            
             {!esMismoCliente && (
               <View style={[styles.infoBox, styles.infoBoxSuccess]}>
                 <View style={styles.infoBoxTitleContainer}>
@@ -138,7 +121,7 @@ export default function ConfirmDesvinculacionModal({
               </View>
             )}
 
-            {/* Consecuencias */}
+            
             <View style={styles.consequencesBox}>
               <View style={styles.consequencesTitleContainer}>
                 <MaterialCommunityIcons
@@ -192,7 +175,7 @@ export default function ConfirmDesvinculacionModal({
               )}
             </View>
 
-            {/* Checkbox de confirmación */}
+            
             <TouchableOpacity
               style={styles.checkboxContainer}
               onPress={() => setConfirmado(!confirmado)}
@@ -212,7 +195,7 @@ export default function ConfirmDesvinculacionModal({
             </TouchableOpacity>
           </ScrollView>
 
-          {/* es de acción */}
+          
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={styles.cancelButton}
