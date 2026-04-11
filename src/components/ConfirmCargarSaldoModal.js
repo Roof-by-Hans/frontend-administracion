@@ -30,9 +30,8 @@ export default function ConfirmCargarSaldoModal({
               size={56}
               color="#4CAF50"
             />
-          </View>
+</View>
 
-           */}
           <Text style={styles.title}>Confirmar carga de saldo</Text>
 
           {/* Cliente */}
@@ -63,7 +62,6 @@ export default function ConfirmCargarSaldoModal({
               </Text>
             </View>
 
-             de pago */}
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>

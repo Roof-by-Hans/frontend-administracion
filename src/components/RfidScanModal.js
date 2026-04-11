@@ -146,7 +146,6 @@ export default function RfidScanModal({
                 </Animated.View>
               </View>
 
-               */}
               <Text style={styles.title}>{config.title}</Text>
 
               {/* Mensaje */}
@@ -175,13 +174,11 @@ export default function RfidScanModal({
                 />
               </Animated.View>
 
-               */}
               <Text style={styles.title}>{config.title}</Text>
 
               {/* Mensaje */}
-              <Text style={styles.message}>{config.message}</Text>
+<Text style={styles.message}>{config.message}</Text>
 
-               de cerrar */}
               {config.showButton && (
                 <TouchableOpacity
                   style={[

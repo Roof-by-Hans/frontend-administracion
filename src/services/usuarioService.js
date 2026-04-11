@@ -2,8 +2,21 @@ import api from "./api";
 
 const USUARIOS_ENDPOINT = "/usuarios";
 
-export const getUsuarios = async () => {
-  const response = await api.get(USUARIOS_ENDPOINT);
+/**
+ * Obtener usuarios con filtros opcionales.
+ * @param {Object} params - Parámetros de filtrado
+ * @param {string} params.estado - Estado de los usuarios ('habilitados', 'deshabilitados', 'todos')
+ * @returns {Promise} Axios response con la lista de usuarios.
+ */
+export const getUsuarios = async (params = {}) => {
+  let endpoint = USUARIOS_ENDPOINT;
+  
+  // Construir query string si params.estado existe y no es 'todos'
+  if (params.estado && params.estado !== 'todos') {
+    endpoint = `${USUARIOS_ENDPOINT}?estado=${params.estado}`;
+  }
+  
+  const response = await api.get(endpoint);
   return response.data;
 };
 
@@ -41,11 +54,13 @@ export const toggleUsuario = async (usuarioId) => {
  */
 const usuarioService = {
   /**
-   * Obtener todos los usuarios.
+   * Obtener usuarios con filtros opcionales.
+   * @param {Object} params - Parámetros de filtrado
+   * @param {string} params.estado - Estado de los usuarios ('habilitados', 'deshabilitados', 'todos')
    * @returns {Promise} Axios response con la lista de usuarios.
    */
-  getUsuarios: async () => {
-    return getUsuarios();
+  getUsuarios: async (params = {}) => {
+    return getUsuarios(params);
   },
 
   /**

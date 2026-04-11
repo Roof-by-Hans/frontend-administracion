@@ -19,6 +19,7 @@ import Alert from "@blazejkustra/react-native-alert";
 
 export default function ProductosScreen({ onNavigate, currentScreen }) {
   const [productos, setProductos] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('habilitados');
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
@@ -29,14 +30,14 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
   const userName = user?.usuario || "Usuario";
 
     useEffect(() => {
-    cargarProductos();
+    cargarProductos({ estado: filtroEstado });
   }, []);
 
-  const cargarProductos = async () => {
+  const cargarProductos = async (params = {}) => {
     try {
       setCargando(true);
       setError(null);
-      const response = await productosService.getProductos();
+      const response = await productosService.getProductos(params);
 
       if (response.success && response.data) {
                 const productosFormateados = response.data.map((producto) => ({
@@ -220,10 +221,11 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
     setModalVisible(true);
   };
 
-    const handleToggleProducto = async (productoRow) => {
+const handleToggleProducto = async (productoRow) => {
     try {
       setCargando(true);
-      const response = await productosService.toggleProducto(productoRow.id);      await cargarProductos();
+      const response = await productosService.toggleProducto(productoRow.id);
+      await cargarProductos({ estado: filtroEstado });
       
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitado" : "deshabilitado";
       Alert.alert("Éxito", `Producto ${nuevoEstado} correctamente.`);
@@ -254,8 +256,8 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           datosActualizacion,
           productoData.imagen // Si hay una nueva imagen
         );
-
-        if (response.success) {          await cargarProductos();
+if (response.success) {
+          await cargarProductos({ estado: filtroEstado });
           Alert.alert("Éxito", "Producto actualizado correctamente.");
         }
       } else {
@@ -271,11 +273,11 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
           productoData.imagen // Si hay imagen
         );
 
-        if (response.success) {          await cargarProductos();
+        if (response.success) {
+          await cargarProductos({ estado: filtroEstado });
           Alert.alert("Éxito", "Producto creado correctamente.");
         }
       }
-
       setModalVisible(false);
       setProductoEditando(null);
     } catch (error) {
@@ -286,6 +288,26 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
+    }
+  };
+
+  // Detectar cambio en filtro de columna "Estado" del DataTable
+  const handleFilterChange = (filterModel) => {
+    const estadoFilter = filterModel.items.find(
+      (item) => item.field === 'estado' && item.value
+    );
+    
+    if (estadoFilter) {
+      const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
+      if (nuevoEstado !== filtroEstado) {
+        setFiltroEstado(nuevoEstado);
+        cargarProductos({ estado: nuevoEstado });
+      }
+    } else {
+      if (filtroEstado !== 'habilitados') {
+        setFiltroEstado('habilitados');
+        cargarProductos({ estado: 'habilitados' });
+      }
     }
   };
 
@@ -312,7 +334,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
-              onPress={cargarProductos}
+              onPress={() => cargarProductos({ estado: filtroEstado })}
               style={styles.retryButton}
             >
               <Text style={styles.retryButtonText}>Reintentar</Text>
@@ -377,6 +399,7 @@ export default function ProductosScreen({ onNavigate, currentScreen }) {
             rows={productosFiltrados}
             columns={columns}
             pageSize={10}
+            onFilterChange={handleFilterChange}
           />
         )}
 

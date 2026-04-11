@@ -59,13 +59,11 @@ export default function SuccessModal({
             />
           </View>
 
-           */}
           <Text style={styles.title}>{title}</Text>
 
           {/* Mensaje */}
-          <Text style={styles.message}>{message}</Text>
+<Text style={styles.message}>{message}</Text>
 
-           de cerrar */}
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}

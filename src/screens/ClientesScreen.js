@@ -23,6 +23,7 @@ const { toggleCliente } = clienteService;
 
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('habilitados');
   const [modalVisible, setModalVisible] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -40,14 +41,14 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
   const userName = user?.usuario || "Usuario";
 
     useEffect(() => {
-    cargarClientes();
+    cargarClientes({ estado: filtroEstado });
   }, []);
 
-  const cargarClientes = async () => {
+  const cargarClientes = async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await clienteService.getClientes();
+      const response = await clienteService.getClientes(params);
 
       const clientesData = response.data || [];      const clientesConId = clientesData.map((cliente) => ({
         ...cliente,
@@ -289,6 +290,32 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Detectar cambio en filtro de columna "Estado" del DataTable
+  const handleFilterChange = (filterModel) => {
+    const estadoFilter = filterModel.items.find(
+      (item) => item.field === 'estado' && item.value
+    );
+    
+    if (estadoFilter) {
+      // El usuario filtró por un estado específico
+      const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
+      if (nuevoEstado !== filtroEstado) {
+        setFiltroEstado(nuevoEstado);
+        cargarClientes({ estado: nuevoEstado });
+      }
+    } else {
+      // El usuario quitó el filtro - volver al estado por defecto
+      if (filtroEstado !== 'habilitados') {
+        setFiltroEstado('habilitados');
+        cargarClientes({ estado: 'habilitados' });
+      }
+    }
+  };
+
+  const handleRetry = () => {
+    cargarClientes({ estado: filtroEstado });
   };
 
     const confirmarEliminacion = async () => {
@@ -544,7 +571,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             />
             <Text style={styles.errorMessage}>{error}</Text>
             <TouchableOpacity
-              onPress={cargarClientes}
+              onPress={handleRetry}
               style={styles.retryButton}
             >
               <Text style={styles.retryText}>Reintentar</Text>
@@ -562,7 +589,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
         {/* DataGrid con filtrado y ordenamiento nativo */}
         {!loading && !error && clientesFiltrados.length > 0 && (
-          <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} />
+          <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} onFilterChange={handleFilterChange} />
         )}
 
         {/* Estado vacío */}

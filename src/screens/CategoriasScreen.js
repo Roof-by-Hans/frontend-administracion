@@ -13,6 +13,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
   const [categorias, setCategorias] = useState([]);
   const [categoriasPlanas, setCategoriasPlanas] = useState([]);
   const [categoriasTodas, setCategoriasTodas] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('habilitados');
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [categoriaEditando, setCategoriaEditando] = useState(null);
@@ -22,29 +23,15 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
   const { user } = useAuth();
   const userName = user?.usuario || "Usuario";
 
-    useEffect(() => {
-    cargarCategorias();
+useEffect(() => {
+    cargarCategorias({ estado: filtroEstado });
   }, []);
 
-    const crearMapaCategorias = (arbol, mapa = {}) => {
-    arbol.forEach(cat => {
-      mapa[cat.id] = {
-        id: cat.id,
-        nombre: cat.nombre,
-        idCatPadre: cat.idCatPadre || null,
-      };
-      if (cat.children && cat.children.length > 0) {
-        crearMapaCategorias(cat.children, mapa);
-      }
-    });
-    return mapa;
-  };
-
-  const cargarCategorias = async () => {
+  const cargarCategorias = async (params = {}) => {
     try {
       setCargando(true);
       setError(null);
-      const response = await categoriasService.getCategorias();
+      const response = await categoriasService.getCategorias(params);
       
       if (response.success && response.data) {        const treeData = response.data.tree || response.data;
         const flatData = response.data.flat || [];
@@ -244,10 +231,11 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
     return null;
   };
 
-    const handleToggleCategoria = async (categoriaRow) => {
+const handleToggleCategoria = async (categoriaRow) => {
     try {
       setCargando(true);
-      const response = await categoriasService.toggleCategoria(categoriaRow.id);      await cargarCategorias();
+      const response = await categoriasService.toggleCategoria(categoriaRow.id);
+      await cargarCategorias({ estado: filtroEstado });
       
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitada" : "deshabilitada";
       Alert.alert("Éxito", `Categoría ${nuevoEstado} correctamente.`);
@@ -277,7 +265,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
         );
         
         if (response.success) {
-          await cargarCategorias();
+          await cargarCategorias({ estado: filtroEstado });
           Alert.alert("Éxito", "Categoría actualizada correctamente.");
         }
       } else {
@@ -289,7 +277,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
         const response = await categoriasService.crearCategoria(datosNuevaCategoria);
         
         if (response.success) {
-          await cargarCategorias();
+          await cargarCategorias({ estado: filtroEstado });
           Alert.alert("Éxito", "Categoría creada correctamente.");
         }
       }
@@ -302,6 +290,26 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
+    }
+  };
+
+  // Detectar cambio en filtro de columna "Estado" del DataTable
+  const handleFilterChange = (filterModel) => {
+    const estadoFilter = filterModel.items.find(
+      (item) => item.field === 'estado' && item.value
+    );
+    
+    if (estadoFilter) {
+      const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
+      if (nuevoEstado !== filtroEstado) {
+        setFiltroEstado(nuevoEstado);
+        cargarCategorias({ estado: nuevoEstado });
+      }
+    } else {
+      if (filtroEstado !== 'habilitados') {
+        setFiltroEstado('habilitados');
+        cargarCategorias({ estado: 'habilitados' });
+      }
     }
   };
 
@@ -325,7 +333,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={cargarCategorias} style={styles.retryButton}>
+            <TouchableOpacity onPress={() => cargarCategorias({ estado: filtroEstado })} style={styles.retryButton}>
               <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
@@ -382,6 +390,7 @@ export default function CategoriasScreen({ onNavigate, currentScreen }) {
             columns={columns}
             pageSize={10}
             rowHeight={52}
+            onFilterChange={handleFilterChange}
           />
         )}
 

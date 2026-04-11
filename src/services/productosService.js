@@ -6,12 +6,21 @@ import api from './api';
  */
 
 /**
- * Obtiene todos los productos disponibles
+ * Obtiene todos los productos disponibles con filtros opcionales
+ * @param {Object} params - Parámetros de filtrado
+ * @param {string} params.estado - Estado de los productos ('habilitados', 'deshabilitados', 'todos')
  * @returns {Promise} Lista de productos con sus categorías
  */
-export const getProductos = async () => {
+export const getProductos = async (params = {}) => {
   try {
-    const response = await api.get('/productos');
+    let endpoint = '/productos';
+    
+    // Construir query string si params.estado existe y no es 'todos'
+    if (params.estado && params.estado !== 'todos') {
+      endpoint = `/productos?estado=${params.estado}`;
+    }
+    
+    const response = await api.get(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error al obtener productos:', error);

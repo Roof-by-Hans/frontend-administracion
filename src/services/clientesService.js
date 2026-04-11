@@ -7,13 +7,22 @@ const CLIENTES_ENDPOINT = "/clientes";
  */
 const clienteService = {
   /**
-   * Obtener todos los clientes.
-   * @returns {Promise} Axios response con la lista de clientes.
-   */
-  getClientes: async () => {
-    const response = await api.get(CLIENTES_ENDPOINT);
-    return response.data; // Devuelve { success, data, message }
-  },
+ * Obtener clientes con filtros opcionales.
+ * @param {Object} params - Parámetros de filtrado
+ * @param {string} params.estado - Estado de los clientes ('habilitados', 'deshabilitados', 'todos')
+ * @returns {Promise} Axios response con la lista de clientes.
+ */
+getClientes: async (params = {}) => {
+  let endpoint = CLIENTES_ENDPOINT;
+  
+  // Construir query string si params.estado existe y no es 'todos'
+  if (params.estado && params.estado !== 'todos') {
+    endpoint = `${CLIENTES_ENDPOINT}?estado=${params.estado}`;
+  }
+  
+  const response = await api.get(endpoint);
+  return response.data; // Devuelve { success, data, message }
+},
 
   /**
    * Crear un nuevo cliente.
