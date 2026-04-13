@@ -15,6 +15,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import RfidScanModal from "../components/RfidScanModal";
 import SuccessModal from "../components/SuccessModal";
 import ConfirmPagoDeudaModal from "../components/ConfirmPagoDeudaModal";
+import ErrorCajaCerradaModal from "../components/ErrorCajaCerradaModal";
 import { useAuth } from "../context/AuthContext";
 import cardService from "../services/cardService";
 import tarjetaService from "../services/tarjetaService";
@@ -25,13 +26,17 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
     const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoPagar, setMontoPagar] = useState("");
-  const [metodoPago, setMetodoPago] = useState("Efectivo");  const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState("");  const [loading, setLoading] = useState(true);
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+  const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showErrorCajaCerradaModal, setShowErrorCajaCerradaModal] = useState(false);
 
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -84,7 +89,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
     setErrorMessage("");
     setTarjetaSeleccionada(null);
 
-    try {      const response = await cardService.scanRFID();
+    try {
+      const response = await cardService.scanRFID();
       const rfidUid = response.uid;
             const verificacion = await tarjetaService.verificarUid(rfidUid);
 
@@ -158,7 +164,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  const handleSolicitarPago = () => {    if (!tarjetaSeleccionada) {
+  const handleSolicitarPago = () => {
+    if (!tarjetaSeleccionada) {
       alert("Por favor, selecciona o escanea una tarjeta primero");
       return;
     }
@@ -204,16 +211,21 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
       );
       setShowSuccessModal(true);
 
-            setMontoPagar("");      if (metodoSeleccion === "lista") {
+            setMontoPagar("");
+      if (metodoSeleccion === "lista") {
         cargarClientesConTarjetasCredito();
       }
     } catch (error) {
       console.error("[ERROR] Error al registrar pago:", error);
-      alert(
-        error.response?.data?.message ||
-          error.message ||
-          "Error al registrar el pago"
-      );
+      // Log para depuración
+      console.log("error.response:", error.response);
+      console.log("error.message:", error.message);
+      const msg = error.response?.data?.message || error.message || "Error al registrar el pago";
+      if (typeof msg === "string" && msg.toLowerCase().includes("caja abierta")) {
+        setShowErrorCajaCerradaModal(true);
+      } else {
+        alert(msg);
+      }
     } finally {
       setProcesando(false);
     }
@@ -331,7 +343,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
         {/* Contenido según método seleccionado */}
         <View style={styles.contentSection}>
-          {metodoSeleccion === "escanear" ? (            <View style={styles.scanSection}>
+          {metodoSeleccion === "escanear" ? (
+            <View style={styles.scanSection}>
               <Text style={styles.instructionText}>
                 Presiona el botón para escanear una tarjeta RFID
               </Text>
@@ -348,7 +361,8 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
                 <Text style={styles.scanButtonText}>Escanear Tarjeta</Text>
               </TouchableOpacity>
             </View>
-          ) : (            <View style={styles.listaSection}>
+          ) : (
+            <View style={styles.listaSection}>
               <Text style={styles.label}>Seleccionar cliente</Text>
               {clientes.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -541,6 +555,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         message={successMessage}
         onClose={handleCloseSuccessModal}
         autoCloseDelay={3000}
+      />
+
+      {/* Modal de error por caja cerrada */}
+      <ErrorCajaCerradaModal
+        visible={showErrorCajaCerradaModal}
+        onClose={() => setShowErrorCajaCerradaModal(false)}
       />
     </DashboardLayout>
   );
