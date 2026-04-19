@@ -40,14 +40,14 @@ export default function MesaModal({
         }
         setPedidosActivos(pedidos);
       } catch (error) {
-        console.error('Error al cargar pedidos:', error);
       } finally {
         setLoadingPedidos(false);
       }
     };
 
     cargarPedidos();
-  }, [visible, mesa, grupo]);  if (!mesa && !grupo) return null;
+  }, [visible, mesa, grupo]);
+  if (!mesa && !grupo) return null;
 
   const numero = mesa?.numero || grupo?.nombre;
   const estado = mesa?.estado || (grupo?.mesas?.some(m => m.estado === 'ocupada') ? 'ocupada' : 'libre');
@@ -79,7 +79,7 @@ export default function MesaModal({
           ]} 
           onPress={(e) => e.stopPropagation()}
         >
-          {/* Header */}
+          
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <View style={[
@@ -96,8 +96,6 @@ export default function MesaModal({
               <MaterialCommunityIcons name="close" size={isTablet ? 32 : 24} color="#666" />
             </TouchableOpacity>
           </View>
-
-          {/* Mesas unidas */}
           {unidaCon && unidaCon.length > 0 && (
             <View style={styles.unidaSection}>
               <MaterialCommunityIcons name="link-variant" size={isTablet ? 24 : 20} color="#4a4a4a" />
@@ -106,8 +104,6 @@ export default function MesaModal({
               </Text>
             </View>
           )}
-
-          {/* Contenido */}
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {loadingPedidos ? (
               <View style={styles.emptyState}>
@@ -132,7 +128,6 @@ export default function MesaModal({
               </View>
             ) : (
               <>
-                {/* Lista de pedidos activos */}
                 <Text style={styles.sectionTitle}>
                   Pedidos Activos ({pedidosActivos.length})
                 </Text>
@@ -141,10 +136,8 @@ export default function MesaModal({
                     (sum, p) => sum + (p.cantidad * p.precioUnitario), 
                     0
                   );
-                  
                   return (
                     <View key={pedido.id} style={styles.pedidoCard}>
-                      {/* Header del pedido con acciones */}
                       <View style={styles.pedidoHeader}>
                         <View style={styles.pedidoHeaderLeft}>
                           <MaterialCommunityIcons 
@@ -164,7 +157,8 @@ export default function MesaModal({
                             })}
                           </Text>
                           <TouchableOpacity 
-                            onPress={() => {                              if (onEditarPedido) {
+                            onPress={() => {
+                              if (onEditarPedido) {
                                 onEditarPedido(pedido);
                               }
                             }}
@@ -185,18 +179,19 @@ export default function MesaModal({
                             onPress: async () => {
                               try {
                                 const clave = grupo ? `grupo-${grupo.id}` : `mesa-${mesa.idMesa || mesa.id}`;
-                                await pedidosService.eliminarPedido(pedido.id, clave);                                const pedidosActualizados = await (grupo 
+                                await pedidosService.eliminarPedido(pedido.id, clave);
+                                const pedidosActualizados = await (grupo 
                                   ? pedidosService.getPedidosGrupo(grupo.id)
                                   : pedidosService.getPedidosMesa(mesa.idMesa || mesa.id));
-                                setPedidosActivos(pedidosActualizados);                                if (onEliminarPedido) {
+                                setPedidosActivos(pedidosActualizados);
+                                if (onEliminarPedido) {
                                   onEliminarPedido(pedido.id, mesa?.idMesa, grupo?.id);
                                 }
                               } catch (error) {
-                                console.error('Error al eliminar pedido:', error);
                                 Alert.alert('Error', 'No se pudo eliminar el pedido');
                               }
                             }
-                          },
+                                },
                                 ]
                               );
                             }}
@@ -206,8 +201,6 @@ export default function MesaModal({
                           </TouchableOpacity>
                         </View>
                       </View>
-
-                      {/* Productos del pedido */}
                       <View style={styles.pedidoProductos}>
                         {pedido.productos.map((producto, idx) => (
                           <View key={idx} style={styles.productoRow}>
@@ -223,8 +216,6 @@ export default function MesaModal({
                           </View>
                         ))}
                       </View>
-
-                      {/* Observaciones */}
                       {pedido.observaciones && (
                         <View style={styles.pedidoObservaciones}>
                           <MaterialCommunityIcons 
@@ -237,8 +228,6 @@ export default function MesaModal({
                           </Text>
                         </View>
                       )}
-
-                      {/* Total del pedido */}
                       <View style={styles.pedidoTotal}>
                         <Text style={[styles.pedidoTotalLabel, isTablet && styles.pedidoTotalLabelTablet]}>
                           Subtotal:
@@ -250,8 +239,6 @@ export default function MesaModal({
                     </View>
                   );
                 })}
-
-                {/* Total general */}
                 <View style={styles.totalGeneralCard}>
                   <Text style={[styles.totalGeneralLabel, isTablet && styles.totalGeneralLabelTablet]}>
                     Total a cobrar:
@@ -263,8 +250,6 @@ export default function MesaModal({
               </>
             )}
           </ScrollView>
-
-          {/* Acciones */}
           <View style={styles.actions}>
             <TouchableOpacity 
               style={[styles.actionButton, styles.startButton, isTablet && styles.actionButtonTablet]}
@@ -275,7 +260,6 @@ export default function MesaModal({
               <MaterialCommunityIcons name="plus-circle" size={isTablet ? 26 : 20} color="#fff" />
               <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Nuevo Pedido</Text>
             </TouchableOpacity>
-
             {(() => {
               return pedidosActivos.length > 0;
             })() && (
@@ -289,7 +273,6 @@ export default function MesaModal({
                 <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>Cobrar Mesa</Text>
               </TouchableOpacity>
             )}
-
             {estado === "ocupada" && (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.clearButton, isTablet && styles.actionButtonTablet]}

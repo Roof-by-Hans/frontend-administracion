@@ -9,15 +9,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-/**
- * Modal de éxito con estética consistente
- * @param {Object} props
- * @param {boolean} props.visible - Si el modal está visible
- * @param {string} props.title - Título del modal
- * @param {string} props.message - Mensaje del modal
- * @param {Function} props.onClose - Función para cerrar el modal
- * @param {number} [props.autoCloseDelay] - Milisegundos antes de cerrar automáticamente (opcional)
- */
 export default function SuccessModal({
   visible,
   title = "¡Éxito!",
@@ -28,12 +19,14 @@ export default function SuccessModal({
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible) {      Animated.spring(scaleAnim, {
+    if (visible) {
+      Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
         useNativeDriver: true,
-      }).start();      if (autoCloseDelay && autoCloseDelay > 0) {
+      }).start();
+      if (autoCloseDelay && autoCloseDelay > 0) {
         const timer = setTimeout(() => {
           onClose();
         }, autoCloseDelay);
@@ -50,7 +43,7 @@ export default function SuccessModal({
         <Animated.View
           style={[styles.modalContent, { transform: [{ scale: scaleAnim }] }]}
         >
-          {/* Ícono de éxito */}
+          
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="check-circle"
@@ -61,7 +54,7 @@ export default function SuccessModal({
 
           <Text style={styles.title}>{title}</Text>
 
-          {/* Mensaje */}
+          
 <Text style={styles.message}>{message}</Text>
 
           <TouchableOpacity

@@ -23,7 +23,7 @@ import clienteService from "../services/clienteService";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
-    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
+    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); 
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoPagar, setMontoPagar] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
@@ -31,7 +31,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState("");
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
+  const [scanStatus, setScanStatus] = useState(""); 
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -77,7 +77,6 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      console.error("Error al cargar clientes:", error);
       alert("Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
@@ -126,7 +125,6 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -159,7 +157,6 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         },
       });
     } catch (error) {
-      console.error("Error al seleccionar cliente:", error);
       alert("Error al cargar los datos de la tarjeta");
     }
   };
@@ -216,10 +213,6 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasCredito();
       }
     } catch (error) {
-      console.error("[ERROR] Error al registrar pago:", error);
-      // Log para depuración
-      console.log("error.response:", error.response);
-      console.log("error.message:", error.message);
       const msg = error.response?.data?.message || error.message || "Error al registrar el pago";
       if (typeof msg === "string" && msg.toLowerCase().includes("caja abierta")) {
         setShowErrorCajaCerradaModal(true);
@@ -280,7 +273,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
           Pagar deuda de tarjeta crédito
         </Text>
 
-        {/* Selector de método */}
+        
         <View style={styles.metodoSelector}>
           <Text style={styles.sectionTitle}>
             ¿Cómo deseas identificar la tarjeta?
@@ -341,7 +334,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Contenido según método seleccionado */}
+        
         <View style={styles.contentSection}>
           {metodoSeleccion === "escanear" ? (
             <View style={styles.scanSection}>
@@ -401,7 +394,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
             </View>
           )}
 
-          {/* Información de tarjeta seleccionada */}
+          
           {tarjetaSeleccionada && (
             <View style={styles.tarjetaInfo}>
               <View style={styles.tarjetaHeader}>
@@ -451,7 +444,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
                 </View>
               </View>
 
-              {/* Formulario de pago */}
+              
               <View style={styles.formSection}>
                 <Text style={styles.label}>Monto a pagar</Text>
                 <TextInput
@@ -525,7 +518,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         </View>
       </ScrollView>
 
-      {/* Modal de escaneo RFID */}
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
@@ -533,7 +526,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         onClose={handleCloseModal}
       />
 
-      {/* Modal de confirmación de pago */}
+      
       <ConfirmPagoDeudaModal
         visible={showConfirmModal}
         clienteNombre={
@@ -548,7 +541,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         onCancel={handleCancelarPago}
       />
 
-      {/* Modal de éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Pago registrado!"
@@ -557,7 +550,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         autoCloseDelay={3000}
       />
 
-      {/* Modal de error por caja cerrada */}
+      
       <ErrorCajaCerradaModal
         visible={showErrorCajaCerradaModal}
         onClose={() => setShowErrorCajaCerradaModal(false)}
@@ -741,7 +734,7 @@ const styles = StyleSheet.create({
   },
   deudaValue: {
     fontSize: 20,
-    color: "#D32F2F", // Color rojo para deuda
+    color: "#D32F2F", 
   },
   formSection: {
     gap: 16,
@@ -787,7 +780,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 24,
-    backgroundColor: "#2196F3", // Azul para pago de deuda
+    backgroundColor: "#2196F3", 
     shadowColor: "#2196F3",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

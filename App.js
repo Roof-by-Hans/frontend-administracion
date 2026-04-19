@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { SocketProvider } from "./src/context/SocketContext";
 import Login from "./src/screens/Login";
@@ -18,7 +17,7 @@ import CategoriasScreen from "./src/screens/CategoriasScreen";
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState("mesas"); // Pantalla inicial
+  const [currentScreen, setCurrentScreen] = useState("mesas"); 
 
   const handleNavigate = (screen) => {
     setCurrentScreen(screen);
@@ -28,7 +27,7 @@ function AppContent() {
     return <Login />;
   }
 
-  // Renderizar la pantalla según el estado actual
+  
   switch (currentScreen) {
     case "mesas":
       return (
@@ -120,12 +119,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    // <SafeAreaProvider>
+    
       <AuthProvider>
         <SocketProvider>
           <AppContent />
         </SocketProvider>
       </AuthProvider>
-    // </SafeAreaProvider>
+    
   );
 }

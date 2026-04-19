@@ -16,7 +16,8 @@ import facturasService from "../services/facturasService";
 import pedidosService from "../services/pedidosService";
 import { useMesasSocket } from "../hooks/useMesasSocket";
 import { usePedidosSocket } from "../hooks/usePedidosSocket";
-import Alert from "@blazejkustra/react-native-alert";const GridBackground = ({ width, height }) => {
+import Alert from "@blazejkustra/react-native-alert";
+const GridBackground = ({ width, height }) => {
   const gridSize = 30;
   return (
     <Svg height={height || "100%"} width={width || "100%"} style={StyleSheet.absoluteFill}>
@@ -43,7 +44,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   const [pagoModalVisible, setPagoModalVisible] = useState(false);
   const [pedidosActivos, setPedidosActivos] = useState(new Map());
   const [pedidosMesaSeleccionada, setPedidosMesaSeleccionada] = useState([]);
-  const [pedidoEnEdicion, setPedidoEnEdicion] = useState(null);  const [confirmModal, setConfirmModal] = useState({
+  const [pedidoEnEdicion, setPedidoEnEdicion] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
     visible: false,
     title: "",
     message: "",
@@ -117,23 +119,30 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     emitirMesaCobrada,
     emitirMesaActualizada
   } = usePedidosSocket({
-    onPedidoCreado: (data) => {      cargarPedidosActivos();
+    onPedidoCreado: (data) => {
+      cargarPedidosActivos();
     },
-    onPedidoActualizado: (data) => {      cargarPedidosActivos();
+    onPedidoActualizado: (data) => {
+      cargarPedidosActivos();
     },
-    onPedidoEliminado: (data) => {      cargarPedidosActivos();
+    onPedidoEliminado: (data) => {
+      cargarPedidosActivos();
     },
-    onPedidoCobrado: (data) => {      cargarPedidosActivos();
+    onPedidoCobrado: (data) => {
+      cargarPedidosActivos();
     },
-    onMesaActualizada: (data) => {    }
-  });  const cargarMesas = useCallback(async () => {
+    onMesaActualizada: (data) => {
+    }
+  });
+  const cargarMesas = useCallback(async () => {
     try {
       setLoading(true);
-      const mesasData = await mesasService.getMesas();      let gruposData = [];
+      const mesasData = await mesasService.getMesas();
+      let gruposData = [];
       try {
         gruposData = await mesasService.getGrupos();
       } catch (grupoError) {
-        console.warn('No se pudieron cargar grupos:', grupoError.message);
+        setError("No se pudieron cargar grupos: " + grupoError.message);
       }
       
             const gruposMap = {};
@@ -162,7 +171,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           estadoLocal = estadoMap[mesa.estado] || "libre";
         }
 
-                const grupoInfo = gruposMap[mesa.idMesa];        const unidaCon = grupoInfo 
+                const grupoInfo = gruposMap[mesa.idMesa];
+        const unidaCon = grupoInfo 
           ? grupoInfo.mesasDelGrupo
               .filter(id => id !== mesa.idMesa)
               .map(id => {
@@ -195,16 +205,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       
       setMesas(mesasTransformadas);
     } catch (error) {
-      console.error('Error al cargar mesas:', error);
-      console.error('Error al cargar mesas:', error);
-      showConfirm({
-        title: 'Error',
-        message: `No se pudieron cargar las mesas: ${error.message}`,
-        singleButton: true,
-        confirmColor: '#d32f2f',
-        onConfirm: hideConfirm
-      });
-      setMesas([]);
+      setError("Error al cargar mesas. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar las mesas del servidor.");
     } finally {
       setLoading(false);
     }
@@ -213,7 +215,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     useEffect(() => {
     cargarMesas();
     cargarPedidosActivos();
-  }, [cargarMesas]);  useEffect(() => {
+  }, [cargarMesas]);
+  useEffect(() => {
     if (currentScreen === 'mesas') {
       cargarMesas();
       cargarPedidosActivos();
@@ -222,7 +225,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
     const cargarPedidosActivos = useCallback(() => {
     try {
-      const mapaPedidos = new Map();      mesas.forEach(mesa => {
+      const mapaPedidos = new Map();
+      mesas.forEach(mesa => {
         const clave = mesa.grupo ? `grupo-${mesa.grupo}` : `mesa-${mesa.idMesa}`;
         const pedidos = pedidosService.getPedidosLocal(clave);
         
@@ -232,7 +236,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       });
       setPedidosActivos(mapaPedidos);
     } catch (error) {
-      console.error('Error al cargar pedidos activos:', error);
+      setError("Error al cargar pedidos activos. Por favor, intenta nuevamente.");
+      Alert.alert("Error", "No se pudieron cargar los pedidos activos del servidor.");
     }
   }, [mesas]);
 
@@ -245,17 +250,19 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     useEffect(() => {
     if (mesaSeleccionada && modalVisible) {
       const mesaActualizada = mesas.find(m => m.numero === mesaSeleccionada.numero);
-      if (mesaActualizada) {        setMesaSeleccionada(mesaActualizada);
+      if (mesaActualizada) {
+        setMesaSeleccionada(mesaActualizada);
       }
     }
-  }, [mesas, modalVisible]);  useEffect(() => {
+  }, [mesas, modalVisible]);
+  useEffect(() => {
     if (modalVisible) {
       cargarPedidosActivos();
     }
   }, [modalVisible, cargarPedidosActivos]);
 
   const TAMANO_MESA = 80;
-  const MARGEN_SEGURIDAD = 20; // Margen inferior y derecho
+  const MARGEN_SEGURIDAD = 20; 
 
     const verificarColision = (pos1, pos2, tamano = 80) => {
     return (
@@ -266,7 +273,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     );
   };
 
-  const handlePosicionChange = useCallback(async (numero, nuevaPosicion) => {    const limiteX = salonDimensions.width > 0 
+  const handlePosicionChange = useCallback(async (numero, nuevaPosicion) => {
+    const limiteX = salonDimensions.width > 0 
       ? salonDimensions.width - TAMANO_MESA - MARGEN_SEGURIDAD 
       : 9999;
     const limiteY = salonDimensions.height > 0 
@@ -280,13 +288,14 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
         const hayColision = mesas.some(mesa => 
       mesa.numero !== numero && verificarColision(posicionLimitada, mesa.posicion)
-    );    if (!hayColision) {
+    );
+    if (!hayColision) {
             setMesas(prev => prev.map(m => m.numero === numero ? { ...m, posicion: posicionLimitada } : m));
       
             try {
         await mesasService.actualizarPosicionMesa(numero, posicionLimitada.x, posicionLimitada.y);
       } catch (error) {
-        console.error('Error al guardar posición:', error);
+        setError("Error al guardar posición. Por favor, intenta nuevamente.");
       }
     }
   }, [salonDimensions, mesas]);
@@ -321,11 +330,15 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     setPedidoModalVisible(true);
   };
 
-    const handleEliminarPedido = async (idPedido, idMesa, idGrupo) => {    emitirPedidoEliminado(idPedido, idMesa, idGrupo);    cargarPedidosActivos();
+    const handleEliminarPedido = async (idPedido, idMesa, idGrupo) => {
+    emitirPedidoEliminado(idPedido, idMesa, idGrupo);
+    cargarPedidosActivos();
     
         const clave = idGrupo ? `grupo-${idGrupo}` : `mesa-${idMesa}`;
-    const pedidosRestantes = pedidosService.getPedidosLocal(clave);    if (pedidosRestantes.length === 0) {
-      try {        let mesasALiberar = [];
+    const pedidosRestantes = pedidosService.getPedidosLocal(clave);
+    if (pedidosRestantes.length === 0) {
+      try {
+        let mesasALiberar = [];
         if (idGrupo) {
           mesasALiberar = mesas.filter(m => m.grupo === idGrupo).map(m => m.idMesa);
         } else if (idMesa) {
@@ -342,22 +355,22 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               ? { ...m, estado: 'libre' }
               : m
           )
-        );        for (const mesaId of mesasALiberar) {
+        );
+        for (const mesaId of mesasALiberar) {
           try {
             await mesasService.liberarMesa(mesaId);
           } catch (error) {
-            console.error(`Error al liberar mesa ${mesaId}:`, error);
           }
         }
       } catch (error) {
-        console.error('Error al liberar mesa:', error);
       }
     }
   };
 
     const handlePagarCuenta = async () => {
     try {
-      setModalVisible(false);      const esMesa = !mesaSeleccionada.grupo;
+      setModalVisible(false);
+      const esMesa = !mesaSeleccionada.grupo;
       const clave = esMesa 
         ? `mesa-${mesaSeleccionada.idMesa}` 
         : `grupo-${mesaSeleccionada.grupo}`;
@@ -371,20 +384,22 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             setPedidosMesaSeleccionada(pedidos);
       setPagoModalVisible(true);
     } catch (error) {
-      console.error('Error al obtener pedidos:', error);
       Alert.alert('Error', 'No se pudo obtener la información de los pedidos');
     }
   };
 
     const handlePedidoCreado = async (pedido) => {
-    setPedidoModalVisible(false);    if (pedido) {
+    setPedidoModalVisible(false);
+    if (pedido) {
       emitirPedidoCreado({
         pedido,
         idMesa: mesaSeleccionada?.idMesa,
         idGrupo: mesaSeleccionada?.grupo
       });
-    }    if (mesaSeleccionada && mesaSeleccionada.estado !== 'ocupada') {
-      try {        const mesasDelGrupo = mesaSeleccionada.grupo 
+    }
+    if (mesaSeleccionada && mesaSeleccionada.estado !== 'ocupada') {
+      try {
+        const mesasDelGrupo = mesaSeleccionada.grupo 
           ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
           : [mesaSeleccionada.idMesa];
                 setMesas(prevMesas => 
@@ -393,18 +408,21 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               ? { ...m, estado: 'ocupada' }
               : m
           )
-        );        for (const idMesa of mesasDelGrupo) {
+        );
+        for (const idMesa of mesasDelGrupo) {
           try {
             await mesasService.ocuparMesa(idMesa);
           } catch (error) {
-            console.error(`Error al ocupar mesa ${idMesa}:`, error);
           }
-        }        emitirMesaActualizada(mesaSeleccionada.idMesa, 'OCUPADA');
+        }
+        emitirMesaActualizada(mesaSeleccionada.idMesa, 'OCUPADA');
       } catch (error) {
-        console.error('Error al ocupar mesa:', error);        await cargarMesas();
+        await cargarMesas();
       }
     } else {
-    }    await cargarMesas();    if (mesaSeleccionada) {
+    }
+    await cargarMesas();
+    if (mesaSeleccionada) {
       const mesaActualizada = mesas.find(m => m.idMesa === mesaSeleccionada.idMesa);
       setMesaSeleccionada(mesaActualizada || mesaSeleccionada);
       setModalVisible(true);
@@ -413,7 +431,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
 
     const handlePagoExitoso = async (factura) => {
     setPagoModalVisible(false);
-    setPedidosMesaSeleccionada([]);    emitirMesaCobrada(
+    setPedidosMesaSeleccionada([]);
+    emitirMesaCobrada(
       mesaSeleccionada?.idMesa,
       mesaSeleccionada?.grupo,
       factura
@@ -422,8 +441,10 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         const clave = mesaSeleccionada?.grupo 
       ? `grupo-${mesaSeleccionada.grupo}` 
       : `mesa-${mesaSeleccionada?.idMesa}`;
-    pedidosService.limpiarPedidos(clave);    if (mesaSeleccionada) {
-      try {        const mesasDelGrupo = mesaSeleccionada.grupo 
+    pedidosService.limpiarPedidos(clave);
+    if (mesaSeleccionada) {
+      try {
+        const mesasDelGrupo = mesaSeleccionada.grupo 
           ? mesas.filter(m => m.grupo === mesaSeleccionada.grupo).map(m => m.idMesa)
           : [mesaSeleccionada.idMesa];
                 setMesas(prevMesas => 
@@ -432,15 +453,14 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               ? { ...m, estado: 'libre' }
               : m
           )
-        );        for (const idMesa of mesasDelGrupo) {
+        );
+        for (const idMesa of mesasDelGrupo) {
           try {
             await mesasService.liberarMesa(idMesa);
           } catch (error) {
-            console.error(`Error al liberar mesa ${idMesa}:`, error);
           }
         }
       } catch (error) {
-        console.error('Error al liberar mesa:', error);
       }
     }
     
@@ -468,7 +488,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       });
       return;
     }
-    }    const nombreDefault = `Grupo ${new Date().getTime() % 1000}`;
+    }
+    const nombreDefault = `Grupo ${new Date().getTime() % 1000}`;
     
     showConfirm({
       title: 'Nombre del grupo',
@@ -510,8 +531,11 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
               tienePedidos = true;
               break;
             }
-          }          const ordenadas = [...numeros].sort((a, b) => a - b);          const resultado = await mesasService.createGrupo(nombre, mesasIds);
-          const grupoId = resultado.id || resultado.idGrupo;          if (tienePedidos && grupoId) {
+          }
+          const ordenadas = [...numeros].sort((a, b) => a - b);
+          const resultado = await mesasService.createGrupo(nombre, mesasIds);
+          const grupoId = resultado.id || resultado.idGrupo;
+          if (tienePedidos && grupoId) {
             const cantidadTransferida = pedidosService.transferirPedidosAGrupo(mesasIds, grupoId);
             
             if (cantidadTransferida > 0) {
@@ -520,7 +544,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                 try {
                   await mesasService.ocuparMesa(mesaId);
                 } catch (error) {
-                  console.error(`[ERROR] Error al ocupar mesa ${mesaId}:`, error);
                 }
               }
 
@@ -533,13 +556,15 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                       unidaCon: nuevasUniones,
                       nombreGrupo: nombre,
                       grupo: grupoId,
-                      estado: 'ocupada' // [OK] Marcar como ocupada (en rojo)
+                      estado: 'ocupada' 
                     };
                   }
                   return m;
                 });
-              });              cargarPedidosActivos();
-            } else {              setMesas(prev => {
+              });
+              cargarPedidosActivos();
+            } else {
+              setMesas(prev => {
                 return prev.map(m => {
                   if (numeros.includes(m.numero)) {
                     const nuevasUniones = ordenadas.filter(n => n !== m.numero);
@@ -554,7 +579,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                 });
               });
             }
-          } else {            setMesas(prev => {
+          } else {
+            setMesas(prev => {
               return prev.map(m => {
                 if (numeros.includes(m.numero)) {
                   const nuevasUniones = ordenadas.filter(n => n !== m.numero);
@@ -575,7 +601,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           setMesasSeleccionadas([]);
           
         } catch (error) {
-          console.error('Error al crear grupo:', error);          setMesas(prev =>
+          setMesas(prev =>
             prev.map(mesa => {
               if (numeros.includes(mesa.numero)) {
                 return {
@@ -627,7 +653,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         onConfirm: hideConfirm
       });
 
-    try {      const mesasConGrupo = mesas.filter(m => 
+    try {
+      const mesasConGrupo = mesas.filter(m => 
         mesasSeleccionadas.includes(m.numero) && m.grupo
       );
 
@@ -649,7 +676,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         .map(m => m.idMesa);
       
             const mesasIdsARemover = mesasConGrupo.map(m => m.idMesa);
-      const mesasRestantes = todasLasMesasDelGrupo.length - mesasIdsARemover.length;      let mensaje;
+      const mesasRestantes = todasLasMesasDelGrupo.length - mesasIdsARemover.length;
+      let mensaje;
       if (mesasRestantes < 2) {
         mensaje = `Esto disolverá el grupo completo "${nombreGrupo}". ¿Continuar?`;
       } else {
@@ -664,7 +692,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         icon: "link-variant-off",
         onConfirm: async () => {
           hideConfirm();
-          try {            setMesas(prev => prev.map(m => {
+          try {
+            setMesas(prev => prev.map(m => {
               if (mesasSeleccionadas.includes(m.numero)) {
                 return {
                   ...m,
@@ -679,7 +708,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
                 };
               }
               return m;
-            }));            await mesasService.removerMesasDeGrupo(
+            }));
+            await mesasService.removerMesasDeGrupo(
               grupoId,
               mesasIdsARemover,
               todasLasMesasDelGrupo,
@@ -702,7 +732,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             setMesasSeleccionadas([]);
 
           } catch (error) {
-            console.error('Error al separar mesas:', error);
             await cargarMesas();
             showConfirm({
               title: 'Error',
@@ -715,8 +744,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         }
       });
     } catch (error) {
-      console.error('Error en confirmarSeparar:', error);
-      console.error('Error en confirmarSeparar:', error);
       showConfirm({
         title: 'Error',
         message: 'Ocurrió un error al procesar la solicitud',
@@ -727,7 +754,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  const handleIniciarPedido = async (numero) => {    const mesaActual = mesas.find(m => m.numero === numero);
+  const handleIniciarPedido = async (numero) => {
+    const mesaActual = mesas.find(m => m.numero === numero);
     if (!mesaActual) {
     if (!mesaActual) {
       showConfirm({
@@ -739,7 +767,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       });
       return;
     }
-    }    const mesasDelGrupo = [numero, ...(mesaActual.unidaCon || [])];
+    }
+    const mesasDelGrupo = [numero, ...(mesaActual.unidaCon || [])];
     const pedidoCompartido = {
       mozo: displayName,
       horaInicio: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -753,9 +782,11 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           ? { ...mesa, estado: "ocupada", pedido: pedidoCompartido }
           : mesa
       )
-    );    try {      const response = await mesasService.ocuparMesa(mesaActual.idMesa);
+    );
+    try {
+      const response = await mesasService.ocuparMesa(mesaActual.idMesa);
     } catch (error) {
-      console.error('[ERROR] Error al ocupar mesa:', error);      setMesas(prevMesas => 
+      setMesas(prevMesas => 
         prevMesas.map(mesa => 
           mesasDelGrupo.includes(mesa.numero)
             ? { ...mesa, estado: "libre", pedido: null }
@@ -773,7 +804,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  const handleLimpiarMesa = async (numero) => {    const mesaActual = mesas.find(m => m.numero === numero);
+  const handleLimpiarMesa = async (numero) => {
+    const mesaActual = mesas.find(m => m.numero === numero);
     if (!mesaActual) {
     if (!mesaActual) {
       showConfirm({
@@ -785,7 +817,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       });
       return;
     }
-    }        const mesasDelGrupo = mesaActual.grupo
+    }
+        const mesasDelGrupo = mesaActual.grupo
       ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
       : [mesaActual.idMesa];
     
@@ -795,30 +828,33 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           return {
             ...mesa,
             estado: "libre",
-            pedido: null,          };
+            pedido: null,
+          };
         }
         return mesa;
       });
-    });    try {
+    });
+    try {
             const clave = mesaActual.grupo 
         ? `grupo-${mesaActual.grupo}` 
         : `mesa-${mesaActual.idMesa}`;
       pedidosService.limpiarPedidos(clave);
       
-            cargarPedidosActivos();      const mesasALiberar = mesaActual.grupo
+            cargarPedidosActivos();
+      const mesasALiberar = mesaActual.grupo
         ? mesas.filter(m => m.grupo === mesaActual.grupo).map(m => m.idMesa)
-        : [mesaActual.idMesa];      for (const idMesa of mesasALiberar) {
+        : [mesaActual.idMesa];
+      for (const idMesa of mesasALiberar) {
         try {
           await mesasService.liberarMesa(idMesa);
         } catch (error) {
-          console.error(`Error al liberar mesa ${idMesa}:`, error);
         }
       }
       
       const cantidadMesas = mesasALiberar.length;
       
     } catch (error) {
-      console.error('Error al liberar mesa:', error);      setMesas(prevMesas => 
+      setMesas(prevMesas => 
         prevMesas.map(mesa => 
           mesasDelGrupo.includes(mesa.numero)
             ? { ...mesa, estado: "ocupada", pedido: mesaActual.pedido }
@@ -844,7 +880,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       const ESPACIO = 30;
       const COLUMNAS = 5;
       
-      let posicionEncontrada = null;      for (let fila = 0; fila < 10; fila++) {
+      let posicionEncontrada = null;
+      for (let fila = 0; fila < 10; fila++) {
         for (let col = 0; col < COLUMNAS; col++) {
           const nuevaPos = {
             x: 50 + col * (TAMANO_MESA + ESPACIO),
@@ -861,7 +898,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           }
         }
         if (posicionEncontrada) break;
-      }      if (!posicionEncontrada) {
+      }
+      if (!posicionEncontrada) {
         posicionEncontrada = { x: 50, y: 50 };
       }
       
@@ -872,7 +910,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           posicionEncontrada.y
         );
       } catch (errorPos) {
-        console.warn('No se pudo guardar la posición inicial:', errorPos);
       }
       
       const nuevaMesa = {
@@ -895,8 +932,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         return [...prev, nuevaMesa];
       });
     } catch (error) {
-      console.error('Error al crear mesa:', error);
-      console.error('Error al crear mesa:', error);
       showConfirm({
         title: 'Error',
         message: 'No se pudo crear la mesa en el servidor',
@@ -952,8 +987,6 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           }))
       );
     } catch (error) {
-      console.error('Error al eliminar mesa:', error);
-      console.error('Error al eliminar mesa:', error);
       showConfirm({
         title: '[ERROR] Error',
         message: 'No se pudo eliminar la mesa del servidor',
@@ -962,13 +995,15 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         onConfirm: hideConfirm
       });
     }
-  };  const stats = useMemo(() => {
+  };
+  const stats = useMemo(() => {
     return {
       ocupadas: mesas.filter(m => m.estado === "ocupada").length,
       libres: mesas.filter(m => m.estado === "libre").length,
       total: mesas.length
     };
-  }, [mesas]);  const gruposInfo = useMemo(() => {
+  }, [mesas]);
+  const gruposInfo = useMemo(() => {
     const grupos = {};
     const mesasEnGrupos = new Set();
     
@@ -996,7 +1031,8 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
       mesasEnGrupos: mesasEnGrupos.size,
       mesasIndividuales: mesas.length - mesasEnGrupos.size
     };
-  }, [mesas]);  useEffect(() => {
+  }, [mesas]);
+  useEffect(() => {
     if (gruposInfo.cantidadGrupos > 0) {
     }
   }, [gruposInfo]);
@@ -1016,13 +1052,13 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
   return (
     <DashboardLayout userName={displayName} onLogout={logout} onNavigate={onNavigate} currentScreen={currentScreen}>
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>Administrar Mesas</Text>
-                {/* Indicadores de conexión WebSocket */}
+                
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={[styles.wsIndicator, wsConnected ? styles.wsConnected : styles.wsDisconnected]}>
                     <Text style={styles.wsIndicatorText}>
@@ -1066,7 +1102,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Toolbar */}
+        
         <View style={styles.toolbar}>
           <TouchableOpacity style={[styles.toolButton, modoActivo === 'mover' && styles.toolButtonActive]} onPress={() => activarModo('mover')}>
             <MaterialCommunityIcons name="cursor-move" size={20} color={modoActivo === 'mover' ? "#fff" : "#4a4a4a"} />
@@ -1109,7 +1145,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           )}
         </View>
 
-        {/* Canvas */}
+        
         <View 
           style={styles.salon}
           onLayout={(event) => {
@@ -1119,7 +1155,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
         >
           <GridBackground />
           
-          {/* Indicador de zona segura (sutil) */}
+          
           {salonDimensions.width > 0 && (
             <>
               <View style={[styles.zonaSeguridadVertical, { 
@@ -1135,7 +1171,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             </>
           )}
 
-          {/* Mensaje si no hay mesas */}
+          
           {mesas.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No hay mesas disponibles</Text>
@@ -1143,11 +1179,12 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
             </View>
           )}
 
-          {/* Filtrar duplicados antes de renderizar */}
+          
           {Array.from(new Map(mesas.map(m => [m.idMesa || m.numero, m])).values()).map(m => {
                         const claveMesa = `mesa-${m.idMesa}`;
             const claveGrupo = m.grupo ? `grupo-${m.grupo}` : null;
-            const tienePedido = pedidosActivos.has(claveMesa) || (claveGrupo && pedidosActivos.has(claveGrupo));            if (tienePedido) {
+            const tienePedido = pedidosActivos.has(claveMesa) || (claveGrupo && pedidosActivos.has(claveGrupo));
+            if (tienePedido) {
             }
             
             return (
@@ -1193,13 +1230,14 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           onEliminarMesa={handleEliminarMesa}
         />
 
-        {/* Modal de Pedidos */}
+        
         {mesaSeleccionada && (
           <PedidoMesaModal
             visible={pedidoModalVisible}
             onClose={() => {
               setPedidoModalVisible(false);
-              setPedidoEnEdicion(null);            }}
+              setPedidoEnEdicion(null);
+            }}
             mesa={!mesaSeleccionada.grupo ? mesaSeleccionada : null}
             grupo={mesaSeleccionada.grupo ? { 
               id: mesaSeleccionada.grupo, 
@@ -1210,7 +1248,7 @@ export default function MesasScreen({ onNavigate, currentScreen }) {
           />
         )}
 
-        {/* Modal de Pago */}
+        
         <PagoFacturaModal
           visible={pagoModalVisible}
           onClose={() => {

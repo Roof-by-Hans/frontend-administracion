@@ -17,7 +17,8 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [turno, setTurno] = useState("Mañana");  const [errores, setErrores] = useState({
+  const [turno, setTurno] = useState("Mañana");
+  const [errores, setErrores] = useState({
     nombre: "",
     apellido: "",
     telefono: "",
@@ -25,11 +26,13 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
   });
 
   useEffect(() => {
-    if (mozo) {      setNombre(mozo.nombre);
+    if (mozo) {
+      setNombre(mozo.nombre);
       setApellido(mozo.apellido);
       setTelefono(mozo.telefono);
       setTurno(mozo.turno);
-    } else {      limpiarCampos();
+    } else {
+      limpiarCampos();
     }
         setErrores({ nombre: "", apellido: "", telefono: "", turno: "" });
   }, [mozo, visible]);
@@ -39,7 +42,8 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     setApellido("");
     setTelefono("");
     setTurno("Mañana");
-  };  const handleNombreChange = (text) => {
+  };
+  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
@@ -48,7 +52,8 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     } else {
       setErrores(prev => ({ ...prev, nombre: "" }));
     }
-  };  const handleApellidoChange = (text) => {
+  };
+  const handleApellidoChange = (text) => {
     setApellido(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
@@ -57,7 +62,8 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
     } else {
       setErrores(prev => ({ ...prev, apellido: "" }));
     }
-  };  const handleTelefonoChange = (text) => {
+  };
+  const handleTelefonoChange = (text) => {
     setTelefono(text);
     if (text.trim() === "") {
       setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
@@ -74,7 +80,8 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
         const hayErrores = Object.values(errores).some(error => error !== "");
     const camposVacios = !nombre.trim() || !apellido.trim() || !telefono.trim();
     
-    if (hayErrores || camposVacios) {      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
+    if (hayErrores || camposVacios) {
+      if (!nombre.trim()) setErrores(prev => ({ ...prev, nombre: "El nombre es obligatorio" }));
       if (!apellido.trim()) setErrores(prev => ({ ...prev, apellido: "El apellido es obligatorio" }));
       if (!telefono.trim()) setErrores(prev => ({ ...prev, telefono: "El teléfono es obligatorio" }));
       return;
@@ -111,7 +118,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {mozo ? "Editar Mozo" : "Agregar Mozo"}
@@ -124,7 +131,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
+            
             <ScrollView
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}
@@ -188,7 +195,7 @@ export default function MozoModal({ visible, onClose, onSave, mozo = null }) {
               </View>
             </ScrollView>
 
-            {/* Footer */}
+            
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}

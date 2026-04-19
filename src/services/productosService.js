@@ -1,21 +1,10 @@
 import api from './api';
 
-/**
- * Servicio para gestionar productos
- * Basado en las rutas definidas en productoRoutes.js
- */
-
-/**
- * Obtiene todos los productos disponibles con filtros opcionales
- * @param {Object} params - Parámetros de filtrado
- * @param {string} params.estado - Estado de los productos ('habilitados', 'deshabilitados', 'todos')
- * @returns {Promise} Lista de productos con sus categorías
- */
 export const getProductos = async (params = {}) => {
   try {
     let endpoint = '/productos';
     
-    // Construir query string si params.estado existe y no es 'todos'
+  
     if (params.estado && params.estado !== 'todos') {
       endpoint = `/productos?estado=${params.estado}`;
     }
@@ -23,50 +12,31 @@ export const getProductos = async (params = {}) => {
     const response = await api.get(endpoint);
     return response.data;
   } catch (error) {
-    console.error('Error al obtener productos:', error);
     throw error;
   }
 };
 
-/**
- * Obtiene solo productos habilitados para pedidos
- * @returns {Promise} Lista de productos habilitados
- */
+
 export const getProductosHabilitados = async () => {
   try {
     const response = await api.get('/productos/habilitados');
     return response.data;
   } catch (error) {
-    console.error('Error al obtener productos habilitados:', error);
     throw error;
   }
 };
 
-/**
- * Obtiene un producto por su ID
- * @param {number} id - ID del producto
- * @returns {Promise} Datos del producto
- */
+
 export const getProductoPorId = async (id) => {
   try {
     const response = await api.get(`/productos/${id}`);
     return response.data;
   } catch (error) {
-    console.error(`Error al obtener producto ${id}:`, error);
     throw error;
   }
 };
 
-/**
- * Crea un nuevo producto con imagen
- * @param {Object} productoData - Datos del producto
- * @param {string} productoData.nombre - Nombre del producto
- * @param {number} productoData.precio_unitario - Precio unitario
- * @param {number} productoData.id_categoria - ID de la categoría
- * @param {string} [productoData.descripcion] - Descripción del producto (opcional)
- * @param {Object} [imagen] - Objeto con la imagen del producto (opcional)
- * @returns {Promise} Producto creado
- */
+
 export const crearProducto = async (productoData, imagen = null) => {
   try {
     const formData = new FormData();
@@ -79,13 +49,16 @@ export const crearProducto = async (productoData, imagen = null) => {
       formData.append('descripcion', productoData.descripcion);
     }
     
-        if (imagen) {      if (imagen.file) {
+        if (imagen) {
+      if (imagen.file) {
         formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
-      }      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+      }
+      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
         const response = await fetch(imagen.uri);
         const blob = await response.blob();
         formData.append('imagen', blob, imagen.name || 'producto.jpg');
-      }       else {
+      } 
+      else {
         formData.append('imagen', {
           uri: imagen.uri,
           type: imagen.type || 'image/jpeg',
@@ -102,22 +75,11 @@ export const crearProducto = async (productoData, imagen = null) => {
     
     return response.data;
   } catch (error) {
-    console.error('Error al crear producto:', error);
     throw error;
   }
 };
 
-/**
- * Actualiza un producto existente con imagen opcional
- * @param {number} id - ID del producto a actualizar
- * @param {Object} productoData - Datos del producto a actualizar (todos opcionales)
- * @param {string} [productoData.nombre] - Nuevo nombre del producto
- * @param {number} [productoData.precio_unitario] - Nuevo precio unitario
- * @param {number} [productoData.id_categoria] - Nuevo ID de categoría
- * @param {string} [productoData.descripcion] - Nueva descripción
- * @param {Object} [imagen] - Nueva imagen del producto (opcional)
- * @returns {Promise} Producto actualizado
- */
+
 export const actualizarProducto = async (id, productoData, imagen = null) => {
   try {
     const formData = new FormData();
@@ -135,13 +97,16 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
       formData.append('descripcion', productoData.descripcion);
     }
     
-        if (imagen) {      if (imagen.file) {
+        if (imagen) {
+      if (imagen.file) {
         formData.append('imagen', imagen.file, imagen.name || 'producto.jpg');
-      }      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
+      }
+      else if (typeof window !== 'undefined' && imagen.uri.startsWith('blob:')) {
         const response = await fetch(imagen.uri);
         const blob = await response.blob();
         formData.append('imagen', blob, imagen.name || 'producto.jpg');
-      }       else {
+      } 
+      else {
         formData.append('imagen', {
           uri: imagen.uri,
           type: imagen.type || 'image/jpeg',
@@ -158,40 +123,30 @@ export const actualizarProducto = async (id, productoData, imagen = null) => {
     
     return response.data;
   } catch (error) {
-    console.error(`Error al actualizar producto ${id}:`, error);
     throw error;
   }
 };
 
-/**
- * Elimina un producto del catálogo
- * @param {number} id - ID del producto a eliminar
- * @returns {Promise} Confirmación de eliminación
- */
+
 export const eliminarProducto = async (id) => {
   try {
     const response = await api.delete(`/productos/${id}`);
     return response.data;
   } catch (error) {
-    console.error(`Error al eliminar producto ${id}:`, error);
     throw error;
   }
 };
 
-/**
- * Toggle el estado de habilitación de un producto
- * @param {number} id - ID del producto
- * @returns {Promise} Nuevo estado del producto
- */
+
 export const toggleProducto = async (id) => {
   try {
     const response = await api.patch(`/productos/${id}/toggle`);
     return response.data;
   } catch (error) {
-    console.error(`Error al toggle producto ${id}:`, error);
     throw error;
   }
-};export default {
+};
+export default {
   getProductos,
   getProductosHabilitados,
   getProductoPorId,

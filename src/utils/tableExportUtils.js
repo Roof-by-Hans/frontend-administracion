@@ -402,7 +402,7 @@ export const exportAsPdf = async ({ rows = [], columns = [], fileName = 'tabla',
     try {
       doc.addImage(logoDataUrl, 'PNG', 28, 26, 38, 38);
     } catch (error) {
-      // Silent fallback when the logo cannot be rendered by jsPDF.
+      
     }
   }
 

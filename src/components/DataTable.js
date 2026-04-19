@@ -20,19 +20,7 @@ const toExportTitle = (baseName = 'tabla') => {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
-/**
- * Componente de tabla reutilizable con Material-UI DataGrid
- * Incluye filtrado, ordenamiento y paginación nativos
- * 
- * @param {Array} rows - Datos de la tabla (debe incluir un campo 'id')
- * @param {Array} columns - Definición de columnas
- * @param {Function} onEdit - Callback cuando se hace clic en editar
- * @param {Function} onDelete - Callback cuando se hace clic en eliminar
- * @param {Number} pageSize - Tamaño de página por defecto (default: 10)
- * @param {Number} rowHeight - Altura de las filas en píxeles (default: 80)
- * @param {Boolean} checkboxSelection - Habilitar selección múltiple (default: false)
- * @param {Object} sx - Estilos personalizados de Material-UI
- */
+
 export default function DataTable({
   rows,
   columns,
@@ -104,7 +92,7 @@ export default function DataTable({
 
   return (
     <View style={styles.container}>
-      {/* Toolbar con botón de exportar */}
+      
       {exportEnabled && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, pb: 0 }}>
           <Button

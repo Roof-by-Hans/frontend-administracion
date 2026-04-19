@@ -2,14 +2,12 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { AppState } from 'react-native';
 import Alert from "@blazejkustra/react-native-alert";
 import { io } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
 
 const SocketContext = createContext(null);
 
-/**
- * Hook para acceder al contexto del socket
- * @returns {Object} - Contexto del socket
- */
+
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
@@ -18,11 +16,7 @@ export const useSocket = () => {
   return context;
 };
 
-/**
- * Provider para compartir la conexión del socket entre componentes
- * @param {Object} props - Props del componente
- * @param {React.ReactNode} props.children - Componentes hijos
- */
+
 export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -76,12 +70,9 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('reconnect_error', (error) => {
-          console.error('[ERROR] Error de reconexión global:', error.message);
         });
 
         socket.on('reconnect_failed', () => {
-          console.error('[ERROR] Falló la reconexión global después de todos los intentos');
-          
           if (mounted) {
             Alert.alert(
               'Error de conexión',
@@ -92,7 +83,6 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('connect_error', (error) => {
-          console.error('[ERROR] Error de conexión global:', error.message);
         });
 
                 socket.on('authenticated', (data) => {
@@ -104,15 +94,12 @@ export const SocketProvider = ({ children }) => {
 
         socket.on('unauthorized', (data) => {
           if (!mounted) return;
-          
-          console.warn('[WARN] Usuario no autorizado:', data);
           setIsAuthenticated(false);
           setUserId(null);
           setUserRole(null);
         });
 
       } catch (error) {
-        console.error('[ERROR] Error al inicializar socket global:', error);
       }
     };
 
@@ -122,7 +109,8 @@ export const SocketProvider = ({ children }) => {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
-      ) {        if (socketRef.current && !socketRef.current.connected) {
+      ) {
+        if (socketRef.current && !socketRef.current.connected) {
           socketRef.current.connect();
         }
       }
@@ -149,26 +137,21 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
-    /**
-   * Actualizar token de autenticación
-   * @param {string} newToken - Nuevo token JWT
-   */
+    
   const updateToken = async (newToken) => {
     try {
       await AsyncStorage.setItem('token', newToken);
       
-      if (socketRef.current) {        socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
         socketRef.current.auth = { token: newToken };
         socketRef.current.connect();
       }
     } catch (error) {
-      console.error('[ERROR] Error al actualizar token:', error);
     }
   };
 
-  /**
-   * Remover token y desautenticar
-   */
+  
   const clearToken = async () => {
     try {
       await AsyncStorage.removeItem('token');
@@ -181,48 +164,32 @@ export const SocketProvider = ({ children }) => {
         socketRef.current.auth = { token: null };
       }
     } catch (error) {
-      console.error('[ERROR] Error al limpiar token:', error);
     }
   };
 
-  /**
-   * Forzar reconexión manual
-   */
+  
   const reconnect = () => {
     if (socketRef.current) {
       socketRef.current.connect();
     }
   };
 
-  /**
-   * Emitir un evento al servidor
-   * @param {string} event - Nombre del evento
-   * @param {any} data - Datos a enviar
-   */
+  
   const emit = (event, data) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit(event, data);
     } else {
-      console.warn('[WARN] Socket no conectado, no se puede emitir:', event);
     }
   };
 
-  /**
-   * Suscribirse a un evento
-   * @param {string} event - Nombre del evento
-   * @param {Function} callback - Callback a ejecutar
-   */
+  
   const on = (event, callback) => {
     if (socketRef.current) {
       socketRef.current.on(event, callback);
     }
   };
 
-  /**
-   * Desuscribirse de un evento
-   * @param {string} event - Nombre del evento
-   * @param {Function} callback - Callback a remover (opcional)
-   */
+  
   const off = (event, callback) => {
     if (socketRef.current) {
       if (callback) {

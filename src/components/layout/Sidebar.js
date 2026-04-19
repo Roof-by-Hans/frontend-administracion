@@ -97,7 +97,7 @@ export default function Sidebar({
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
-      {/* Header fijo */}
+      
       <View
         style={[styles.brandHeader, isCompact && styles.brandHeaderCompact]}
       >
@@ -127,7 +127,7 @@ export default function Sidebar({
         )}
       </View>
 
-      {/* Contenido scrolleable */}
+      
       <ScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
@@ -154,7 +154,7 @@ export default function Sidebar({
         </View>
       </ScrollView>
 
-      {/* Footer fijo */}
+      
       <Pressable
         style={({ hovered }) => [
           styles.logout,

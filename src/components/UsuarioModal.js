@@ -68,7 +68,8 @@ export default function UsuarioModal({
     }));
   };
 
-  const handleSave = () => {    if (!formData.nombreUsuario.trim()) {
+  const handleSave = () => {
+    if (!formData.nombreUsuario.trim()) {
       Alert.alert("Error", "El nombre de usuario es obligatorio");
       return;
     }
@@ -100,7 +101,8 @@ export default function UsuarioModal({
     if (formData.roles.length === 0) {
       Alert.alert("Error", "Debe seleccionar al menos un rol");
       return;
-    }    const dataToSend = {
+    }
+    const dataToSend = {
       nombreUsuario: formData.nombreUsuario,
       activo: formData.activo,
       roles: formData.roles,
@@ -115,7 +117,8 @@ export default function UsuarioModal({
       dataToSend.email = formData.email.trim();
     } else {
       dataToSend.email = null;
-    }    if (formData.contrasena) {
+    }
+    if (formData.contrasena) {
       dataToSend.contrasena = formData.contrasena;
     }
 
@@ -141,7 +144,7 @@ export default function UsuarioModal({
           </View>
 
           <ScrollView style={styles.modalBody}>
-            {/* Nombre de usuario */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre de Usuario *</Text>
               <TextInput
@@ -156,7 +159,7 @@ export default function UsuarioModal({
               />
             </View>
 
-            {/* Email de recuperación */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email de recuperación</Text>
               <TextInput
@@ -174,7 +177,7 @@ export default function UsuarioModal({
               </Text>
             </View>
 
-            {/* Contraseña */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>
                 Contraseña {!isEdit && "*"}
@@ -199,7 +202,7 @@ export default function UsuarioModal({
               />
             </View>
 
-            {/* Confirmar Contraseña */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>
                 Confirmar Contraseña {!isEdit && "*"}
@@ -223,7 +226,7 @@ export default function UsuarioModal({
               />
             </View>
 
-            {/* Estado Activo */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Estado</Text>
               <View style={styles.switchContainer}>
@@ -266,7 +269,7 @@ export default function UsuarioModal({
               </View>
             </View>
 
-            {/* Roles */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Roles *</Text>
               <View style={styles.rolesContainer}>

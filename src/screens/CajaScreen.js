@@ -11,13 +11,16 @@ import CierreCajaModal from "../components/CierreCajaModal";
 import { useAuth } from "../context/AuthContext";
 import cajaService from "../services/cajaService";
 
-export default function CajaScreen({ onNavigate, currentScreen }) {  const [loading, setLoading] = useState(true);
-  const [cajaActual, setCajaActual] = useState(null); // Objeto caja del backend
-  const [movimientos, setMovimientos] = useState([]);  const [totales, setTotales] = useState({
+export default function CajaScreen({ onNavigate, currentScreen }) {
+  const [loading, setLoading] = useState(true);
+  const [cajaActual, setCajaActual] = useState(null); 
+  const [movimientos, setMovimientos] = useState([]);
+  const [totales, setTotales] = useState({
     ingresos: 0,
     egresos: 0,
     saldo: 0,
-  });  const [busqueda, setBusqueda] = useState("");
+  });
+  const [busqueda, setBusqueda] = useState("");
   
     const [modalMovimientoVisible, setModalMovimientoVisible] = useState(false);
   const [modalAperturaVisible, setModalAperturaVisible] = useState(false);
@@ -41,7 +44,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
             setTotales({
                 ingresos: parseFloat(data.totales.ingresos || 0),
                 egresos: parseFloat(data.totales.egresos || 0),
-                saldo: parseFloat(data.totales.montoEsperado || 0) // Monto inicial + (Ing - Egr + Ajustes)
+                saldo: parseFloat(data.totales.montoEsperado || 0) 
             });
         }
       } else {
@@ -49,19 +52,20 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
         setTotales({ ingresos: 0, egresos: 0, saldo: 0 });
       }
     } catch (error) {
-      console.error("Error al cargar caja:", error);    } finally {
+    } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, [cargarDatos]);  const handleAbrirCaja = async (montoInicial) => {
+  }, [cargarDatos]);
+  const handleAbrirCaja = async (montoInicial) => {
     try {
       setActionLoading(true);
       await cajaService.abrirCaja(montoInicial);
       setModalAperturaVisible(false);
-      await cargarDatos(); // Recargar todo
+      await cargarDatos(); 
     } catch (error) {
       Alert.alert("Error", error.message || "Error al abrir la caja");
     } finally {
@@ -83,7 +87,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
       }
       Alert.alert("Éxito", mensaje);
 
-      await cargarDatos(); // Recargar para mostrar estado "CERRADA"
+      await cargarDatos(); 
     } catch (error) {
       Alert.alert("Error", error.message || "Error al cerrar la caja");
     } finally {
@@ -96,15 +100,16 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
       setActionLoading(true);
       await cajaService.registrarMovimientoManual(movimientoData);
       setModalMovimientoVisible(false);
-      await cargarDatos(); // Recargar movimientos y saldos
+      await cargarDatos(); 
     } catch (error) {
       Alert.alert("Error", error.message || "Error al registrar movimiento");
     } finally {
       setActionLoading(false);
     }
-  };  const columns = [
+  };
+  const columns = [
     {
-      field: 'concepto', // Backend devuelve 'concepto'
+      field: 'concepto', 
       headerName: 'Descripción',
       flex: 1,
       minWidth: 200,
@@ -157,7 +162,8 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
       renderCell: (params) => {
         const row = params.row;
         const tipo = row.tipo?.toUpperCase();
-        const esEgreso = tipo === 'EGRESO';        let color = '#333';
+        const esEgreso = tipo === 'EGRESO';
+        let color = '#333';
         if (tipo === 'INGRESO' || tipo === 'APERTURA') color = '#2e7d32';
         if (esEgreso) color = '#c62828';
         if (tipo === 'AJUSTE') color = '#ef6c00';
@@ -174,7 +180,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
       },
     },
     {
-      field: 'fecha', // Backend devuelve ISO string
+      field: 'fecha', 
       headerName: 'Fecha y Hora',
       width: 170,
       headerAlign: 'center',
@@ -215,7 +221,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
       onLogout={logout}
     >
       <View style={styles.container}>
-        {/* Header con Estado de Caja */}
+        
         <View style={styles.headerCard}>
           <View style={styles.saldoContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -280,7 +286,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
           </View>
         </View>
 
-        {/* Desglose de Medios de Pago (Nuevo) */}
+        
         {cajaAbierta && cajaActual?.desglose && cajaActual.desglose.length > 0 && (
           <View style={styles.desgloseCard}>
              <Text style={styles.desgloseTitle}>Desglose por Medio de Pago</Text>
@@ -312,7 +318,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
                 </View>
                 </View>
 
-                {/* Buscador */}
+                
                 <View style={styles.searchContainer}>
                 <MaterialCommunityIcons
                     name="magnify"
@@ -335,7 +341,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
                 </View>
             </View>
 
-            {/* Tabla de Movimientos */}
+            
             <DataTable
                 rows={movimientosFiltrados}
                 columns={columns}
@@ -352,7 +358,7 @@ export default function CajaScreen({ onNavigate, currentScreen }) {  const [loa
             </View>
         )}
 
-        {/* Modales */}
+        
         <MovimientoCajaModal
           visible={modalMovimientoVisible}
           onClose={() => setModalMovimientoVisible(false)}

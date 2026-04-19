@@ -2,15 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import Alert from "@blazejkustra/react-native-alert";
 import { io } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
 
-/**
- * Hook personalizado para manejar WebSocket de mesas
- * @param {Object} options - Opciones de configuración
- * @param {Function} options.onRefreshRequest - Callback cuando se solicita refrescar mesas
- * @param {Function} options.onNotification - Callback para notificaciones
- * @returns {Object} - Socket, estado de conexión, mesas y funciones auxiliares
- */
+
 export function useMesasSocket(options = {}) {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -26,7 +21,6 @@ export function useMesasSocket(options = {}) {
         const token = await AsyncStorage.getItem('token');
         
         if (!token) {
-          console.warn('[WARN] No hay token disponible para WebSocket');
           return;
         }
         socket = io(SOCKET_URL, {
@@ -42,7 +36,8 @@ export function useMesasSocket(options = {}) {
 
                 socket.on('connect', () => {
           setIsConnected(true);
-          reconnectAttempts.current = 0;          socket.emit('join:mesas');
+          reconnectAttempts.current = 0;
+          socket.emit('join:mesas');
         });
 
         socket.on('disconnect', (reason) => {
@@ -50,7 +45,8 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('reconnect', (attemptNumber) => {
-          reconnectAttempts.current = 0;          socket.emit('join:mesas');
+          reconnectAttempts.current = 0;
+          socket.emit('join:mesas');
         });
 
         socket.on('reconnect_attempt', (attemptNumber) => {
@@ -58,11 +54,9 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('reconnect_error', (error) => {
-          console.error('[ERROR] Error de reconexión:', error.message);
         });
 
         socket.on('reconnect_failed', () => {
-          console.error('[ERROR] Falló la reconexión después de todos los intentos');
           Alert.alert(
             'Error de conexión',
             'No se pudo reconectar al servidor. Por favor, verifica tu conexión e intenta nuevamente.',
@@ -80,17 +74,12 @@ export function useMesasSocket(options = {}) {
         });
 
         socket.on('left:mesa', (data) => {
-        });        
-        /**
-         * Evento principal que se emite:
-         * 1. Automáticamente al hacer join:mesas
-         * 2. Automáticamente al crear/disolver grupos
-         * 3. Cada vez que hay cambios importantes en mesas
-         * 
-         * Esto reemplaza la necesidad de hacer polling o requests adicionales
-         */
+        });
+        
+        
         socket.on('mesas:lista-completa', (payload) => {
-          if (payload.data && Array.isArray(payload.data)) {            const mesasConGrupo = payload.data.filter(m => m.grupo);
+          if (payload.data && Array.isArray(payload.data)) {
+            const mesasConGrupo = payload.data.filter(m => m.grupo);
             mesasConGrupo.forEach(m => {
             });
             
@@ -101,7 +90,8 @@ export function useMesasSocket(options = {}) {
                 'RESERVADA': 'reservada',
                 'FUERA_DE_SERVICIO': 'fuera_servicio'
               };
-              const estadoLocal = estadoMap[mesa.estado] || 'libre';              const grupoInfo = mesa.grupo ? {
+              const estadoLocal = estadoMap[mesa.estado] || 'libre';
+              const grupoInfo = mesa.grupo ? {
                 id: mesa.grupo.id,
                 nombre: mesa.grupo.nombre
               } : null;
@@ -115,7 +105,7 @@ export function useMesasSocket(options = {}) {
                   x: mesa.posX !== null && mesa.posX !== undefined ? mesa.posX : 50 + (index % 5) * 130, 
                   y: mesa.posY !== null && mesa.posY !== undefined ? mesa.posY : 50 + Math.floor(index / 5) * 130 
                 },
-                unidaCon: [], // Se completará después
+                unidaCon: [], 
                 pedido: estadoLocal === "ocupada" ? {
                   mozo: "Sistema",
                   horaInicio: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -128,27 +118,34 @@ export function useMesasSocket(options = {}) {
                 nombreMesa: mesa.nombreMesa,
                 idClienteActual: mesa.idClienteActual || null
               };
-            });            mesasTransformadas.forEach(mesa => {
-              if (mesa.grupo) {                const mesasDelMismoGrupo = mesasTransformadas
+            });
+            mesasTransformadas.forEach(mesa => {
+              if (mesa.grupo) {
+                const mesasDelMismoGrupo = mesasTransformadas
                   .filter(m => m.grupo === mesa.grupo && m.numero !== mesa.numero)
                   .map(m => m.numero);
                 
                 mesa.unidaCon = mesasDelMismoGrupo;
               }
-            });            setMesas(prev => {
+            });
+            setMesas(prev => {
                             const mesasExistentesMap = new Map();
               prev.forEach(mesa => {
                 mesasExistentesMap.set(mesa.idMesa || mesa.numero, mesa);
-              });              const mesasFusionadas = mesasTransformadas.map(mesaBackend => {
+              });
+              const mesasFusionadas = mesasTransformadas.map(mesaBackend => {
                 const mesaExistente = mesasExistentesMap.get(mesaBackend.idMesa);
-                if (mesaExistente) {                  return {
+                if (mesaExistente) {
+                  return {
                     ...mesaBackend,
-                    posicion: mesaExistente.posicion // Mantener posición actual
+                    posicion: mesaExistente.posicion 
                   };
-                }                return mesaBackend;
+                }
+                return mesaBackend;
               });
               return mesasFusionadas;
-            });            if (options.onRefreshRequest) {
+            });
+            if (options.onRefreshRequest) {
             }
           }
         });
@@ -188,7 +185,8 @@ export function useMesasSocket(options = {}) {
                 );
               }
               return [...prev, mesaTransformada];
-            });            if (options.onNotification) {
+            });
+            if (options.onNotification) {
               options.onNotification({
                 type: 'success',
                 message: payload.message || `Mesa ${payload.data.nombreMesa} creada`,
@@ -230,7 +228,9 @@ export function useMesasSocket(options = {}) {
               });
             }
           }
-        });        socket.on('mesa:posicion-actualizada', (payload) => {          const data = payload.data || payload;
+        });
+        socket.on('mesa:posicion-actualizada', (payload) => {
+          const data = payload.data || payload;
           setMesas((prevMesas) => {
             const mesasActualizadas = prevMesas.map((mesa) => {
               if (mesa.idMesa === data.idMesa) {
@@ -253,26 +253,31 @@ export function useMesasSocket(options = {}) {
             
             const estadoLocal = estadoMap[payload.data.estado] || payload.data.estado;
             
-            setMesas(prev => {              const mesaCambiada = prev.find(m => 
+            setMesas(prev => {
+              const mesaCambiada = prev.find(m => 
                 m.idMesa === payload.data.id || m.numero === payload.data.id
               );
 
               if (!mesaCambiada) {
-                console.warn('[WARN] Mesa no encontrada:', payload.data.id);
                 return prev;
-              }              const mesasDelGrupo = mesaCambiada.grupo 
+              }
+              const mesasDelGrupo = mesaCambiada.grupo 
                 ? prev.filter(m => m.grupo === mesaCambiada.grupo).map(m => m.numero)
                 : [mesaCambiada.numero];
               const nuevasMesas = prev.map(mesa => {
-                                if (mesasDelGrupo.includes(mesa.numero)) {                  let nuevoPedido;
-                  if (estadoLocal === 'libre') {                    nuevoPedido = null;
-                  } else if (estadoLocal === 'ocupada' && !mesa.pedido) {                    nuevoPedido = {
+                                if (mesasDelGrupo.includes(mesa.numero)) {
+                  let nuevoPedido;
+                  if (estadoLocal === 'libre') {
+                    nuevoPedido = null;
+                  } else if (estadoLocal === 'ocupada' && !mesa.pedido) {
+                    nuevoPedido = {
                       mozo: "Sistema",
                       horaInicio: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
                       comensales: 0,
                       items: []
                     };
-                  } else {                    nuevoPedido = mesa.pedido;
+                  } else {
+                    nuevoPedido = mesa.pedido;
                   }
                   
                   return { 
@@ -285,7 +290,8 @@ export function useMesasSocket(options = {}) {
               });
               
               return nuevasMesas;
-            });          }
+            });
+          }
         });
 
         socket.on('mesas:actualizar', (payload) => {
@@ -297,7 +303,8 @@ export function useMesasSocket(options = {}) {
                 socket.on('grupo:creado', (payload) => {
           
           if (payload.data && payload.data.mesas) {
-            const grupoId = payload.data.id;            const mesasDelGrupoBackend = payload.data.mesas.map(m => m.idMesa || m.id);
+            const grupoId = payload.data.id;
+            const mesasDelGrupoBackend = payload.data.mesas.map(m => m.idMesa || m.id);
             
                         setMesas(prev => {
 
@@ -305,7 +312,8 @@ export function useMesasSocket(options = {}) {
                                 const estaEnGrupo = mesasDelGrupoBackend.includes(mesa.idMesa) || 
                                    mesasDelGrupoBackend.includes(mesa.numero);
                 
-                if (estaEnGrupo) {                  const otrasMesasLocal = prev
+                if (estaEnGrupo) {
+                  const otrasMesasLocal = prev
                     .filter(m => {
                       const estaOtraEnGrupo = mesasDelGrupoBackend.includes(m.idMesa) || 
                                              mesasDelGrupoBackend.includes(m.numero);
@@ -317,14 +325,16 @@ export function useMesasSocket(options = {}) {
                     ...mesa,
                     grupo: grupoId,
                     unidaCon: otrasMesasLocal,
-                    nombreGrupo: payload.data.nombre                  };
+                    nombreGrupo: payload.data.nombre
+                  };
                 }
                 return mesa;
               });
 
 
               return nuevasMesas;
-            });            if (options.onNotification) {
+            });
+            if (options.onNotification) {
               options.onNotification({
                 type: 'success',
                 title: 'Grupo Creado',
@@ -351,7 +361,8 @@ export function useMesasSocket(options = {}) {
                 }
                 return mesa;
               })
-            );          }
+            );
+          }
         });
 
         socket.on('mesas:unidas', (payload) => {
@@ -361,7 +372,8 @@ export function useMesasSocket(options = {}) {
             
                         setMesas(prev =>
               prev.map(mesa => {
-                if (mesasUnidas.includes(mesa.idMesa) || mesasUnidas.includes(mesa.numero)) {                  const otrasMesas = mesasUnidas.filter(id => 
+                if (mesasUnidas.includes(mesa.idMesa) || mesasUnidas.includes(mesa.numero)) {
+                  const otrasMesas = mesasUnidas.filter(id => 
                     id !== mesa.idMesa && id !== mesa.numero
                   );
                   
@@ -374,7 +386,8 @@ export function useMesasSocket(options = {}) {
                 }
                 return mesa;
               })
-            );            if (options.onNotification) {
+            );
+            if (options.onNotification) {
               options.onNotification({
                 type: 'success',
                 title: 'Mesas Unidas',
@@ -401,7 +414,8 @@ export function useMesasSocket(options = {}) {
                 }
                 return mesa;
               })
-            );            if (options.onNotification) {
+            );
+            if (options.onNotification) {
               options.onNotification({
                 type: 'info',
                 title: 'Mesas Separadas',
@@ -425,23 +439,12 @@ export function useMesasSocket(options = {}) {
         });
 
                 socket.on('error', (error) => {
-          console.error('[ERROR] Error de socket:', error);
-          
-          if (options.onNotification) {
-            options.onNotification({
-              type: 'error',
-              message: error.message || 'Error en el socket',
-              code: error.code
-            });
-          }
         });
 
         socket.on('connect_error', (error) => {
-          console.error('[ERROR] Error de conexión:', error.message);
         });
 
       } catch (error) {
-        console.error('[ERROR] Error al inicializar socket:', error);
       }
     };
 
@@ -451,7 +454,8 @@ export function useMesasSocket(options = {}) {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
-      ) {        if (socket && !socket.connected) {
+      ) {
+        if (socket && !socket.connected) {
           socket.connect();
         }
       }
@@ -459,7 +463,8 @@ export function useMesasSocket(options = {}) {
       appState.current = nextAppState;
     });
 
-        return () => {      if (socket) {
+        return () => {
+      if (socket) {
         socket.off('connect');
         socket.off('disconnect');
         socket.off('reconnect');
@@ -484,56 +489,41 @@ export function useMesasSocket(options = {}) {
         socket.off('mesas:connected-clients');
         socket.off('mesa:estado');
         socket.off('error');
-        socket.off('connect_error');              }
+        socket.off('connect_error');
+              }
       
       subscription?.remove();
     };
-  }, []); // Solo se ejecuta al montar y desmontar
-
-    /**
-   * Unirse a una sala de mesa específica
-   * @param {number} mesaId - ID de la mesa
-   */
+  }, []); 
   const joinMesa = (mesaId) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('join:mesa', { mesaId });
     } else {
-      console.warn('[WARN] Socket no conectado, no se puede unir a mesa');
     }
   };
 
-  /**
-   * Salir de una sala de mesa específica
-   * @param {number} mesaId - ID de la mesa
-   */
+  
   const leaveMesa = (mesaId) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('leave:mesa', { mesaId });
     }
   };
 
-  /**
-   * Solicitar el estado actual de una mesa
-   * @param {number} mesaId - ID de la mesa
-   */
+  
   const getEstadoMesa = (mesaId) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('mesa:get-estado', { mesaId });
     }
   };
 
-  /**
-   * Obtener lista de clientes conectados a la sala de mesas
-   */
+  
   const getConnectedClients = () => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('mesas:get-connected-clients');
     }
   };
 
-  /**
-   * Forzar reconexión manual
-   */
+  
   const reconnect = () => {
     if (socketRef.current) {
       socketRef.current.connect();

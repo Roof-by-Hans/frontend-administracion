@@ -34,7 +34,8 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
       const response = await tarjetaService.getNivelesSuscripcion();
       const nivelesData = response.data || [];
       
-      setNiveles(nivelesData);      const limitesIniciales = {};
+      setNiveles(nivelesData);
+      const limitesIniciales = {};
       const erroresIniciales = {};
       
       nivelesData.forEach(nivel => {
@@ -45,7 +46,6 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
       setLimites(limitesIniciales);
       setErrores(erroresIniciales);
     } catch (error) {
-      console.error("Error al cargar niveles:", error);
       Alert.alert(
         "Error",
         "No se pudieron cargar los niveles de suscripción. Intente nuevamente."
@@ -53,7 +53,8 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     } finally {
       setLoading(false);
     }
-  };  const handleLimiteChange = (idNivel, texto) => {
+  };
+  const handleLimiteChange = (idNivel, texto) => {
     setLimites(prev => ({ ...prev, [idNivel]: texto }));
 
     if (texto.trim() === "") {
@@ -83,13 +84,15 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
         nuevosErrores[nivel.id] = "El límite debe ser mayor a 0";
         hayErrores = true;
       }
-    });    if (hayErrores) {
+    });
+    if (hayErrores) {
       setErrores(nuevosErrores);
       return;
     }
 
         setConfirmModalVisible(true);
-  };  const confirmarGuardado = async () => {
+  };
+  const confirmarGuardado = async () => {
     setSaving(true);
     setConfirmModalVisible(false);
     
@@ -106,7 +109,6 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
       
             setSuccessModalVisible(true);
     } catch (error) {
-      console.error("Error al guardar límites:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudieron guardar los cambios. Intente nuevamente."
@@ -114,7 +116,8 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     } finally {
       setSaving(false);
     }
-  };  const cancelarConfirmacion = () => {
+  };
+  const cancelarConfirmacion = () => {
     setConfirmModalVisible(false);
   };
 
@@ -136,7 +139,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Header */}
+          
           <View style={styles.modalHeader}>
             <View style={styles.headerTitleContainer}>
               <MaterialCommunityIcons name="credit-card-settings-outline" size={28} color="#333" />
@@ -147,7 +150,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
             </TouchableOpacity>
           </View>
 
-          {/* Body */}
+          
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <Text style={styles.description}>
               Define el límite de crédito para cada nivel de suscripción de tarjetas.
@@ -189,7 +192,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
               ))
             )}
 
-            {/* Información adicional */}
+            
             {niveles.length > 0 && (
               <View style={styles.infoContainer}>
                 <MaterialCommunityIcons name="information-outline" size={20} color="#2196F3" />
@@ -200,7 +203,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
             )}
           </ScrollView>
 
-          {/* Footer con botones */}
+          
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
@@ -226,23 +229,23 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
           </View>
         </View>
 
-        {/* Modal de confirmación anidado */}
+        
         {confirmModalVisible && (
           <View style={styles.confirmModalOverlay}>
             <View style={styles.confirmModalContent}>
-              {/* Icono de confirmación */}
+              
               <View style={styles.confirmIconContainer}>
                 <MaterialCommunityIcons name="check-circle-outline" size={60} color="#4CAF50" />
               </View>
 
               <Text style={styles.confirmTitle}>¿Guardar cambios?</Text>
 
-              {/* Mensaje */}
+              
               <Text style={styles.confirmMessage}>
                 Los nuevos límites de subscripción se aplicarán inmediatamente.
               </Text>
 
-              {/* Resumen de cambios */}
+              
               <View style={styles.resumenContainer}>
                 {niveles.map(nivel => (
                   <View key={nivel.id} style={styles.resumenItem}>
@@ -252,7 +255,7 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 ))}
               </View>
 
-              {/* es */}
+              
               <View style={styles.confirmButtonContainer}>
                 <TouchableOpacity
                   style={[styles.confirmButton, styles.confirmCancelButton]}
@@ -272,18 +275,18 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
           </View>
         )}
 
-        {/* Modal de éxito */}
+        
         {successModalVisible && (
           <View style={styles.confirmModalOverlay}>
             <View style={styles.confirmModalContent}>
-              {/* Icono de éxito */}
+              
               <View style={styles.successIconContainer}>
                 <MaterialCommunityIcons name="check-circle" size={60} color="#4CAF50" />
 </View>
 
               <Text style={styles.confirmTitle}>¡Cambios guardados!</Text>
 
-              {/* Mensaje */}
+              
               <Text style={styles.confirmMessage}>
                 Los límites de suscripción se han actualizado correctamente.
 </Text>
@@ -462,7 +465,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },  confirmModalOverlay: {
+  },
+  confirmModalOverlay: {
     position: "absolute",
     top: 0,
     left: 0,

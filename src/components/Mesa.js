@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, PanResponder } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.memo(({ 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+const Mesa = React.memo(({ 
   numero, 
   estado = "libre",
   posicion = { x: 0, y: 0 },
@@ -9,17 +10,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
   unidaCon = [],
   isSelected = false,
   draggable = false,
-  nombreGrupo = null, // Nombre del grupo (si está en uno)
-  tienePedido = false, // Indica si tiene pedido activo (factura pendiente)
+  nombreGrupo = null, 
+  tienePedido = false, 
 }) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDragging, setIsDragging] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState(posicion);  useEffect(() => {
+  const [currentPosition, setCurrentPosition] = useState(posicion);
+  useEffect(() => {
     if (!isDragging) {
       setCurrentPosition(posicion);
       pan.setValue(posicion);
     }
-  }, [posicion.x, posicion.y, isDragging]);  useEffect(() => {
+  }, [posicion.x, posicion.y, isDragging]);
+  useEffect(() => {
   }, [isSelected, numero]);
 
   const panResponder = useMemo(
@@ -30,7 +33,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
       
       onPanResponderGrant: () => {
         if (!draggable) return;
-        setIsDragging(true);        pan.setOffset({
+        setIsDragging(true);
+        pan.setOffset({
           x: currentPosition.x,
           y: currentPosition.y,
         });
@@ -42,7 +46,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
         { useNativeDriver: false }
       ),
       
-      onPanResponderRelease: () => {        pan.flattenOffset();
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
 
                 const newX = Math.max(0, pan.x._value || 0);
         const newY = Math.max(0, pan.y._value || 0);
@@ -52,31 +57,35 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
         
         if (onPosicionChange) {
           onPosicionChange(numero, { x: newX, y: newY });
-        }        pan.setValue({ x: newX, y: newY });
+        }
+        pan.setValue({ x: newX, y: newY });
       },
     }),
     [draggable, pan, numero, onPosicionChange, currentPosition]
   );
 
-  const handlePress = () => {    if (!isDragging && onPress) {
+  const handlePress = () => {
+    if (!isDragging && onPress) {
       onPress(numero);
     } else {
     }
-  };  const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;  if (tienePedido || estado === "ocupada") {
+  };
+  const tieneGrupo = unidaCon.length > 0 || nombreGrupo !== null;
+  if (tienePedido || estado === "ocupada") {
   }
   
   const backgroundColor = estado === "ocupada" 
     ? "#ff6b6b" 
     : tieneGrupo 
-      ? "#339af0" // Azul para mesas en grupo
-      : "#51cf66"; // Verde para mesas libres individuales
+      ? "#339af0" 
+      : "#51cf66"; 
 
   const borderColor = isSelected 
     ? "#ffd43b" 
     : estado === "ocupada" 
       ? "#fa5252" 
       : tieneGrupo
-        ? "#228be6" // Borde azul más oscuro para grupos
+        ? "#228be6" 
         : "#37b24d";
 
   const borderWidth = isSelected ? 5 : tieneGrupo ? 4 : 3;
@@ -110,10 +119,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
         pointerEvents="auto"
         disabled={false}
       >
-        {/* Número de mesa */}
+        
         <Text style={styles.numeroMesa}>{numero}</Text>
         
-        {/* Icono de estado */}
+        
         <View style={styles.iconoEstado}>
           <MaterialCommunityIcons 
             name={estado === "ocupada" ? "account-multiple" : "check-circle"} 
@@ -122,21 +131,21 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";const Mesa = React.
           />
         </View>
 
-        {/* Badge de grupo (superior izquierdo) */}
+        
         {tieneGrupo && (
           <View style={styles.grupoBadge}>
             <MaterialCommunityIcons name="link-variant" size={12} color="#fff" />
           </View>
         )}
 
-        {/* Indicador de cantidad de mesas en el grupo */}
+        
         {unidaCon.length > 0 && (
           <View style={styles.cantidadBadge}>
             <Text style={styles.cantidadTexto}>+{unidaCon.length}</Text>
           </View>
         )}
 
-        {/* Nombre del grupo (tooltip en la parte inferior) */}
+        
         {nombreGrupo && (
           <View style={styles.nombreGrupoContainer}>
             <Text style={styles.nombreGrupoTexto} numberOfLines={1}>

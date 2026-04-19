@@ -23,7 +23,7 @@ import clienteService from "../services/clienteService";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
-    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
+    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); 
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoCargar, setMontoCargar] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
@@ -31,7 +31,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState("");
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
+  const [scanStatus, setScanStatus] = useState(""); 
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -77,7 +77,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      console.error("Error al cargar clientes:", error);
       alert("Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
@@ -126,7 +125,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setScanStatus("");
     } catch (error) {
-      console.error("[ERROR] Error al escanear tarjeta:", error);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -159,7 +157,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         },
       });
     } catch (error) {
-      console.error("Error al seleccionar cliente:", error);
       alert("Error al cargar los datos de la tarjeta");
     }
   };
@@ -216,10 +213,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasPrepago();
       }
     } catch (error) {
-      console.error("[ERROR] Error al cargar saldo:", error);
-      // Log para depuración
-      console.log("error.response:", error.response);
-      console.log("error.message:", error.message);
+      
       const msg = error.response?.data?.message || error.message || "Error al cargar el saldo";
       if (typeof msg === "string" && msg.toLowerCase().includes("caja abierta")) {
         setShowErrorCajaCerradaModal(true);
@@ -279,8 +273,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>
           Cargar saldo a tarjeta prepago
         </Text>
-
-        {/* Selector de método */}
+        
         <View style={styles.metodoSelector}>
           <Text style={styles.sectionTitle}>
             ¿Cómo deseas identificar la tarjeta?
@@ -341,7 +334,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Contenido según método seleccionado */}
+        
         <View style={styles.contentSection}>
           {metodoSeleccion === "escanear" ? (
             <View style={styles.scanSection}>
@@ -400,8 +393,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
               )}
             </View>
           )}
-
-          {/* Información de tarjeta seleccionada */}
+          
           {tarjetaSeleccionada && (
             <View style={styles.tarjetaInfo}>
               <View style={styles.tarjetaHeader}>
@@ -439,7 +431,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
                 </View>
               </View>
 
-              {/* Formulario de carga */}
+              
               <View style={styles.formSection}>
                 <Text style={styles.label}>Monto a cargar</Text>
                 <TextInput
@@ -513,15 +505,14 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         </View>
       </ScrollView>
 
-      {/* Modal de escaneo RFID */}
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
         errorMessage={errorMessage}
         onClose={handleCloseModal}
       />
-
-      {/* Modal de confirmación de carga */}
+      
       <ConfirmCargarSaldoModal
         visible={showConfirmModal}
         clienteNombre={
@@ -535,8 +526,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         onConfirm={handleConfirmarCarga}
         onCancel={handleCancelarCarga}
       />
-
-      {/* Modal de éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Saldo cargado!"
@@ -544,8 +534,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         onClose={handleCloseSuccessModal}
         autoCloseDelay={3000}
       />
-
-      {/* Modal de error por caja cerrada */}
+      
       <ErrorCajaCerradaModal
         visible={showErrorCajaCerradaModal}
         onClose={() => setShowErrorCajaCerradaModal(false)}

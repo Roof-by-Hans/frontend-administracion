@@ -10,14 +10,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-/**
- * @param {Object} props
- * @param {boolean} props.visible - Si el modal está visible
- * @param {string} props.status - Estado: 'scanning', 'success', 'error'
- * @param {string} props.uid - UID de la tarjeta (solo para success)
- * @param {string} props.errorMessage - Mensaje de error (solo para error)
- * @param {Function} props.onClose - Función para cerrar el modal
- */
 export default function RfidScanModal({
   visible,
   status = "scanning",
@@ -30,7 +22,8 @@ export default function RfidScanModal({
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible && status === "scanning") {      Animated.loop(
+    if (visible && status === "scanning") {
+      Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.2,
@@ -45,7 +38,8 @@ export default function RfidScanModal({
             useNativeDriver: true,
           }),
         ])
-      ).start();      Animated.loop(
+      ).start();
+      Animated.loop(
         Animated.timing(rotateAnim, {
           toValue: 1,
           duration: 2000,
@@ -53,7 +47,8 @@ export default function RfidScanModal({
           useNativeDriver: true,
         })
       ).start();
-    } else if (visible && (status === "success" || status === "error")) {      Animated.spring(scaleAnim, {
+    } else if (visible && (status === "success" || status === "error")) {
+      Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
@@ -91,7 +86,7 @@ export default function RfidScanModal({
             "No se pudo leer la tarjeta. Por favor, intente nuevamente.",
           showButton: true,
         };
-      default: // 'scanning'
+      default: 
         return {
           icon: "contactless-payment",
           iconColor: "#4CAF50",
@@ -108,12 +103,12 @@ export default function RfidScanModal({
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Contenido según estado */}
+          
           {status === "scanning" ? (
             <>
-              {/* Ícono animado con ondas de radio */}
+              
               <View style={styles.iconContainer}>
-                {/* Ondas de fondo animadas */}
+                
                 <Animated.View
                   style={[
                     styles.wave,
@@ -136,7 +131,7 @@ export default function RfidScanModal({
                   ]}
                 />
 
-                {/* Ícono principal con animación de pulso */}
+                
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <MaterialCommunityIcons
                     name={config.icon}
@@ -148,10 +143,10 @@ export default function RfidScanModal({
 
               <Text style={styles.title}>{config.title}</Text>
 
-              {/* Mensaje */}
+              
               <Text style={styles.message}>{config.message}</Text>
 
-              {/* Indicador de carga */}
+              
               <View style={styles.dotsContainer}>
                 <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
                 <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
@@ -160,7 +155,7 @@ export default function RfidScanModal({
             </>
           ) : (
             <>
-              {/* Ícono de éxito o error */}
+              
               <Animated.View
                 style={[
                   styles.resultIconContainer,
@@ -176,7 +171,7 @@ export default function RfidScanModal({
 
               <Text style={styles.title}>{config.title}</Text>
 
-              {/* Mensaje */}
+              
 <Text style={styles.message}>{config.message}</Text>
 
               {config.showButton && (

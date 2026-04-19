@@ -33,7 +33,8 @@ useEffect(() => {
       setError(null);
       const response = await categoriasService.getCategorias(params);
       
-      if (response.success && response.data) {        const treeData = response.data.tree || response.data;
+      if (response.success && response.data) {
+        const treeData = response.data.tree || response.data;
         const flatData = response.data.flat || [];
         
         setCategorias(treeData);
@@ -41,7 +42,8 @@ useEffect(() => {
                 const mapaCategorias = {};
         flatData.forEach(cat => {
           mapaCategorias[cat.id] = cat;
-        });        const planas = flatData.map(cat => {
+        });
+        const planas = flatData.map(cat => {
           const nivel = calcularNivel(cat.idCatPadre, mapaCategorias, 0);
           const indentacion = "  ".repeat(nivel);
           return {
@@ -52,7 +54,8 @@ useEffect(() => {
             nivel: nivel,
             habilitar: cat.habilitar ?? 1,
           };
-        });        planas.sort((a, b) => {
+        });
+        planas.sort((a, b) => {
           if (a.nivel !== b.nivel) return a.nivel - b.nivel;
           return a.nombre.localeCompare(b.nombre);
         });
@@ -62,7 +65,6 @@ useEffect(() => {
                 setCategoriasTodas(flatData);
       }
     } catch (error) {
-      console.error("Error al cargar categorías:", error);
       setError("Error al cargar las categorías. Por favor, intenta nuevamente.");
       Alert.alert("Error", "No se pudieron cargar las categorías del servidor.");
     } finally {
@@ -78,7 +80,8 @@ useEffect(() => {
   };
 
     const categoriasFiltradas = categoriasPlanas.filter((categoria) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (terminoBusqueda) {
       if (!categoria.nombre.toLowerCase().includes(terminoBusqueda)) {
         return false;
       }
@@ -90,7 +93,8 @@ useEffect(() => {
     const mapaCategorias = {};
   categoriasTodas.forEach(cat => {
     mapaCategorias[cat.id] = cat;
-  });  const categoriasParaTabla = categoriasFiltradas.map(cat => {
+  });
+  const categoriasParaTabla = categoriasFiltradas.map(cat => {
     const idPadre = cat.idCatPadre;
     
     let nombrePadre = 'Raíz';
@@ -103,7 +107,8 @@ useEffect(() => {
       idCatPadre: idPadre,
       nombrePadre: nombrePadre,
     };
-  });  const columns = [
+  });
+  const columns = [
     {
       field: 'id',
       headerName: 'ID',
@@ -240,7 +245,6 @@ const handleToggleCategoria = async (categoriaRow) => {
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitada" : "deshabilitada";
       Alert.alert("Éxito", `Categoría ${nuevoEstado} correctamente.`);
     } catch (error) {
-      console.error("Error al togglear categoría:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudo cambiar el estado de la categoría."
@@ -254,7 +258,8 @@ const handleToggleCategoria = async (categoriaRow) => {
     try {
       setCargando(true);
       
-      if (categoriaEditando) {        const datosActualizacion = {
+      if (categoriaEditando) {
+        const datosActualizacion = {
           nombre: categoriaData.nombre,
           idCatPadre: categoriaData.idCatPadre,
         };
@@ -285,7 +290,6 @@ const handleToggleCategoria = async (categoriaRow) => {
       setModalVisible(false);
       setCategoriaEditando(null);
     } catch (error) {
-      console.error("Error al guardar categoría:", error);
       const mensaje = error.response?.data?.message || "Error al guardar la categoría. Por favor, intenta nuevamente.";
       Alert.alert("Error", mensaje);
     } finally {
@@ -293,7 +297,7 @@ const handleToggleCategoria = async (categoriaRow) => {
     }
   };
 
-  // Detectar cambio en filtro de columna "Estado" del DataTable
+  
   const handleFilterChange = (filterModel) => {
     const estadoFilter = filterModel.items.find(
       (item) => item.field === 'estado' && item.value
@@ -320,7 +324,7 @@ const handleToggleCategoria = async (categoriaRow) => {
       userName={userName}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Categorías</Text>
           <Text style={styles.subtitle}>
@@ -328,7 +332,7 @@ const handleToggleCategoria = async (categoriaRow) => {
           </Text>
         </View>
 
-        {/* Mostrar error si existe */}
+        
         {error && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle" size={20} color="#d32f2f" />
@@ -339,10 +343,10 @@ const handleToggleCategoria = async (categoriaRow) => {
           </View>
         )}
 
-        {/* Controles superiores: Buscador y Botón Agregar */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -375,7 +379,7 @@ const handleToggleCategoria = async (categoriaRow) => {
           </View>
         </View>
 
-        {/* Indicador de carga */}
+        
         {cargando && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -383,7 +387,7 @@ const handleToggleCategoria = async (categoriaRow) => {
           </View>
         )}
 
-        {/* DataGrid con filtrado y ordenamiento nativo */}
+        
         {!cargando && (
           <DataTable
             rows={categoriasParaTabla}
@@ -394,7 +398,7 @@ const handleToggleCategoria = async (categoriaRow) => {
           />
         )}
 
-        {/* Modal para agregar/editar categoría */}
+        
         <CategoriaModal
           visible={modalVisible}
           categoria={categoriaEditando}

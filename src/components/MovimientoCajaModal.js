@@ -64,14 +64,14 @@ export default function MovimientoCajaModal({
   const cargarMediosPago = async () => {
     try {
       const medios = await mediosPagoService.obtenerTodos();
-      setMediosPagoList(medios);      if (medios.length > 0 && !metodoPago) {
+      setMediosPagoList(medios);
+      if (medios.length > 0 && !metodoPago) {
         setMetodoPago(medios[0].nombre);
       } else if (medios.length > 0) {
                 const existe = medios.find(m => m.nombre === metodoPago);
         if (!existe) setMetodoPago(medios[0].nombre);
       }
     } catch (error) {
-      console.error("Error al cargar medios de pago:", error);
     }
   };
 
@@ -130,16 +130,16 @@ export default function MovimientoCajaModal({
       if (isNaN(montoNum) || montoNum <= 0) {
         setErrores(prev => ({ ...prev, monto: "Monto inválido" }));
       }
-      if (!metodoPago) {         console.warn("Falta seleccionar método de pago");
+      if (!metodoPago) {
       }
       return;
     }
 
     const movimientoData = {
-      tipo, // INGRESO o EGRESO
+      tipo, 
       monto: montoNum,
       concepto: conceptoFinal,
-      metodoPago, // EFECTIVO o TARJETA
+      metodoPago, 
     };
 
     onSave(movimientoData);
@@ -160,7 +160,7 @@ export default function MovimientoCajaModal({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            
             <View style={styles.modalHeader}>
               <View style={[styles.iconBadge, { backgroundColor: tipo === 'INGRESO' ? '#e8f5e9' : '#ffebee' }]}>
                  <MaterialCommunityIcons 
@@ -175,10 +175,10 @@ export default function MovimientoCajaModal({
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
+            
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               
-              {/* Selector Tipo */}
+              
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Tipo de Movimiento</Text>
                 <View style={styles.segmentedControl}>
@@ -197,7 +197,7 @@ export default function MovimientoCajaModal({
                 </View>
               </View>
 
-              {/* Monto */}
+              
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Monto</Text>
                 <View style={[styles.inputContainer, errores.monto && styles.inputError]}>
@@ -214,7 +214,7 @@ export default function MovimientoCajaModal({
                 {errores.monto ? <Text style={styles.errorText}>{errores.monto}</Text> : null}
               </View>
 
-              {/* Concepto (Picker) */}
+              
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Concepto</Text>
                 <View style={styles.pickerContainer}>
@@ -230,7 +230,7 @@ export default function MovimientoCajaModal({
                 </View>
               </View>
 
-              {/* Concepto Personalizado (si es "Otro") */}
+              
               {conceptoSeleccionado === "Otro" && (
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Descripción</Text>
@@ -245,7 +245,7 @@ export default function MovimientoCajaModal({
                 </View>
               )}
 
-               de Pago */}
+               
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Medio de Pago</Text>
                 <View style={styles.pickerContainer}>
@@ -271,7 +271,7 @@ export default function MovimientoCajaModal({
 
             </ScrollView>
 
-            {/* Footer */}
+            
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}

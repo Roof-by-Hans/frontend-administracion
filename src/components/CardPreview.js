@@ -5,7 +5,7 @@ export default function CardPreview({ clientName = "NOMBRE APELLIDO" }) {
   return (
     <View style={styles.cardContainer}>
       <View style={styles.card}>
-        {/* Logo Roof by Hans centrado arriba */}
+
         <View style={styles.logoContainer}>
           <Image 
             source={require("../../assets/hans-logo.png")} 
@@ -14,7 +14,7 @@ export default function CardPreview({ clientName = "NOMBRE APELLIDO" }) {
           />
         </View>
 
-        {/* Nombre del cliente centrado abajo */}
+
         <View style={styles.nameContainer}>
           <Text style={styles.cardHolderName}>{clientName.toUpperCase()}</Text>
         </View>

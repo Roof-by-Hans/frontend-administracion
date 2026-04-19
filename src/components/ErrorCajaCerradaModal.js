@@ -12,7 +12,7 @@ export default function ErrorCajaCerradaModal({ visible, onClose }) {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Icono de error */}
+          
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons name="close-circle" size={60} color="#f44336" />
           </View>

@@ -30,7 +30,7 @@ export default function Topbar({
           return payload.nombreUsuario || userName;
         }
       } catch (error) {
-        console.error("Error al decodificar el token JWT:", error);
+      
       }
     }
     return userName;

@@ -134,7 +134,7 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
           </View>
 
           <View style={styles.formulario}>
-            {/* Nueva contraseña */}
+            
             <View style={styles.grupoInput}>
               <Text style={styles.etiqueta}>Nueva contraseña</Text>
               <View style={styles.inputConIcono}>
@@ -160,7 +160,7 @@ export default function RestablecerContraseñaScreen({ route, navigation, tokenD
               </View>
             </View>
 
-            {/* Requisitos */}
+            
             <View style={styles.requisitos}>
               <Text style={styles.etiqueta}>Requisitos:</Text>
               <View style={styles.requisito}>

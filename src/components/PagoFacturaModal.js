@@ -17,10 +17,7 @@ import tarjetaService from "../services/tarjetaService";
 import RfidScanModal from "./RfidScanModal";
 import SuccessModal from "./SuccessModal";
 
-/**
- * Modal para procesar el pago de pedidos
- * Genera la factura al momento de cobrar
- */
+
 export default function PagoFacturaModal({
   visible,
   onClose,
@@ -29,10 +26,13 @@ export default function PagoFacturaModal({
   grupo,
   onPagoExitoso,
 }) {
-  const [loading, setLoading] = useState(false);  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error', 'success'
+  const [loading, setLoading] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [clienteData, setClienteData] = useState(null);  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");  const totalPedidos = useMemo(() => {
+  const [clienteData, setClienteData] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const totalPedidos = useMemo(() => {
     return pedidosService.calcularTotal(pedidos);
   }, [pedidos]);
 
@@ -56,17 +56,19 @@ export default function PagoFacturaModal({
       const cliente = await clienteService.getClientePorId(id);
       setClienteData(cliente);
     } catch (error) {
-      console.error("Error al cargar cliente:", error);
       setErrorMessage("No se pudo cargar la información del cliente");
     }
   };
 
-  const handleIniciarCobro = () => {    if (!pedidos || pedidos.length === 0) {
+  const handleIniciarCobro = () => {
+    if (!pedidos || pedidos.length === 0) {
       setErrorMessage("No hay pedidos para cobrar");
       return;
-    }    if (primerClienteId && clienteData) {
+    }
+    if (primerClienteId && clienteData) {
       iniciarEscaneoTarjeta();
-    } else {      procesarPago();
+    } else {
+      procesarPago();
     }
   };
 
@@ -76,8 +78,10 @@ export default function PagoFacturaModal({
     setScanStatus("scanning");
     setErrorMessage("");
 
-    try {      const response = await cardService.scanRFID();
-      const uidEscaneado = response.uid;      const verificacion = await tarjetaService.verificarUid(uidEscaneado);
+    try {
+      const response = await cardService.scanRFID();
+      const uidEscaneado = response.uid;
+      const verificacion = await tarjetaService.verificarUid(uidEscaneado);
       const clienteIdTarjeta = verificacion.data?.cliente?.id || verificacion.data?.idCliente;
       
       if (!clienteIdTarjeta) {
@@ -87,14 +91,14 @@ export default function PagoFacturaModal({
       if (clienteIdTarjeta !== primerClienteId) {
         const nombreClienteTarjeta = verificacion.data?.cliente?.nombre || "otro cliente";
         throw new Error(`La tarjeta pertenece a ${nombreClienteTarjeta}, no al cliente del pedido.`);
-      }      setScanStatus("success");
+      }
+      setScanStatus("success");
       setTimeout(() => {
         setScanStatus("");
         procesarPago();
       }, 1000);
       
     } catch (error) {
-      console.error("[ERROR] Error en validación de tarjeta:", error);
       setScanStatus("error");
       setErrorMessage(error.response?.data?.message || error.message || "Error al validar la tarjeta");
     }
@@ -102,7 +106,8 @@ export default function PagoFacturaModal({
 
   const procesarPago = async () => {
     try {
-      setLoading(true);      const todosLosProductos = [];
+      setLoading(true);
+      const todosLosProductos = [];
       let observaciones = [];
 
       pedidos.forEach(pedido => {
@@ -110,7 +115,8 @@ export default function PagoFacturaModal({
           const producto = {
             idProducto: prod.idProducto,
             cantidad: prod.cantidad,
-          };          if (prod.precioUnitario !== undefined && prod.precioUnitario !== null) {
+          };
+          if (prod.precioUnitario !== undefined && prod.precioUnitario !== null) {
             producto.precioUnitario = prod.precioUnitario;
           }
           
@@ -120,10 +126,12 @@ export default function PagoFacturaModal({
         if (pedido.observaciones) {
           observaciones.push(pedido.observaciones);
         }
-      });      const datosConsumo = {
-        idCliente: primerClienteId || 1, // Cliente genérico si no hay cliente guardado
+      });
+      const datosConsumo = {
+        idCliente: primerClienteId || 1, 
         productos: todosLosProductos,
-      };      if (observaciones.length > 0) {
+      };
+      if (observaciones.length > 0) {
         datosConsumo.observaciones = observaciones.join(' | ');
       }
 
@@ -141,7 +149,6 @@ export default function PagoFacturaModal({
       
       
     } catch (error) {
-      console.error("Error al procesar pago:", error);
       const mensaje = error.response?.data?.message || error.message || "No se pudo procesar el pago";
       setErrorMessage(mensaje);
     } finally {
@@ -172,7 +179,7 @@ export default function PagoFacturaModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          {/* Header */}
+          
           <View style={styles.header}>
             <View>
               <Text style={styles.title}>Cobrar Mesa</Text>
@@ -186,7 +193,7 @@ export default function PagoFacturaModal({
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Mensaje de error general */}
+            
             {errorMessage && !scanStatus && (
               <View style={styles.errorContainer}>
                 <MaterialCommunityIcons name="alert-circle" size={20} color="#D32F2F" />
@@ -194,7 +201,7 @@ export default function PagoFacturaModal({
               </View>
             )}
 
-            {/* Información de los Pedidos */}
+            
             <View style={styles.facturaInfo}>
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="receipt-text" size={20} color="#666" />
@@ -227,7 +234,7 @@ export default function PagoFacturaModal({
               )}
             </View>
 
-            {/* Detalles de Pedidos */}
+            
             <View style={styles.detallesSection}>
               <Text style={styles.sectionTitle}>Detalle de pedidos</Text>
               <View style={styles.detallesContainer}>
@@ -259,14 +266,14 @@ export default function PagoFacturaModal({
               </View>
             </View>
 
-            {/* Total */}
+            
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total a Cobrar:</Text>
               <Text style={styles.totalMonto}>${totalPedidos.toFixed(2)}</Text>
             </View>
           </ScrollView>
 
-          {/* Footer con Botón de Cobrar */}
+          
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.button, styles.buttonSecondary]}
@@ -294,9 +301,9 @@ export default function PagoFacturaModal({
         </View>
       </View>
 
-      {/* Modales Auxiliares */}
       
-      {/* Modal de Escaneo RFID */}
+      
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
@@ -308,7 +315,7 @@ export default function PagoFacturaModal({
 
 
 
-      {/* Modal de Éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Cobro Exitoso!"

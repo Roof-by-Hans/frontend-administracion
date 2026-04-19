@@ -50,7 +50,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       setError(null);
       const response = await clienteService.getClientes(params);
 
-      const clientesData = response.data || [];      const clientesConId = clientesData.map((cliente) => ({
+      const clientesData = response.data || [];
+      const clientesConId = clientesData.map((cliente) => ({
         ...cliente,
         id:
           cliente.id ||
@@ -59,8 +60,10 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
         habilitar: cliente.habilitar ?? 1,
       }));
       setClientes(clientesConId);
-    } catch (error) {      if (error.response?.status === 401) {
-        setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");        setTimeout(() => logout(), 2000);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+        setTimeout(() => logout(), 2000);
       } else if (error.response?.status === 403) {
         setError("No tienes permisos para ver los clientes.");
       } else if (error.code === "ERR_NETWORK" || !error.response) {
@@ -88,7 +91,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       cliente.telefono?.includes(terminoBusqueda) ||
       cliente.email?.toLowerCase().includes(terminoBusqueda)
     );
-  });  const columns = [
+  });
+  const columns = [
     {
       field: "fotoPerfil",
       headerName: "Foto",
@@ -282,7 +286,6 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       const nuevoEstado = response.data?.habilitar === 1 ? "habilitado" : "deshabilitado";
       Alert.alert("Éxito", `Cliente ${nuevoEstado} correctamente.`);
     } catch (error) {
-      console.error("Error al togglear cliente:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudo cambiar el estado del cliente."
@@ -292,21 +295,21 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     }
   };
 
-  // Detectar cambio en filtro de columna "Estado" del DataTable
+  
   const handleFilterChange = (filterModel) => {
     const estadoFilter = filterModel.items.find(
       (item) => item.field === 'estado' && item.value
     );
     
     if (estadoFilter) {
-      // El usuario filtró por un estado específico
+      
       const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
       if (nuevoEstado !== filtroEstado) {
         setFiltroEstado(nuevoEstado);
         cargarClientes({ estado: nuevoEstado });
       }
     } else {
-      // El usuario quitó el filtro - volver al estado por defecto
+      
       if (filtroEstado !== 'habilitados') {
         setFiltroEstado('habilitados');
         cargarClientes({ estado: 'habilitados' });
@@ -331,7 +334,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
       Alert.alert("Éxito", "Cliente eliminado correctamente");
     } catch (error) {
-                  setConfirmModalVisible(false);      if (error.response?.status === 401) {
+                  setConfirmModalVisible(false);
+      if (error.response?.status === 401) {
         Alert.alert(
           "Sesión expirada",
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
@@ -344,7 +348,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             "Si deseas desactivar este cliente, considera actualizar su estado en lugar de eliminarlo.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 404) {        Alert.alert(
+      } else if (error.response?.status === 404) {
+        Alert.alert(
           "Cliente no encontrado",
           "El cliente que intentas eliminar no existe o ya fue eliminado.",
           [
@@ -355,7 +360,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             },
           ]
         );
-      } else {        const mensaje =
+      } else {
+        const mensaje =
           error.response?.data?.message ||
           "Error al eliminar el cliente. Por favor, intenta nuevamente.";
         Alert.alert("Error", mensaje);
@@ -405,7 +411,6 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       setDesvincularModalVisible(false);
       setClienteADesvincular(null);
     } catch (error) {
-      console.error("Error al desvincular tarjeta del cliente:", error);
 
       if (error.response?.status === 401) {
         Alert.alert(
@@ -450,7 +455,8 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     try {
       setLoading(true);
 
-      if (clienteId) {        const response = await clienteService.actualizarCliente(
+      if (clienteId) {
+        const response = await clienteService.actualizarCliente(
           clienteId,
           formData
         );
@@ -474,29 +480,34 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
       setModalVisible(false);
       setClienteSeleccionado(null);
-    } catch (error) {      if (error.response?.status === 401) {
+    } catch (error) {
+      if (error.response?.status === 401) {
         Alert.alert(
           "Sesión expirada",
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
           [{ text: "OK", onPress: () => logout() }]
         );
-      } else if (error.response?.status === 409) {        Alert.alert(
+      } else if (error.response?.status === 409) {
+        Alert.alert(
           "Email ya registrado",
           "Ya existe un cliente registrado con este correo electrónico. Por favor, utiliza otro email.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 404) {        Alert.alert(
+      } else if (error.response?.status === 404) {
+        Alert.alert(
           "Recurso no encontrado",
           error.response?.data?.message || "El recurso especificado no existe.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else if (error.response?.status === 400) {        Alert.alert(
+      } else if (error.response?.status === 400) {
+        Alert.alert(
           "Datos inválidos",
           error.response?.data?.message ||
             "Por favor, verifica los datos ingresados.",
           [{ text: "Entendido", style: "default" }]
         );
-      } else {        const mensaje =
+      } else {
+        const mensaje =
           error.response?.data?.message ||
           "Error al guardar el cliente. Por favor, intenta nuevamente.";
         Alert.alert("Error", mensaje);
@@ -514,15 +525,15 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       onLogout={logout}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Administrar Clientes</Text>
         </View>
 
-        {/* Controles superiores: Buscador y Botón Agregar */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -561,7 +572,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Mensaje de error si existe */}
+        
         {error && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons
@@ -579,7 +590,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Loading indicator */}
+        
         {loading && clientes.length === 0 && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -587,12 +598,12 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* DataGrid con filtrado y ordenamiento nativo */}
+        
         {!loading && !error && clientesFiltrados.length > 0 && (
           <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} onFilterChange={handleFilterChange} />
         )}
 
-        {/* Estado vacío */}
+        
         {!loading && !error && clientesFiltrados.length === 0 && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
@@ -622,7 +633,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Modal para agregar/editar cliente */}
+        
         <ClienteModal
           visible={modalVisible}
           cliente={clienteSeleccionado}
@@ -633,7 +644,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           onGuardar={handleGuardarCliente}
         />
 
-        {/* Modal de confirmación para eliminar */}
+        
         <ConfirmModal
           visible={confirmModalVisible}
           title="Confirmar eliminación"

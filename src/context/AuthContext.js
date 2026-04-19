@@ -31,12 +31,10 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
         }
       } catch (err) {
-        console.error("Error al cargar sesión guardada:", err);
         try {
           await AsyncStorage.removeItem("token");
           await AsyncStorage.removeItem("user");
         } catch (e) {
-          console.error("Error al limpiar storage:", e);
         }
       } finally {
         setLoading(false);
@@ -44,7 +42,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkStoredSession();
-  }, []);  useEffect(() => {
+  }, []);
+  useEffect(() => {
     if (!isAuthenticated) return;
 
     const interval = setInterval(async () => {
@@ -52,7 +51,8 @@ export const AuthProvider = ({ children }) => {
         const storedToken = await AsyncStorage.getItem("token");
         const sessionExpired = await AsyncStorage.getItem("session_expired");
         
-        if (!storedToken && isAuthenticated) {          if (sessionExpired === "true") {
+        if (!storedToken && isAuthenticated) {
+          if (sessionExpired === "true") {
             Alert.alert(
               "Sesión expirada",
               "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
@@ -65,11 +65,12 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(false);
         }
       } catch (err) {
-        console.error("Error al verificar token:", err);
       }
     }, 1000); 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);  const login = async (a, b, c = false) => {    if (typeof a === "object" && typeof b === "string") {
+  }, [isAuthenticated]);
+  const login = async (a, b, c = false) => {
+    if (typeof a === "object" && typeof b === "string") {
       const userData = a;
       const authToken = b;
       setUser(userData);
@@ -79,10 +80,10 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem("token", authToken);
         await AsyncStorage.setItem("user", JSON.stringify(userData));
       } catch (err) {
-        console.error("Error al guardar sesión en AsyncStorage:", err);
       }
       return true;
-    }    const nombreUsuario = a;
+    }
+    const nombreUsuario = a;
     const contrasena = b;
     const recordarme = c;
     try {
@@ -101,7 +102,6 @@ export const AuthProvider = ({ children }) => {
             await AsyncStorage.setItem("recordarme", "true");
           }
         } catch (storageErr) {
-          console.error("Error al guardar en AsyncStorage:", storageErr);
         }
         setLoading(false);
         return true;
@@ -111,7 +111,6 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     } catch (err) {
-      console.error("Error en login:", err);
       let errorMessage = "Error al conectar con el servidor";
       if (err.response) {
         if (err.response.status === 401)
@@ -139,20 +138,15 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem("user");
       await AsyncStorage.removeItem("recordarme");
     } catch (err) {
-      console.error("Error al limpiar AsyncStorage en logout:", err);
     }
   };
 
-  /**
-   * Actualizar información del usuario
-   * @param {Object} updatedUser - Datos actualizados del usuario
-   */
+  
   const updateUser = async (updatedUser) => {
     try {
       setUser(updatedUser);
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (err) {
-      console.error('Error al actualizar usuario:', err);
     }
   };
 

@@ -56,14 +56,14 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
       setUsuarios(usuariosConId);
     } catch (err) {
       setError(err.message);
-      console.error("Error al cargar usuarios:", err);
     } finally {
       setCargando(false);
     }
   };
 
     const usuariosFiltrados = (Array.isArray(usuarios) ? usuarios : []).filter((usuario) => {
-    const terminoBusqueda = busqueda.toLowerCase().trim();    if (terminoBusqueda) {
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    if (terminoBusqueda) {
       const nombreUsuario = usuario.nombreUsuario?.toLowerCase() || "";
       const roles = usuario.roles?.join(" ").toLowerCase() || "";
       if (!nombreUsuario.includes(terminoBusqueda) && !roles.includes(terminoBusqueda)) {
@@ -72,7 +72,8 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     }
 
     return true;
-  });  const usuariosParaTabla = usuariosFiltrados.map((usuario) => ({
+  });
+  const usuariosParaTabla = usuariosFiltrados.map((usuario) => ({
     id: usuario.id,
     nombreUsuario: usuario.nombreUsuario,
     roles: usuario.roles?.join(", ") || "Sin roles",
@@ -187,7 +188,6 @@ const handleToggleUsuario = async (usuarioRow) => {
       const nuevoEstado = response.data?.activo === 1 ? "habilitado" : "deshabilitado";
       Alert.alert("Éxito", `Usuario ${nuevoEstado} correctamente.`);
     } catch (error) {
-      console.error("Error al togglear usuario:", error);
       Alert.alert(
         "Error",
         error.response?.data?.message || "No se pudo cambiar el estado del usuario."
@@ -202,7 +202,8 @@ const handleToggleUsuario = async (usuarioRow) => {
     setModalVisible(true);
   };
 
-  const handleEditarUsuario = (usuario) => {    const usuarioCompleto = usuarios.find((u) => u.id === usuario.id);
+  const handleEditarUsuario = (usuario) => {
+    const usuarioCompleto = usuarios.find((u) => u.id === usuario.id);
     setUsuarioEditando(usuarioCompleto || usuario);
     setModalVisible(true);
   };
@@ -219,7 +220,8 @@ const handleToggleUsuario = async (usuarioRow) => {
       }
       if (datosUsuario.roles) {
         datosUsuario.roles.forEach((rol) => formData.append("roles[]", rol));
-      }      formData.append("email", datosUsuario.email ?? "");
+      }
+      formData.append("email", datosUsuario.email ?? "");
 
       if (usuarioEditando) {
         await actualizarUsuario(usuarioEditando.id, formData);
@@ -243,7 +245,7 @@ const handleToggleUsuario = async (usuarioRow) => {
     }
   };
 
-  // Detectar cambio en filtro de columna "Estado" del DataTable
+  
   const handleFilterChange = (filterModel) => {
     const estadoFilter = filterModel.items.find(
       (item) => item.field === 'estado' && item.value
@@ -271,12 +273,12 @@ const handleToggleUsuario = async (usuarioRow) => {
       onLogout={logout}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Gestión de Usuarios</Text>
         </View>
 
-        {/* Mostrar error si existe */}
+        
         {error && (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons
@@ -294,10 +296,10 @@ const handleToggleUsuario = async (usuarioRow) => {
           </View>
         )}
 
-        {/* Controles superiores: Buscador y Botón Agregar */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -337,7 +339,7 @@ const handleToggleUsuario = async (usuarioRow) => {
           </View>
         </View>
 
-        {/* Indicador de carga */}
+        
         {cargando && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -345,7 +347,7 @@ const handleToggleUsuario = async (usuarioRow) => {
           </View>
         )}
 
-        {/* DataGrid con filtrado y ordenamiento nativo */}
+        
         {!cargando && (
           <DataTable
             rows={usuariosParaTabla}
@@ -356,7 +358,7 @@ const handleToggleUsuario = async (usuarioRow) => {
           />
         )}
 
-        {/* Modal para agregar/editar usuario */}
+        
         <UsuarioModal
           visible={modalVisible}
           usuario={usuarioEditando}

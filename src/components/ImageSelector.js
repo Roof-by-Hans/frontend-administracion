@@ -4,22 +4,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Alert from "@blazejkustra/react-native-alert";
 
-/**
- * Componente reutilizable para seleccionar y previsualizar imágenes
- * Funciona en Web, iOS y Android
- * 
- * @param {Object} props
- * @param {Function} props.onImageSelected - Callback cuando se selecciona una imagen
- * @param {string} props.initialImageUrl - URL de imagen inicial (opcional)
- * @param {Object} props.imagePickerOptions - Opciones adicionales para ImagePicker
- */
+
 const ImageSelector = ({ 
   onImageSelected, 
   initialImageUrl = null,
   imagePickerOptions = {} 
 }) => {
   const [imageUri, setImageUri] = useState(initialImageUrl);
-  const [loading, setLoading] = useState(false);  const defaultOptions = {
+  const [loading, setLoading] = useState(false);
+  const defaultOptions = {
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
     aspect: [4, 3],
@@ -27,12 +20,11 @@ const ImageSelector = ({
     ...imagePickerOptions,
   };
 
-  /**
-   * Seleccionar imagen desde la galería
-   */
+  
   const pickImageFromGallery = async () => {
     try {
-      setLoading(true);      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setLoading(true);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -45,7 +37,8 @@ const ImageSelector = ({
             const result = await ImagePicker.launchImageLibraryAsync(defaultOptions);
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];        const imageData = {
+        const asset = result.assets[0];
+        const imageData = {
           uri: asset.uri,
           type: asset.type || 'image/jpeg',
           name: asset.fileName || `image_${Date.now()}.jpg`,
@@ -53,24 +46,23 @@ const ImageSelector = ({
           height: asset.height,
         };
         
-        setImageUri(asset.uri);        if (onImageSelected) {
+        setImageUri(asset.uri);
+        if (onImageSelected) {
           onImageSelected(imageData);
         }
       }
     } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Tomar foto con la cámara
-   */
+  
   const takePhoto = async () => {
     try {
-      setLoading(true);      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      setLoading(true);
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
@@ -81,7 +73,8 @@ const ImageSelector = ({
       }
 
             const result = await ImagePicker.launchCameraAsync({
-        ...defaultOptions,        aspect: undefined,
+        ...defaultOptions,
+        aspect: undefined,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -102,19 +95,18 @@ const ImageSelector = ({
         }
       }
     } catch (error) {
-      console.error('Error al tomar foto:', error);
       Alert.alert('Error', 'No se pudo tomar la foto. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Mostrar opciones de selección
-   */
+  
   const showImageOptions = () => {
-    if (Platform.OS === 'web') {      pickImageFromGallery();
-    } else {      Alert.alert(
+    if (Platform.OS === 'web') {
+      pickImageFromGallery();
+    } else {
+      Alert.alert(
         'Seleccionar imagen',
         '¿De dónde quieres obtener la imagen?',
         [
@@ -136,9 +128,7 @@ const ImageSelector = ({
     }
   };
 
-  /**
-   * Remover imagen seleccionada
-   */
+  
   const removeImage = () => {
     setImageUri(null);
     if (onImageSelected) {

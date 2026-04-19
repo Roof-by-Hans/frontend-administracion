@@ -54,7 +54,6 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         Alert.alert("Error", response.message || "No se pudo actualizar el email");
       }
     } catch (error) {
-      console.error("Error al guardar email:", error);
       Alert.alert("Error", error.response?.data?.message || "Error al actualizar el email");
     } finally {
       setGuardandoEmail(false);
@@ -86,7 +85,6 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         setModalRecortarVisible(true);
       }
     } catch (error) {
-      console.error("Error al seleccionar imagen:", error);
       Alert.alert("Error", "Error al seleccionar la imagen");
     }
   };
@@ -98,7 +96,8 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
     }
 
     try {
-      setGuardandoFoto(true);      const imagenRecortada = await recortarImagen(fotoTemporal.uri, datosRecorte);
+      setGuardandoFoto(true);
+      const imagenRecortada = await recortarImagen(fotoTemporal.uri, datosRecorte);
       const formData = new FormData();
 
       if (Platform.OS === "web") {
@@ -118,18 +117,12 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
         setModalRecortarVisible(false);
         setFotoTemporal(null);
       } else {
-        console.error("Respuesta sin éxito:", response);
         Alert.alert("Error", response.message || "Error al actualizar la foto de perfil");
       }
     } catch (error) {
-      console.error("Error completo al guardar foto:", error);
-      console.error("Error stack:", error.stack);
-      console.error("Error response:", error.response);
-      
       const errorMessage = error.response?.data?.message 
         || error.message 
         || "Error al actualizar la foto de perfil";
-      
       Alert.alert("Error", errorMessage);
     } finally {
       setGuardandoFoto(false);
@@ -156,24 +149,30 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
                         ctx.beginPath();
             ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
             ctx.closePath();
-            ctx.clip();            const scaledWidth = cropData.imageWidth * cropData.zoom;
+            ctx.clip();
+            const scaledWidth = cropData.imageWidth * cropData.zoom;
             const scaledHeight = cropData.imageHeight * cropData.zoom;
 
             const centerX = (cropData.circleSize - scaledWidth) / 2;
             const centerY = (cropData.circleSize - scaledHeight) / 2;
             
             const drawX = centerX + cropData.position.x;
-            const drawY = centerY + cropData.position.y;            const scale = outputSize / cropData.circleSize;            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, outputSize, outputSize);            ctx.beginPath();
+            const drawY = centerY + cropData.position.y;
+            const scale = outputSize / cropData.circleSize;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, outputSize, outputSize);
+            ctx.beginPath();
             ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
             ctx.closePath();
-            ctx.clip();            ctx.drawImage(
+            ctx.clip();
+            ctx.drawImage(
               img,
               drawX * scale,
               drawY * scale,
               scaledWidth * scale,
               scaledHeight * scale
-            );            canvas.toBlob(
+            );
+            canvas.toBlob(
               (blob) => {
                 if (blob) {
                   resolve(blob);
@@ -185,18 +184,17 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
               0.9
             );
           } catch (error) {
-            console.error("Error en el procesamiento del canvas:", error);
             reject(error);
           }
         };
         
         img.onerror = (error) => {
-          console.error("Error al cargar la imagen:", error);
           reject(new Error("Error al cargar la imagen"));
         };
         
         img.src = imageSrc;
-      } else {        resolve(imageSrc);
+      } else {
+        resolve(imageSrc);
       }
     });
   };
@@ -233,7 +231,6 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
                 setFotoTemporal(null);
               }
             } catch (error) {
-              console.error("Error al eliminar foto:", error);
               Alert.alert("Error", error.response?.data?.message || "Error al eliminar la foto de perfil");
             } finally {
               setGuardandoFoto(false);
@@ -252,7 +249,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
       onLogout={logout}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <Text style={styles.title}>Ajustes Generales</Text>
 
         <View style={styles.perfilSection}>
@@ -304,7 +301,7 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
                 )}
               </View>
 
-              {/* Email para recuperación de contraseña */}
+              
               <View style={styles.emailContainer}>
                 <Text style={styles.emailLabel}>
                   Email{" "}
@@ -341,9 +338,9 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Grid de opciones */}
+        
         <View style={styles.gridContainer}>
-          {/* Card Financiero - Solo para administradores */}
+          
           {isAdmin && (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Financiero</Text>
@@ -357,28 +354,28 @@ export default function AjustesScreen({ onNavigate, currentScreen }) {
             </View>
           )}
 
-          {/* Card vacío 1 - Para futuras opciones */}
+          
           <View style={[styles.card, styles.cardEmpty]}>
             <Text style={styles.cardEmptyText}>Próximamente</Text>
           </View>
 
-          {/* Card vacío 2 - Para futuras opciones */}
+          
           <View style={[styles.card, styles.cardEmpty]}>
             <Text style={styles.cardEmptyText}>Próximamente</Text>
           </View>
 
-          {/* Card vacío 3 - Para futuras opciones */}
+          
           <View style={[styles.card, styles.cardEmpty]}>
             <Text style={styles.cardEmptyText}>Próximamente</Text>
           </View>
 
-          {/* Card vacío 4 - Para futuras opciones */}
+          
           <View style={[styles.card, styles.cardEmpty]}>
             <Text style={styles.cardEmptyText}>Próximamente</Text>
           </View>
         </View>
 
-        {/* Modal para editar límites de subscripción */}
+        
         <LimitesSubscripcionModal
           visible={modalLimitesVisible}
           onClose={() => setModalLimitesVisible(false)}

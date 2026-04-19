@@ -18,7 +18,7 @@ export default function ConfirmActionModal({
   onCancel,
   confirmText = "Confirmar",
   cancelText = "Cancelar",
-  confirmColor = "#000", // Default black
+  confirmColor = "#000", 
   icon = "alert-circle-outline",
   loading = false,
   showInput = false,
@@ -164,7 +164,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#666",
   },
-  confirmButton: {  },
+  confirmButton: {
+  },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: "600",

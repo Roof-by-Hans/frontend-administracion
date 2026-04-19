@@ -23,22 +23,24 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [preferencias, setPreferencias] = useState("");
   const [fotoPerfil, setFotoPerfil] = useState(null);
-  const [guardando, setGuardando] = useState(false);  const [errores, setErrores] = useState({
+  const [guardando, setGuardando] = useState(false);
+  const [errores, setErrores] = useState({
     nombre: "",
     apellido: "",
     telefono: "",
     email: "",
     contrasena: "",
     confirmarContrasena: "",
-  });  useEffect(() => {
+  });
+  useEffect(() => {
     if (cliente) {
       setNombre(cliente.nombre || "");
       setApellido(cliente.apellido || "");
       setTelefono(cliente.telefono || "");
       setEmail(cliente.email || "");
       setPreferencias(cliente.preferencias || "");
-      setFotoPerfil(null); // No cargamos la foto al editar
-      setContrasena(""); // No mostramos la contraseña
+      setFotoPerfil(null); 
+      setContrasena(""); 
       setConfirmarContrasena("");
     } else {
             setNombre("");
@@ -59,7 +61,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       confirmarContrasena: "",
     });
     setGuardando(false);
-  }, [cliente, visible]);  const handleNombreChange = (text) => {
+  }, [cliente, visible]);
+  const handleNombreChange = (text) => {
     setNombre(text);
     if (text.trim() === "") {
       setErrores((prev) => ({ ...prev, nombre: "El nombre es obligatorio" }));
@@ -71,7 +74,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, nombre: "" }));
     }
-  };  const handleApellidoChange = (text) => {
+  };
+  const handleApellidoChange = (text) => {
     setApellido(text);
     if (text.trim() === "") {
       setErrores((prev) => ({
@@ -86,7 +90,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, apellido: "" }));
     }
-  };  const handleTelefonoChange = (text) => {
+  };
+  const handleTelefonoChange = (text) => {
     setTelefono(text);
     if (text.trim() !== "" && !/^\d+$/.test(text)) {
       setErrores((prev) => ({
@@ -101,7 +106,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, telefono: "" }));
     }
-  };  const handleEmailChange = (text) => {
+  };
+  const handleEmailChange = (text) => {
     setEmail(text);
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (text.trim() === "") {
@@ -114,7 +120,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, email: "" }));
     }
-  };  const handleContrasenaChange = (text) => {
+  };
+  const handleContrasenaChange = (text) => {
     setContrasena(text);
     if (!cliente && text.trim() === "") {
       setErrores((prev) => ({
@@ -137,7 +144,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else if (confirmarContrasena) {
       setErrores((prev) => ({ ...prev, confirmarContrasena: "" }));
     }
-  };  const handleConfirmarContrasenaChange = (text) => {
+  };
+  const handleConfirmarContrasenaChange = (text) => {
     setConfirmarContrasena(text);
     if (text !== contrasena) {
       setErrores((prev) => ({
@@ -147,8 +155,10 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     } else {
       setErrores((prev) => ({ ...prev, confirmarContrasena: "" }));
     }
-  };  const handleSeleccionarFoto = async () => {
-    try {      const { status } =
+  };
+  const handleSeleccionarFoto = async () => {
+    try {
+      const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== "granted") {
@@ -172,7 +182,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     }
   };
 
-    const handleGuardar = async () => {    const nuevosErrores = {
+    const handleGuardar = async () => {
+    const nuevosErrores = {
       nombre: "",
       apellido: "",
       telefono: "",
@@ -219,14 +230,16 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       } else if (contrasena !== confirmarContrasena) {
         nuevosErrores.confirmarContrasena = "Las contraseñas no coinciden";
       }
-    } else {      if (contrasena.trim() && contrasena.length < 6) {
+    } else {
+      if (contrasena.trim() && contrasena.length < 6) {
         nuevosErrores.contrasena =
           "La contraseña debe tener al menos 6 caracteres";
       }
       if (contrasena.trim() && contrasena !== confirmarContrasena) {
         nuevosErrores.confirmarContrasena = "Las contraseñas no coinciden";
       }
-    }    if (Object.values(nuevosErrores).some((error) => error !== "")) {
+    }
+    if (Object.values(nuevosErrores).some((error) => error !== "")) {
       setErrores(nuevosErrores);
       return;
     }
@@ -240,7 +253,8 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
 
       if (telefono.trim()) {
         formData.append("telefono", telefono.trim());
-      }      if (contrasena.trim()) {
+      }
+      if (contrasena.trim()) {
         formData.append("contrasena", contrasena.trim());
       }
 
@@ -249,10 +263,12 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
       }
 
             if (fotoPerfil) {
-        if (Platform.OS === "web") {          const response = await fetch(fotoPerfil.uri);
+        if (Platform.OS === "web") {
+          const response = await fetch(fotoPerfil.uri);
           const blob = await response.blob();
           formData.append("fotoPerfil", blob, "foto.jpg");
-        } else {          const fileUri = fotoPerfil.uri;
+        } else {
+          const fileUri = fotoPerfil.uri;
           const filename = fileUri.split("/").pop();
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : "image/jpeg";
@@ -284,7 +300,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Header */}
+          
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {cliente ? "Editar Cliente" : "Agregar Cliente"}
@@ -294,12 +310,12 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
             </TouchableOpacity>
           </View>
 
-          {/* Body */}
+          
           <ScrollView
             style={styles.modalBody}
             showsVerticalScrollIndicator={false}
           >
-            {/* Foto de Perfil */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Foto de Perfil</Text>
               <View style={styles.fotoContainer}>
@@ -350,7 +366,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               </View>
             </View>
 
-            {/* Campo Nombre */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre *</Text>
               <TextInput
@@ -365,7 +381,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Apellido */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Apellido *</Text>
               <TextInput
@@ -380,7 +396,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Email */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email *</Text>
               <TextInput
@@ -397,7 +413,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Teléfono */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Teléfono</Text>
               <TextInput
@@ -413,7 +429,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Contraseña */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Contraseña {!cliente && "*"}</Text>
               <TextInput
@@ -434,7 +450,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Confirmar Contraseña */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>
                 Confirmar Contraseña {!cliente && "*"}
@@ -458,7 +474,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
               ) : null}
             </View>
 
-            {/* Campo Preferencias */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Preferencias</Text>
               <TextInput
@@ -476,7 +492,7 @@ export default function ClienteModal({ visible, cliente, onClose, onGuardar }) {
             </View>
           </ScrollView>
 
-          {/* Footer con botones */}
+          
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

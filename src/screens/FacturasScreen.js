@@ -12,10 +12,7 @@ import {
   Platform,
 } from "react-native";
 
-/**
- * Componente date picker para web usando input nativo
- * Evita el problema de TouchableOpacity que no abre DateTimePicker en web
- */
+
 function WebDateInput({ value, onChange, label, maxDate }) {
   const [dateValue, setDateValue] = useState(() => {
     if (!value) return "";
@@ -60,7 +57,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todas"); // todas, COBRADA, PENDIENTE
+  const [filtroEstado, setFiltroEstado] = useState("todas"); 
   const [modalVisible, setModalVisible] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
   const [detallesFactura, setDetallesFactura] = useState([]);
@@ -72,7 +69,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [motivoReversion, setMotivoReversion] = useState("");
   const [revirtiendoFactura, setRevirtiendoFactura] = useState(false);
 
-  // Estados para filtro de fechas
+  
   const [fechaDesde, setFechaDesde] = useState(new Date());
   const [fechaHasta, setFechaHasta] = useState(new Date());
   const [showDatePickerDesde, setShowDatePickerDesde] = useState(false);
@@ -83,12 +80,13 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const { on, off, emit } = useSocket();
   const displayName = user?.usuario || "Usuario";
 
-  // Helper para detectar plataforma web
+  
   const isWeb = Platform.OS === "web";
 
   useEffect(() => {
     cargarFacturas();
-  }, []);  useEffect(() => {
+  }, []);
+  useEffect(() => {
     emit("join:pedidos");
 
     const handlePagoRevertido = ({ data }) => {
@@ -107,7 +105,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const cargarFacturas = async (filtrosFecha = {}) => {
     try {
       setLoading(true);
-      // Validar fechas si se proporcionan
+      
       if (filtrosFecha.fechaDesde && filtrosFecha.fechaHasta) {
         const desde = new Date(filtrosFecha.fechaDesde);
         const hasta = new Date(filtrosFecha.fechaHasta);
@@ -132,7 +130,6 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       setMesas(mesasData.data || mesasData || []);
       setGrupos(gruposData.data || gruposData || []);
     } catch (error) {
-      console.error("Error al cargar facturas:", error);
     } finally {
       setLoading(false);
     }
@@ -148,14 +145,14 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     return grupo ? grupo.nombre : `Grupo ${idGrupo}`;
   };
 
-  // Handlers para filtro de fechas
+  
   const handleFechaDesdeChange = (event, selectedDate) => {
     if (Platform.OS === "android") {
       setShowDatePickerDesde(false);
     }
     if (selectedDate) {
       setFechaDesde(selectedDate);
-      // En web, necesitamos cerrar el picker después de seleccionar
+      
       if (isWeb) {
         setShowDatePickerDesde(false);
       }
@@ -168,7 +165,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     }
     if (selectedDate) {
       setFechaHasta(selectedDate);
-      // En web, necesitamos cerrar el picker después de seleccionar
+      
       if (isWeb) {
         setShowDatePickerHasta(false);
       }
@@ -201,7 +198,6 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             const detalles = await facturasService.getDetallesFactura(factura.id);
       setDetallesFactura(detalles.data || detalles || []);
     } catch (error) {
-      console.error("Error al cargar detalles de factura:", error);
       setDetallesFactura([]);
     } finally {
       setLoadingDetalles(false);
@@ -274,7 +270,8 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       clienteNombre.includes(terminoBusqueda) ||
       factura.mesa?.numero?.toString().includes(terminoBusqueda)
     );
-  });  const columns = [
+  });
+  const columns = [
     {
       field: "id",
       headerName: "# Factura",
@@ -398,15 +395,15 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       currentScreen={currentScreen}
     >
       <View style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.title}>Gestionar Facturas</Text>
         </View>
 
-        {/* Controles superiores */}
+        
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            {/* Buscador */}
+            
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
                 name="magnify"
@@ -435,7 +432,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
               )}
             </View>
 
-            {/* Filtro de estado */}
+            
             <View style={styles.filterContainer}>
               <TouchableOpacity
                 style={[
@@ -504,11 +501,11 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             </View>
           </View>
 
-          {/* Filtro de fechas */}
+          
           <View style={styles.dateFilterRow}>
             <Text style={styles.dateFilterLabel}>Filtrar por fecha:</Text>
             <View style={styles.dateFilterInputs}>
-              {/* Fecha Desde - Web usa input nativo, mobile usa DateTimePicker */}
+              
               {isWeb ? (
                 <WebDateInput
                   value={fechaDesde}
@@ -532,7 +529,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                 </TouchableOpacity>
               )}
 
-              {/* Fecha Hasta - Web usa input nativo, mobile usa DateTimePicker */}
+              
               {isWeb ? (
                 <WebDateInput
                   value={fechaHasta}
@@ -556,7 +553,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                 </TouchableOpacity>
               )}
 
-              {/* Botón aplicar */}
+              
               <TouchableOpacity
                 style={styles.applyFilterButton}
                 onPress={aplicarFiltroFechas}
@@ -569,7 +566,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                 <Text style={styles.applyFilterText}>Aplicar</Text>
               </TouchableOpacity>
 
-              {/* Botón limpiar */}
+              
               <TouchableOpacity
                 style={styles.clearFilterButton}
                 onPress={limpiarFiltroFechas}
@@ -583,7 +580,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
               </TouchableOpacity>
             </View>
 
-            {/* Warning de fechas */}
+            
             {warningFechas ? (
               <View style={styles.warningContainer}>
                 <MaterialCommunityIcons
@@ -597,7 +594,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         </View>
 
-        {/* Loading indicator */}
+        
         {loading && facturas.length === 0 && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
@@ -605,12 +602,12 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* DataTable */}
+        
         {!loading && facturasFiltradas.length > 0 && (
           <DataTable rows={facturasFiltradas} columns={columns} pageSize={15} />
         )}
 
-        {/* Estado vacío */}
+        
         {!loading && facturasFiltradas.length === 0 && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
@@ -631,7 +628,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </View>
         )}
 
-        {/* Modal de detalles */}
+        
         <Modal
           visible={modalVisible}
           animationType="fade"
@@ -645,7 +642,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             >
               {facturaSeleccionada && (
                 <ScrollView showsVerticalScrollIndicator={false}>
-                  {/* Header del modal */}
+                  
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>
                       Factura #{facturaSeleccionada.id}
@@ -658,7 +655,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Información general */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Información General</Text>
                     <View style={styles.infoRow}>
@@ -708,7 +705,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </View>
                   </View>
 
-                  {/* Información del cliente */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Cliente</Text>
                     <View style={styles.infoRow}>
@@ -739,7 +736,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     )}
                   </View>
 
-                  {/* Detalle de productos */}
+                  
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Detalle de Productos</Text>
                     {loadingDetalles ? (
@@ -783,7 +780,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     )}
                   </View>
 
-                  {/* Total */}
+                  
                   <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total:</Text>
                     <Text style={styles.totalValue}>
@@ -791,7 +788,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                     </Text>
                   </View>
 
-                  {/* Acciones de reversión */}
+                  
                   {(facturaSeleccionada.estado === "COBRADA" ||
                     facturaSeleccionada.estado === "PENDIENTE") && (
                     <TouchableOpacity
@@ -832,7 +829,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </Pressable>
         </Modal>
 
-        {/* Modal de reversión */}
+        
         <Modal
           visible={modalReversionVisible}
           animationType="fade"
@@ -903,7 +900,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           </Pressable>
         </Modal>
 
-        {/* DateTimePicker - Fecha Desde */}
+        
         {showDatePickerDesde && (
           <DateTimePicker
             value={fechaDesde}
@@ -914,7 +911,7 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
           />
         )}
 
-        {/* DateTimePicker - Fecha Hasta */}
+        
         {showDatePickerHasta && (
           <DateTimePicker
             value={fechaHasta}
@@ -1000,7 +997,7 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: "#fff",
   },
-  // Estilos para filtro de fechas
+  
   dateFilterRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1349,7 +1346,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#6B7280",
     borderColor: "#6B7280",
   },
-  // Estilos para WebDateInput (input type="date" nativo)
+  
   webDateInputContainer: {
     flexDirection: "row",
     alignItems: "center",

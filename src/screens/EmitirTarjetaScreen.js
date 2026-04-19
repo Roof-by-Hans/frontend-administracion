@@ -20,16 +20,21 @@ import tarjetaService from "../services/tarjetaService";
 import clienteService from "../services/clienteService";
 import Alert from "@blazejkustra/react-native-alert";
 
-export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  const [selectedClient, setSelectedClient] = useState("");
+export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
+  const [selectedClient, setSelectedClient] = useState("");
   const [subscriptionType, setSubscriptionType] = useState("");
   const [nivelSuscripcion, setNivelSuscripcion] = useState("");
-  const [saldoInicial, setSaldoInicial] = useState("");  const [clientes, setClientes] = useState([]);
+  const [saldoInicial, setSaldoInicial] = useState("");
+  const [clientes, setClientes] = useState([]);
   const [tiposSuscripcion, setTiposSuscripcion] = useState([]);
-  const [nivelesSuscripcion, setNivelesSuscripcion] = useState([]);  const [loading, setLoading] = useState(true);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
-  const [errorMessage, setErrorMessage] = useState("");  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [nivelesSuscripcion, setNivelesSuscripcion] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [scanStatus, setScanStatus] = useState(""); 
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [conflictoInfo, setConflictoInfo] = useState(null);
-  const [datosEmisionPendiente, setDatosEmisionPendiente] = useState(null);  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [datosEmisionPendiente, setDatosEmisionPendiente] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const { user, logout } = useAuth();
@@ -54,7 +59,8 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
 
       setClientes(clientesRes.data || []);
       setTiposSuscripcion(tiposRes.data || []);
-      setNivelesSuscripcion(nivelesRes.data || []);      if (tiposRes.data && tiposRes.data.length > 0) {
+      setNivelesSuscripcion(nivelesRes.data || []);
+      if (tiposRes.data && tiposRes.data.length > 0) {
                 const tipoCredito = tiposRes.data.find((t) => t.nombre === "CREDITO");
         if (tipoCredito) {
           setSubscriptionType(tipoCredito.id.toString());
@@ -67,8 +73,6 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
         setNivelSuscripcion(nivelesRes.data[0].id.toString());
       }
     } catch (error) {
-      console.error("Error al cargar datos iniciales:", error);
-      Alert.alert("Error", "Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
     }
@@ -96,7 +100,8 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
     return tipo?.nombre === "PREPAGA";
   };
 
-  const handleEmitir = async () => {    if (!selectedClient) {
+  const handleEmitir = async () => {
+    if (!selectedClient) {
       Alert.alert("Error", "Por favor selecciona un cliente");
       return;
     }
@@ -111,18 +116,21 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
         Alert.alert("Error", "Por favor selecciona un nivel de suscripción");
         return;
       }
-    } else if (esTipoPrepago()) {      if (saldoInicial && saldoInicial.trim() !== "") {
+    } else if (esTipoPrepago()) {
+      if (saldoInicial && saldoInicial.trim() !== "") {
         const saldo = parseFloat(saldoInicial);
         if (isNaN(saldo) || saldo < 0) {
           Alert.alert("Error", "El saldo debe ser un número mayor o igual a 0");
           return;
         }
       }
-    }    setScanStatus("scanning");
+    }
+    setScanStatus("scanning");
     setErrorMessage("");
 
     try {
-            const response = await cardService.scanRFID();      const datosEmision = {
+            const response = await cardService.scanRFID();
+      const datosEmision = {
         rfidUid: response.uid,
         idCliente: parseInt(selectedClient),
         idTipoSuscripcion: parseInt(subscriptionType),
@@ -130,48 +138,15 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
 
             if (esTipoCredito()) {
         datosEmision.idNivelSuscripcion = parseInt(nivelSuscripcion);
-      } else if (esTipoPrepago()) {        if (saldoInicial && saldoInicial.trim() !== "") {
+      } else if (esTipoPrepago()) {
+        if (saldoInicial && saldoInicial.trim() !== "") {
           datosEmision.saldoInicial = parseFloat(saldoInicial);
         }
-      }      await procesarEmision(datosEmision);
+      }
+      await procesarEmision(datosEmision);
 
             setScanStatus("");
     } catch (error) {
-      console.error("[ERROR] Error en el proceso de emisión:", error);
-
-            if (error.response?.status === 409) {
-        const errorData = error.response.data;        const conflicto = {
-          clienteActual: errorData.data?.clienteActual || null,
-          tarjetaActual: errorData.data?.tarjetaActual || null,
-          esMismoCliente: errorData.data?.esMismoCliente || false,
-        };        const datosOriginales = error.config?.data
-          ? JSON.parse(error.config.data)
-          : null;        const datosEmision = {
-          rfidUid: datosOriginales?.rfidUid,
-          idCliente: parseInt(selectedClient),
-          idTipoSuscripcion: parseInt(subscriptionType),
-        };
-
-        if (esTipoCredito()) {
-          datosEmision.idNivelSuscripcion = parseInt(nivelSuscripcion);
-        } else if (
-          esTipoPrepago() &&
-          saldoInicial &&
-          saldoInicial.trim() !== ""
-        ) {
-          datosEmision.saldoInicial = parseFloat(saldoInicial);
-        }
-
-                setConflictoInfo(conflicto);
-        setDatosEmisionPendiente(datosEmision);
-        setScanStatus("");         setShowConfirmModal(true);
-      } else {        setErrorMessage(
-          error.response?.data?.message ||
-            error.message ||
-            "Error al procesar la tarjeta"
-        );
-        setScanStatus("error");
-      }
     }
   };
 
@@ -179,19 +154,24 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
     try {
       const resultado = await tarjetaService.asociarTarjetaCliente(
         datosEmision
-      );      const clienteNombre = getClientName();
+      );
+      const clienteNombre = getClientName();
       setSuccessMessage(`Tarjeta emitida exitosamente para ${clienteNombre}`);
       setShowSuccessModal(true);
 
             setSelectedClient("");
-      setSaldoInicial("");    } catch (error) {      throw error;
+      setSaldoInicial("");
+    } catch (error) {
+      throw error;
     }
-  };  const handleConfirmarDesvinculacion = async () => {
+  };
+  const handleConfirmarDesvinculacion = async () => {
     if (!datosEmisionPendiente) return;
 
     setShowConfirmModal(false);
 
-    try {      const datosConForzar = {
+    try {
+      const datosConForzar = {
         ...datosEmisionPendiente,
         forzarDesvinculacion: true,
       };
@@ -201,8 +181,6 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
             setConflictoInfo(null);
       setDatosEmisionPendiente(null);
     } catch (error) {
-      console.error("[ERROR] Error al forzar desvinculación:", error);
-
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
@@ -213,7 +191,8 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
             setConflictoInfo(null);
       setDatosEmisionPendiente(null);
     }
-  };  const handleCancelarDesvinculacion = () => {
+  };
+  const handleCancelarDesvinculacion = () => {
     setShowConfirmModal(false);
     setConflictoInfo(null);
     setDatosEmisionPendiente(null);
@@ -257,21 +236,21 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
           Emitir nueva tarjeta
         </Text>
 
-        {/* Contenedor principal con card y formulario lado a lado */}
+        
         <View
           style={[
             styles.mainContainer,
             isCompact && styles.mainContainerCompact,
           ]}
         >
-          {/* Card Preview a la izquierda */}
+          
           <View style={styles.cardSection}>
             <CardPreview clientName={getClientName()} />
           </View>
 
-          {/* Formulario a la derecha */}
+          
           <View style={styles.formContainer}>
-            {/* Cliente Selector */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Cliente</Text>
               <View style={styles.pickerWrapper}>
@@ -293,7 +272,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
               </View>
             </View>
 
-            {/* Tipo de Suscripción */}
+            
             <View style={styles.formGroup}>
               <Text style={styles.label}>Tipo de Suscripción</Text>
               <View style={styles.radioGroup}>
@@ -317,7 +296,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
               </View>
             </View>
 
-            {/* Nivel de Suscripción (solo para Crédito) */}
+            
             {esTipoCredito() && (
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Nivel de Suscripción</Text>
@@ -340,7 +319,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
               </View>
             )}
 
-            {/* Saldo Inicial (solo para Prepago) */}
+            
             {esTipoPrepago() && (
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Saldo Inicial</Text>
@@ -371,7 +350,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
         </View>
       </View>
 
-      {/* Modal de escaneo RFID */}
+      
       <RfidScanModal
         visible={scanStatus !== ""}
         status={scanStatus}
@@ -379,7 +358,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
         onClose={handleCloseModal}
       />
 
-      {/* Modal de confirmación de desvinculación */}
+      
       <ConfirmDesvinculacionModal
         visible={showConfirmModal}
         conflicto={conflictoInfo}
@@ -395,7 +374,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {  c
         onCancel={handleCancelarDesvinculacion}
       />
 
-      {/* Modal de éxito */}
+      
       <SuccessModal
         visible={showSuccessModal}
         title="¡Éxito!"
