@@ -1,0 +1,120 @@
+import api from "./api";
+
+const USUARIOS_ENDPOINT = "/usuarios";
+
+/**
+ * Obtener usuarios con filtros opcionales.
+ * @param {Object} params - Parámetros de filtrado
+ * @param {string} params.estado - Estado de los usuarios ('habilitados', 'deshabilitados', 'todos')
+ * @returns {Promise} Axios response con la lista de usuarios.
+ */
+export const getUsuarios = async (params = {}) => {
+  let endpoint = USUARIOS_ENDPOINT;
+  
+  // Construir query string si params.estado existe y no es 'todos'
+  if (params.estado && params.estado !== 'todos') {
+    endpoint = `${USUARIOS_ENDPOINT}?estado=${params.estado}`;
+  }
+  
+  const response = await api.get(endpoint);
+  return response.data;
+};
+
+export const getUsuarioPorId = async (usuarioId) => {
+  const response = await api.get(`${USUARIOS_ENDPOINT}/${usuarioId}`);
+  return response.data;
+};
+
+export const actualizarUsuario = async (usuarioId, usuarioData) => {
+  const response = await api.put(`${USUARIOS_ENDPOINT}/${usuarioId}`, usuarioData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const crearUsuario = async (usuarioData) => {
+  const response = await api.post(USUARIOS_ENDPOINT, usuarioData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const eliminarUsuario = async (usuarioId) => {
+  const response = await api.delete(`${USUARIOS_ENDPOINT}/${usuarioId}`);
+  return response.data;
+};
+
+export const toggleUsuario = async (usuarioId) => {
+  const response = await api.patch(`${USUARIOS_ENDPOINT}/${usuarioId}/toggle`);
+  return response.data;
+};
+
+/**
+ * Servicio para operaciones relacionadas con usuarios del sistema.
+ */
+const usuarioService = {
+  /**
+   * Obtener usuarios con filtros opcionales.
+   * @param {Object} params - Parámetros de filtrado
+   * @param {string} params.estado - Estado de los usuarios ('habilitados', 'deshabilitados', 'todos')
+   * @returns {Promise} Axios response con la lista de usuarios.
+   */
+  getUsuarios: async (params = {}) => {
+    return getUsuarios(params);
+  },
+
+  /**
+   * Obtener un usuario por ID.
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @returns {Promise} Axios response con los datos del usuario.
+   */
+  getUsuarioPorId: async (usuarioId) => {
+    return getUsuarioPorId(usuarioId);
+  },
+
+  /**
+   * Actualizar un usuario existente (incluyendo foto de perfil).
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @param {FormData} usuarioData Datos actualizados del usuario.
+   * @returns {Promise} Axios response con el usuario actualizado.
+   */
+  actualizarUsuario: async (usuarioId, usuarioData) => {
+    return actualizarUsuario(usuarioId, usuarioData);
+  },
+
+  actualizarMiEmail: async (email) => {
+    const response = await api.put(`${USUARIOS_ENDPOINT}/me/email`, {
+      email: email ?? "",
+    });
+    return response.data;
+  },
+
+  /**
+   * Crear un nuevo usuario.
+   * @param {FormData} usuarioData Datos del nuevo usuario.
+   * @returns {Promise} Axios response con el usuario creado.
+   */
+  crearUsuario: async (usuarioData) => {
+    return crearUsuario(usuarioData);
+  },
+
+  /**
+   * Eliminar un usuario.
+   * @param {string|number} usuarioId Identificador del usuario a eliminar.
+   * @returns {Promise} Axios response de la operación.
+   */
+  eliminarUsuario: async (usuarioId) => {
+    return eliminarUsuario(usuarioId);
+  },
+
+  /**
+   * Toggle el estado activo de un usuario.
+   * @param {string|number} usuarioId Identificador del usuario.
+   * @returns {Promise} Axios response con el nuevo estado.
+   */
+  toggleUsuario: async (usuarioId) => {
+    return toggleUsuario(usuarioId);
+  },
+};
+
+export default usuarioService;
