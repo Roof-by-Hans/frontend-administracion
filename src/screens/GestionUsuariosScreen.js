@@ -20,6 +20,7 @@ const { getUsuarios, crearUsuario, actualizarUsuario, toggleUsuario } = usuarioS
 
 export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const [usuarios, setUsuarios] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('habilitados');
   const [busqueda, setBusqueda] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
@@ -30,14 +31,14 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
   const userName = user?.usuario || "Usuario";
 
     useEffect(() => {
-    cargarUsuarios();
+    cargarUsuarios({ estado: filtroEstado });
   }, []);
 
-  const cargarUsuarios = async () => {
+  const cargarUsuarios = async (params = {}) => {
     try {
       setCargando(true);
       setError(null);
-      const data = await getUsuarios();
+      const data = await getUsuarios(params);
       const usuariosData = Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
@@ -54,8 +55,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
 
       setUsuarios(usuariosConId);
     } catch (err) {
-      setError("Error al cargar los usuarios. Por favor, intenta nuevamente.");
-      Alert.alert("Error", "No se pudieron cargar los usuarios del servidor.");
+      setError(err.message);
     } finally {
       setCargando(false);
     }
@@ -179,11 +179,11 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
     },
   ];
 
-    const handleToggleUsuario = async (usuarioRow) => {
+const handleToggleUsuario = async (usuarioRow) => {
     try {
       setCargando(true);
       const response = await toggleUsuario(usuarioRow.id);
-      await cargarUsuarios();
+      await cargarUsuarios({ estado: filtroEstado });
       
       const nuevoEstado = response.data?.activo === 1 ? "habilitado" : "deshabilitado";
       Alert.alert("Éxito", `Usuario ${nuevoEstado} correctamente.`);
@@ -233,7 +233,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
 
       setModalVisible(false);
       setUsuarioEditando(null);
-      await cargarUsuarios();
+      await cargarUsuarios({ estado: filtroEstado });
     } catch (err) {
       const mensaje =
         err.response?.data?.message ||
@@ -242,6 +242,26 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
       Alert.alert("Error", mensaje);
     } finally {
       setCargando(false);
+    }
+  };
+
+  
+  const handleFilterChange = (filterModel) => {
+    const estadoFilter = filterModel.items.find(
+      (item) => item.field === 'estado' && item.value
+    );
+    
+    if (estadoFilter) {
+      const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
+      if (nuevoEstado !== filtroEstado) {
+        setFiltroEstado(nuevoEstado);
+        cargarUsuarios({ estado: nuevoEstado });
+      }
+    } else {
+      if (filtroEstado !== 'habilitados') {
+        setFiltroEstado('habilitados');
+        cargarUsuarios({ estado: 'habilitados' });
+      }
     }
   };
 
@@ -268,7 +288,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
             />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
-              onPress={cargarUsuarios}
+              onPress={() => cargarUsuarios({ estado: filtroEstado })}
               style={styles.retryButton}
             >
               <Text style={styles.retryButtonText}>Reintentar</Text>
@@ -334,6 +354,7 @@ export default function GestionUsuariosScreen({ onNavigate, currentScreen }) {
             columns={columns}
             pageSize={10}
             rowHeight={52}
+            onFilterChange={handleFilterChange}
           />
         )}
 

@@ -15,6 +15,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import RfidScanModal from "../components/RfidScanModal";
 import SuccessModal from "../components/SuccessModal";
 import ConfirmCargarSaldoModal from "../components/ConfirmCargarSaldoModal";
+import ErrorCajaCerradaModal from "../components/ErrorCajaCerradaModal";
 import { useAuth } from "../context/AuthContext";
 import cardService from "../services/cardService";
 import tarjetaService from "../services/tarjetaService";
@@ -35,6 +36,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showErrorCajaCerradaModal, setShowErrorCajaCerradaModal] = useState(false);
 
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -75,11 +77,7 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      setErrorMessage(
-        error.response?.data?.message ||
-          error.message ||
-          "Error al cargar los datos. Por favor, recarga la página."
-      );
+      alert("Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
     }
@@ -215,11 +213,13 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasPrepago();
       }
     } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          error.message ||
-          "Error al cargar saldo"
-      );
+      
+      const msg = error.response?.data?.message || error.message || "Error al cargar el saldo";
+      if (typeof msg === "string" && msg.toLowerCase().includes("caja abierta")) {
+        setShowErrorCajaCerradaModal(true);
+      } else {
+        alert(msg);
+      }
     } finally {
       setProcesando(false);
     }
@@ -273,7 +273,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         <Text style={[styles.pageTitle, isCompact && styles.pageTitleCompact]}>
           Cargar saldo a tarjeta prepago
         </Text>
-
         
         <View style={styles.metodoSelector}>
           <Text style={styles.sectionTitle}>
@@ -394,7 +393,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
               )}
             </View>
           )}
-
           
           {tarjetaSeleccionada && (
             <View style={styles.tarjetaInfo}>
@@ -514,7 +512,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         errorMessage={errorMessage}
         onClose={handleCloseModal}
       />
-
       
       <ConfirmCargarSaldoModal
         visible={showConfirmModal}
@@ -529,7 +526,6 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         onConfirm={handleConfirmarCarga}
         onCancel={handleCancelarCarga}
       />
-
       
       <SuccessModal
         visible={showSuccessModal}
@@ -537,6 +533,11 @@ export default function CargarSaldoScreen({ onNavigate, currentScreen }) {
         message={successMessage}
         onClose={handleCloseSuccessModal}
         autoCloseDelay={3000}
+      />
+      
+      <ErrorCajaCerradaModal
+        visible={showErrorCajaCerradaModal}
+        onClose={() => setShowErrorCajaCerradaModal(false)}
       />
     </DashboardLayout>
   );

@@ -15,6 +15,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import RfidScanModal from "../components/RfidScanModal";
 import SuccessModal from "../components/SuccessModal";
 import ConfirmPagoDeudaModal from "../components/ConfirmPagoDeudaModal";
+import ErrorCajaCerradaModal from "../components/ErrorCajaCerradaModal";
 import { useAuth } from "../context/AuthContext";
 import cardService from "../services/cardService";
 import tarjetaService from "../services/tarjetaService";
@@ -22,7 +23,7 @@ import clienteService from "../services/clienteService";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
-    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); // 'escanear' o 'lista'
+    const [metodoSeleccion, setMetodoSeleccion] = useState("escanear"); 
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState(null);
   const [montoPagar, setMontoPagar] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
@@ -30,11 +31,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState("");
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
+  const [scanStatus, setScanStatus] = useState(""); 
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showErrorCajaCerradaModal, setShowErrorCajaCerradaModal] = useState(false);
 
   const { user, logout } = useAuth();
   const displayName = user?.usuario || "Usuario";
@@ -75,7 +77,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
 
       setClientes(clientesConInfo);
     } catch (error) {
-      alert("Error al cargar clientes. Por favor, recarga la página.");
+      alert("Error al cargar los datos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         },
       });
     } catch (error) {
-      alert("Error al seleccionar cliente");
+      alert("Error al cargar los datos de la tarjeta");
     }
   };
 
@@ -211,7 +213,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         cargarClientesConTarjetasCredito();
       }
     } catch (error) {
-      alert("Error al registrar pago");
+      const msg = error.response?.data?.message || error.message || "Error al registrar el pago";
+      if (typeof msg === "string" && msg.toLowerCase().includes("caja abierta")) {
+        setShowErrorCajaCerradaModal(true);
+      } else {
+        alert(msg);
+      }
     } finally {
       setProcesando(false);
     }
@@ -541,6 +548,12 @@ export default function PagarDeudaScreen({ onNavigate, currentScreen }) {
         message={successMessage}
         onClose={handleCloseSuccessModal}
         autoCloseDelay={3000}
+      />
+
+      
+      <ErrorCajaCerradaModal
+        visible={showErrorCajaCerradaModal}
+        onClose={() => setShowErrorCajaCerradaModal(false)}
       />
     </DashboardLayout>
   );

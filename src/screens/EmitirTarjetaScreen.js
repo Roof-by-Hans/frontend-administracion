@@ -29,7 +29,7 @@ export default function EmitirTarjetaScreen({ onNavigate, currentScreen }) {
   const [tiposSuscripcion, setTiposSuscripcion] = useState([]);
   const [nivelesSuscripcion, setNivelesSuscripcion] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [scanStatus, setScanStatus] = useState(""); // 'scanning', 'error'
+  const [scanStatus, setScanStatus] = useState(""); 
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [conflictoInfo, setConflictoInfo] = useState(null);

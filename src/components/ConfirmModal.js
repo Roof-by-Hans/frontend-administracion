@@ -33,9 +33,8 @@ export default function ConfirmModal({
           
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#f44336" />
-          </View>
+</View>
 
-           
           <Text style={styles.title}>{title}</Text>
 
           

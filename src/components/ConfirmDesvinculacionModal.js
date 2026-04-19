@@ -54,7 +54,6 @@ export default function ConfirmDesvinculacionModal({
               />
             </View>
 
-             
             <Text style={styles.title}>
               {esMismoCliente
                 ? "Advertencia: Cambio de Tipo de Tarjeta"

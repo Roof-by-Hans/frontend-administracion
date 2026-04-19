@@ -238,7 +238,6 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
                 <MaterialCommunityIcons name="check-circle-outline" size={60} color="#4CAF50" />
               </View>
 
-               
               <Text style={styles.confirmTitle}>¿Guardar cambios?</Text>
 
               
@@ -283,17 +282,15 @@ export default function LimitesSubscripcionModal({ visible, onClose }) {
               
               <View style={styles.successIconContainer}>
                 <MaterialCommunityIcons name="check-circle" size={60} color="#4CAF50" />
-              </View>
+</View>
 
-               
               <Text style={styles.confirmTitle}>¡Cambios guardados!</Text>
 
               
               <Text style={styles.confirmMessage}>
                 Los límites de suscripción se han actualizado correctamente.
-              </Text>
+</Text>
 
-               
               <TouchableOpacity
                 style={[styles.confirmButton, styles.confirmSaveButton, { flex: 'none', width: '100%' }]}
                 onPress={handleSuccessClose}

@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-
 export default function SuccessModal({
   visible,
   title = "¡Éxito!",
@@ -53,13 +52,11 @@ export default function SuccessModal({
             />
           </View>
 
-           
           <Text style={styles.title}>{title}</Text>
 
           
-          <Text style={styles.message}>{message}</Text>
+<Text style={styles.message}>{message}</Text>
 
-           
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}

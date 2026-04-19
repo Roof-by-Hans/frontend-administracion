@@ -2,8 +2,15 @@ import api from "./api";
 
 const USUARIOS_ENDPOINT = "/usuarios";
 
-export const getUsuarios = async () => {
-  const response = await api.get(USUARIOS_ENDPOINT);
+export const getUsuarios = async (params = {}) => {
+  let endpoint = USUARIOS_ENDPOINT;
+  
+  
+  if (params.estado && params.estado !== 'todos') {
+    endpoint = `${USUARIOS_ENDPOINT}?estado=${params.estado}`;
+  }
+  
+  const response = await api.get(endpoint);
   return response.data;
 };
 
@@ -39,8 +46,8 @@ export const toggleUsuario = async (usuarioId) => {
 
 const usuarioService = {
   
-  getUsuarios: async () => {
-    return getUsuarios();
+  getUsuarios: async (params = {}) => {
+    return getUsuarios(params);
   },
 
   

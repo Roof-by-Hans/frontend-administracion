@@ -4,11 +4,18 @@ const CLIENTES_ENDPOINT = "/clientes";
 
 
 const clienteService = {
+ 
+getClientes: async (params = {}) => {
+  let endpoint = CLIENTES_ENDPOINT;
   
-  getClientes: async () => {
-    const response = await api.get(CLIENTES_ENDPOINT);
-    return response.data; 
-  },
+  
+  if (params.estado && params.estado !== 'todos') {
+    endpoint = `${CLIENTES_ENDPOINT}?estado=${params.estado}`;
+  }
+  
+  const response = await api.get(endpoint);
+  return response.data; 
+},
 
   
   crearCliente: async (clienteData) => {

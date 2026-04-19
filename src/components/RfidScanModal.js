@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-
 export default function RfidScanModal({
   visible,
   status = "scanning",
@@ -142,7 +141,6 @@ export default function RfidScanModal({
                 </Animated.View>
               </View>
 
-               
               <Text style={styles.title}>{config.title}</Text>
 
               
@@ -171,13 +169,11 @@ export default function RfidScanModal({
                 />
               </Animated.View>
 
-               
               <Text style={styles.title}>{config.title}</Text>
 
               
-              <Text style={styles.message}>{config.message}</Text>
+<Text style={styles.message}>{config.message}</Text>
 
-               
               {config.showButton && (
                 <TouchableOpacity
                   style={[

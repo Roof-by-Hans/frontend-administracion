@@ -1,13 +1,22 @@
 import api from './api';
 
-export const getCategorias = async () => {
+
+export const getCategorias = async (params = {}) => {
   try {
-    const response = await api.get('/categorias-producto');
+    let endpoint = '/categorias-producto';
+    
+    
+    if (params.estado && params.estado !== 'todos') {
+      endpoint = `/categorias-producto?estado=${params.estado}`;
+    }
+    
+    const response = await api.get(endpoint);
     return response.data;
   } catch (error) {
     throw error;
   }
 };
+
 
 export const getCategoriaPorId = async (id) => {
   try {
@@ -18,6 +27,7 @@ export const getCategoriaPorId = async (id) => {
   }
 };
 
+
 export const crearCategoria = async (categoriaData) => {
   try {
     const response = await api.post('/categorias-producto', categoriaData);
@@ -26,6 +36,7 @@ export const crearCategoria = async (categoriaData) => {
     throw error;
   }
 };
+
 
 export const actualizarCategoria = async (id, categoriaData) => {
   try {
@@ -36,6 +47,7 @@ export const actualizarCategoria = async (id, categoriaData) => {
   }
 };
 
+
 export const eliminarCategoria = async (id) => {
   try {
     const response = await api.delete(`/categorias-producto/${id}`);
@@ -45,6 +57,7 @@ export const eliminarCategoria = async (id) => {
   }
 };
 
+
 export const toggleCategoria = async (id) => {
   try {
     const response = await api.patch(`/categorias-producto/${id}/toggle`);
@@ -53,6 +66,7 @@ export const toggleCategoria = async (id) => {
     throw error;
   }
 };
+
 
 export const aplanarCategorias = (categorias, nivel = 0) => {
   let resultado = [];
@@ -71,4 +85,13 @@ export const aplanarCategorias = (categorias, nivel = 0) => {
   });
   
   return resultado;
+};
+export default {
+  getCategorias,
+  getCategoriaPorId,
+  crearCategoria,
+  actualizarCategoria,
+  eliminarCategoria,
+  toggleCategoria,
+  aplanarCategorias,
 };

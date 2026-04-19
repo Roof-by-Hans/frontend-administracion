@@ -30,9 +30,8 @@ export default function ConfirmPagoDeudaModal({
               size={56}
               color="#2196F3"
             />
-          </View>
+</View>
 
-           
           <Text style={styles.title}>Confirmar pago de deuda</Text>
 
           
@@ -63,7 +62,6 @@ export default function ConfirmPagoDeudaModal({
               </Text>
             </View>
 
-             
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Método de pago:</Text>
               <Text style={styles.itemValue}>{metodoPago}</Text>

@@ -9,7 +9,39 @@ import {
   Modal,
   ScrollView,
   Pressable,
+  Platform,
 } from "react-native";
+
+
+function WebDateInput({ value, onChange, label, maxDate }) {
+  const [dateValue, setDateValue] = useState(() => {
+    if (!value) return "";
+    const d = new Date(value);
+    return d.toISOString().split("T")[0];
+  });
+
+  const handleChange = (e) => {
+    const newDate = e.target.value;
+    setDateValue(newDate);
+    if (newDate && onChange) {
+      onChange(null, new Date(newDate));
+    }
+  };
+
+  return (
+    <View style={styles.webDateInputContainer}>
+      <Text style={styles.webDateInputLabel}>{label}</Text>
+      <input
+        type="date"
+        value={dateValue}
+        onChange={handleChange}
+        max={maxDate ? new Date(maxDate).toISOString().split("T")[0] : undefined}
+        style={styles.webDateInput}
+      />
+    </View>
+  );
+}
+import DateTimePicker from "@react-native-community/datetimepicker";
 import Alert from "@blazejkustra/react-native-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { IconButton, Chip } from "@mui/material";
@@ -37,9 +69,19 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
   const [motivoReversion, setMotivoReversion] = useState("");
   const [revirtiendoFactura, setRevirtiendoFactura] = useState(false);
 
+  
+  const [fechaDesde, setFechaDesde] = useState(new Date());
+  const [fechaHasta, setFechaHasta] = useState(new Date());
+  const [showDatePickerDesde, setShowDatePickerDesde] = useState(false);
+  const [showDatePickerHasta, setShowDatePickerHasta] = useState(false);
+  const [warningFechas, setWarningFechas] = useState("");
+
   const { user, logout } = useAuth();
   const { on, off, emit } = useSocket();
   const displayName = user?.usuario || "Usuario";
+
+  
+  const isWeb = Platform.OS === "web";
 
   useEffect(() => {
     cargarFacturas();
@@ -60,11 +102,27 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     return () => off("pago:revertido", handlePagoRevertido);
   }, [on, off, emit]);
 
-  const cargarFacturas = async () => {
+  const cargarFacturas = async (filtrosFecha = {}) => {
     try {
       setLoading(true);
+      
+      if (filtrosFecha.fechaDesde && filtrosFecha.fechaHasta) {
+        const desde = new Date(filtrosFecha.fechaDesde);
+        const hasta = new Date(filtrosFecha.fechaHasta);
+        if (desde > hasta) {
+          setWarningFechas("La fechaDesde no puede ser mayor que fechaHasta");
+        } else {
+          setWarningFechas("");
+        }
+      }
+      
+      const params = {
+        desde: filtrosFecha.fechaDesde?.toISOString().split('T')[0],
+        hasta: filtrosFecha.fechaHasta?.toISOString().split('T')[0],
+      };
+      
       const [facturasData, mesasData, gruposData] = await Promise.all([
-        facturasService.getFacturas(),
+        facturasService.getFacturas(params),
         mesasService.getMesas(),
         mesasService.getGrupos(),
       ]);
@@ -72,10 +130,8 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
       setMesas(mesasData.data || mesasData || []);
       setGrupos(gruposData.data || gruposData || []);
     } catch (error) {
-      setError("Error al cargar las facturas. Por favor, intenta nuevamente.");
-      Alert.alert("Error", "No se pudieron cargar las facturas del servidor.");
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
@@ -89,6 +145,50 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
     return grupo ? grupo.nombre : `Grupo ${idGrupo}`;
   };
 
+  
+  const handleFechaDesdeChange = (event, selectedDate) => {
+    if (Platform.OS === "android") {
+      setShowDatePickerDesde(false);
+    }
+    if (selectedDate) {
+      setFechaDesde(selectedDate);
+      
+      if (isWeb) {
+        setShowDatePickerDesde(false);
+      }
+    }
+  };
+
+  const handleFechaHastaChange = (event, selectedDate) => {
+    if (Platform.OS === "android") {
+      setShowDatePickerHasta(false);
+    }
+    if (selectedDate) {
+      setFechaHasta(selectedDate);
+      
+      if (isWeb) {
+        setShowDatePickerHasta(false);
+      }
+    }
+  };
+
+  const aplicarFiltroFechas = () => {
+    if (fechaDesde > fechaHasta) {
+      setWarningFechas("La fecha Desde no puede ser mayor que fecha Hasta");
+      return;
+    }
+    setWarningFechas("");
+    cargarFacturas({ fechaDesde, fechaHasta });
+  };
+
+  const limpiarFiltroFechas = () => {
+    const hoy = new Date();
+    setFechaDesde(hoy);
+    setFechaHasta(hoy);
+    setWarningFechas("");
+    cargarFacturas({});
+  };
+
   const handleVerDetalles = async (factura) => {
     setFacturaSeleccionada(factura);
     setModalVisible(true);
@@ -98,12 +198,9 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             const detalles = await facturasService.getDetallesFactura(factura.id);
       setDetallesFactura(detalles.data || detalles || []);
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error.response?.data?.message || "No se pudieron cargar los detalles de la factura."
-      );
+      setDetallesFactura([]);
     } finally {
-      setCargandoDetalles(false);
+      setLoadingDetalles(false);
     }
   };
 
@@ -402,6 +499,98 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          
+          <View style={styles.dateFilterRow}>
+            <Text style={styles.dateFilterLabel}>Filtrar por fecha:</Text>
+            <View style={styles.dateFilterInputs}>
+              
+              {isWeb ? (
+                <WebDateInput
+                  value={fechaDesde}
+                  onChange={handleFechaDesdeChange}
+                  label="Desde:"
+                  maxDate={new Date()}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.dateFilterButton}
+                  onPress={() => setShowDatePickerDesde(true)}
+                >
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={16}
+                    color="#666"
+                  />
+                  <Text style={styles.dateFilterText}>
+                    Desde: {fechaDesde.toLocaleDateString("es-AR")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              
+              {isWeb ? (
+                <WebDateInput
+                  value={fechaHasta}
+                  onChange={handleFechaHastaChange}
+                  label="Hasta:"
+                  maxDate={new Date()}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.dateFilterButton}
+                  onPress={() => setShowDatePickerHasta(true)}
+                >
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={16}
+                    color="#666"
+                  />
+                  <Text style={styles.dateFilterText}>
+                    Hasta: {fechaHasta.toLocaleDateString("es-AR")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              
+              <TouchableOpacity
+                style={styles.applyFilterButton}
+                onPress={aplicarFiltroFechas}
+              >
+                <MaterialCommunityIcons
+                  name="filter-check"
+                  size={16}
+                  color="#fff"
+                />
+                <Text style={styles.applyFilterText}>Aplicar</Text>
+              </TouchableOpacity>
+
+              
+              <TouchableOpacity
+                style={styles.clearFilterButton}
+                onPress={limpiarFiltroFechas}
+              >
+                <MaterialCommunityIcons
+                  name="filter-remove"
+                  size={16}
+                  color="#666"
+                />
+                <Text style={styles.clearFilterText}>Limpiar</Text>
+              </TouchableOpacity>
+            </View>
+
+            
+            {warningFechas ? (
+              <View style={styles.warningContainer}>
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={16}
+                  color="#F59E0B"
+                />
+                <Text style={styles.warningText}>{warningFechas}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -710,6 +899,28 @@ export default function InvoicesScreen({ onNavigate, currentScreen }) {
             </Pressable>
           </Pressable>
         </Modal>
+
+        
+        {showDatePickerDesde && (
+          <DateTimePicker
+            value={fechaDesde}
+            mode="date"
+            display="default"
+            onChange={handleFechaDesdeChange}
+            maximumDate={new Date()}
+          />
+        )}
+
+        
+        {showDatePickerHasta && (
+          <DateTimePicker
+            value={fechaHasta}
+            mode="date"
+            display="default"
+            onChange={handleFechaHastaChange}
+            maximumDate={new Date()}
+          />
+        )}
       </View>
     </DashboardLayout>
   );
@@ -785,6 +996,84 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: "#fff",
+  },
+  
+  dateFilterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 12,
+    flexWrap: "wrap",
+  },
+  dateFilterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  dateFilterInputs: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  dateFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  dateFilterText: {
+    fontSize: 13,
+    color: "#333",
+  },
+  applyFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#4CAF50",
+  },
+  applyFilterText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  clearFilterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  clearFilterText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FEF3C7",
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#78350F",
+    fontWeight: "500",
   },
   actionsContainer: {
     flexDirection: "row",
@@ -1056,5 +1345,27 @@ const styles = StyleSheet.create({
   filterButtonActiveAnulada: {
     backgroundColor: "#6B7280",
     borderColor: "#6B7280",
+  },
+  
+  webDateInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  webDateInputLabel: {
+    fontSize: 13,
+    color: "#333",
+    fontWeight: "500",
+  },
+  webDateInput: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    backgroundColor: "#fff",
+    fontSize: 13,
+    color: "#333",
+    outlineStyle: "none",
   },
 });

@@ -23,6 +23,7 @@ const { toggleCliente } = clienteService;
 
 export default function ClientesScreen({ onNavigate, currentScreen }) {
   const [clientes, setClientes] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('habilitados');
   const [modalVisible, setModalVisible] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -40,14 +41,14 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
   const userName = user?.usuario || "Usuario";
 
     useEffect(() => {
-    cargarClientes();
+    cargarClientes({ estado: filtroEstado });
   }, []);
 
-  const cargarClientes = async () => {
+  const cargarClientes = async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await clienteService.getClientes();
+      const response = await clienteService.getClientes(params);
 
       const clientesData = response.data || [];
       const clientesConId = clientesData.map((cliente) => ({
@@ -294,6 +295,32 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
     }
   };
 
+  
+  const handleFilterChange = (filterModel) => {
+    const estadoFilter = filterModel.items.find(
+      (item) => item.field === 'estado' && item.value
+    );
+    
+    if (estadoFilter) {
+      
+      const nuevoEstado = estadoFilter.value === 'Activo' ? 'habilitados' : 'deshabilitados';
+      if (nuevoEstado !== filtroEstado) {
+        setFiltroEstado(nuevoEstado);
+        cargarClientes({ estado: nuevoEstado });
+      }
+    } else {
+      
+      if (filtroEstado !== 'habilitados') {
+        setFiltroEstado('habilitados');
+        cargarClientes({ estado: 'habilitados' });
+      }
+    }
+  };
+
+  const handleRetry = () => {
+    cargarClientes({ estado: filtroEstado });
+  };
+
     const confirmarEliminacion = async () => {
     if (!clienteAEliminar) return;
 
@@ -384,30 +411,34 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
       setDesvincularModalVisible(false);
       setClienteADesvincular(null);
     } catch (error) {
+
       if (error.response?.status === 401) {
         Alert.alert(
           "Sesión expirada",
           "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
           [{ text: "OK", onPress: () => logout() }]
         );
-      } else if (error.response?.status === 409) {
-                Alert.alert(
-          "No se puede desvincular la tarjeta",
-          "Este cliente tiene registros relacionados (suscripciones, movimientos, etc.) y no puede desvincular la tarjeta. " +
-            "Si deseas desactivar este cliente, considera actualizar su estado en lugar de desvincular la tarjeta.",
-          [{ text: "Entendido", style: "default" }]
+      } else if (error.response?.status === 403) {
+        Alert.alert(
+          "Sin permisos",
+          "No tienes permisos para realizar esta acción."
         );
       } else if (error.response?.status === 404) {
         Alert.alert(
           "Cliente no encontrado",
-          "El cliente que intentas desvincular no existe o ya fue desvinculado.",
+          "El cliente no existe o ya fue modificado. Refrescando la lista...",
           [
             {
-              text: "Actualizar lista",
+              text: "Aceptar",
               onPress: () => cargarClientes(),
-              style: "default",
             },
           ]
+        );
+      } else if (error.response?.status === 400) {
+        Alert.alert(
+          "Operación no válida",
+          error.response?.data?.message ||
+            "El cliente no tiene una tarjeta asociada."
         );
       } else {
         const mensaje =
@@ -415,8 +446,6 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
           "Error al desvincular la tarjeta. Por favor, intenta nuevamente.";
         Alert.alert("Error", mensaje);
       }
-
-      setClienteADesvincular(null);
     } finally {
       setDesvinculandoTarjeta(false);
     }
@@ -553,7 +582,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
             />
             <Text style={styles.errorMessage}>{error}</Text>
             <TouchableOpacity
-              onPress={cargarClientes}
+              onPress={handleRetry}
               style={styles.retryButton}
             >
               <Text style={styles.retryText}>Reintentar</Text>
@@ -571,7 +600,7 @@ export default function ClientesScreen({ onNavigate, currentScreen }) {
 
         
         {!loading && !error && clientesFiltrados.length > 0 && (
-          <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} />
+          <DataTable rows={clientesFiltrados} columns={columns} pageSize={10} onFilterChange={handleFilterChange} />
         )}
 
         

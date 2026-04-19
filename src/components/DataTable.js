@@ -33,6 +33,7 @@ export default function DataTable({
   exportFileBaseName = 'tabla',
   exportExcludeFields = ['acciones'],
   exportOptions = {},
+  onFilterChange,
   sx = {},
   ...props
 }) {
@@ -126,6 +127,7 @@ export default function DataTable({
           checkboxSelection={checkboxSelection}
           disableRowSelectionOnClick
           rowHeight={rowHeight}
+          onFilterModelChange={onFilterChange}
           sx={{
             border: 0,
             '& .MuiDataGrid-cell': {
