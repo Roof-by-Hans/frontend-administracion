@@ -22,7 +22,7 @@
     "expo": "~54.0.12",
     "expo-image-picker": "^17.0.8",
     "expo-status-bar": "~3.0.8",
-    "jspdf": "^4.2.0",
+    "jspdf": "2.3.0",
     "jspdf-autotable": "^5.0.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
